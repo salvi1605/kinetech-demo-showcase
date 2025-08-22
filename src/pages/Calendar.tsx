@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
+import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
@@ -68,7 +69,7 @@ export const Calendar = () => {
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
   const [showAppointmentDetailModal, setShowAppointmentDetailModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
   // Cambio de semana con skeleton
@@ -128,7 +129,7 @@ export const Calendar = () => {
       setShowAppointmentDetailModal(true);
     } else if (isSlotAvailable(dayIndex, time)) {
       // Crear nueva cita
-      setSelectedSlot({ day: dayIndex, time });
+      setSelectedSlot({ day: dayIndex, time, date: weekDates[dayIndex] });
       setShowNewAppointmentModal(true);
     }
   };
@@ -425,27 +426,11 @@ export const Calendar = () => {
       </div>
 
       {/* Modal Nuevo Turno */}
-      <Dialog open={showNewAppointmentModal} onOpenChange={setShowNewAppointmentModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nuevo Turno</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Fecha y hora</label>
-              <p className="text-sm text-muted-foreground">
-                {selectedSlot && `${format(weekDates[selectedSlot.day], 'EEEE d MMM yyyy', { locale: es })} a las ${selectedSlot.time}`}
-              </p>
-            </div>
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Formulario de nuevo turno aquí</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                (Este es un modal simulado - UI only)
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewAppointmentDialog
+        open={showNewAppointmentModal}
+        onOpenChange={setShowNewAppointmentModal}
+        selectedSlot={selectedSlot}
+      />
 
       {/* Modal Detalle Turno */}
       <Dialog open={showAppointmentDetailModal} onOpenChange={setShowAppointmentDetailModal}>
