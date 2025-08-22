@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
+import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
@@ -68,7 +69,6 @@ export const Calendar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
-  const [showAppointmentDetailModal, setShowAppointmentDetailModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
@@ -126,7 +126,6 @@ export const Calendar = () => {
     if (appointments.length > 0) {
       // Mostrar detalle de cita existente
       setSelectedAppointment(appointments[0]);
-      setShowAppointmentDetailModal(true);
     } else if (isSlotAvailable(dayIndex, time)) {
       // Crear nueva cita
       setSelectedSlot({ day: dayIndex, time, date: weekDates[dayIndex] });
@@ -432,41 +431,12 @@ export const Calendar = () => {
         selectedSlot={selectedSlot}
       />
 
-      {/* Modal Detalle Turno */}
-      <Dialog open={showAppointmentDetailModal} onOpenChange={setShowAppointmentDetailModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Detalle del Turno</DialogTitle>
-          </DialogHeader>
-          {selectedAppointment && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Paciente</label>
-                <p className="text-sm text-muted-foreground">
-                  {state.patients.find(p => p.id === selectedAppointment.patientId)?.name}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Kinesiólogo</label>
-                <p className="text-sm text-muted-foreground">
-                  {state.practitioners.find(p => p.id === selectedAppointment.practitionerId)?.name}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Estado</label>
-                <div className="mt-1">
-                  <Badge variant="secondary">{selectedAppointment.status}</Badge>
-                </div>
-              </div>
-              <div className="text-center py-4">
-                <p className="text-xs text-muted-foreground">
-                  (Formulario de edición/detalle aquí - UI only)
-                </p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AppointmentDetailDialog
+        open={!!selectedAppointment}
+        onOpenChange={(open) => !open && setSelectedAppointment(null)}
+        appointment={selectedAppointment}
+      />
+
 
       {/* Estado vacío */}
       {!state.isDemoMode && state.appointments.length === 0 && !isLoading && (
