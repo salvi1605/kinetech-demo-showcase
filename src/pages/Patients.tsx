@@ -1,21 +1,38 @@
 import { useState } from 'react';
-import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText } from 'lucide-react';
+import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
+import { PatientWizardDialog } from '@/components/dialogs/PatientWizardDialog';
+import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export const Patients = () => {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCondition, setFilterCondition] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<any>(null);
+  const [deletePatient, setDeletePatient] = useState<any>(null);
+  const itemsPerPage = 10;
 
   const filteredPatients = state.patients.filter(patient => {
     const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.email.toLowerCase().includes(searchTerm.toLowerCase());
+                         patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.phone.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = filterCondition === 'all' || 
                          patient.conditions.some(condition => 
@@ -24,6 +41,39 @@ export const Patients = () => {
     
     return matchesSearch && matchesFilter;
   });
+
+  // Paginación
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
+
+  // Simular loading al filtrar
+  const handleSearch = (value: string) => {
+    setIsLoading(true);
+    setSearchTerm(value);
+    setCurrentPage(1);
+    setTimeout(() => setIsLoading(false), 300);
+  };
+
+  const handleEdit = (patient: any) => {
+    setEditingPatient(patient);
+    setShowWizard(true);
+  };
+
+  const handleDelete = (patientId: string) => {
+    dispatch({ type: 'DELETE_PATIENT', payload: patientId });
+    toast({
+      title: "Paciente eliminado",
+      description: "El paciente ha sido eliminado del sistema.",
+      variant: "destructive",
+    });
+    setDeletePatient(null);
+  };
+
+  const handleNewPatient = () => {
+    setEditingPatient(null);
+    setShowWizard(true);
+  };
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -56,7 +106,7 @@ export const Patients = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button>
+          <Button onClick={handleNewPatient} className={cn("hidden lg:flex")}>
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Paciente
           </Button>
@@ -70,9 +120,9 @@ export const Patients = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre o email..."
+                placeholder="Buscar por nombre, email o teléfono..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -84,89 +134,284 @@ export const Patients = () => {
         </CardContent>
       </Card>
 
-      {/* Patients Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredPatients.map((patient) => (
-          <Card key={patient.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {getInitials(patient.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="text-lg">{patient.name}</CardTitle>
-                    <CardDescription>
-                      {calculateAge(patient.birthDate)} años
-                    </CardDescription>
-                  </div>
-                </div>
-                <Link to={`/patients/${patient.id}`}>
-                  <Button variant="ghost" size="sm">
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                </Link>
+      {/* Desktop Table View */}
+      {!isMobile && (
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-6 space-y-4">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Skeleton key={index} className="h-16 w-full" />
+                ))}
               </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* Contact Info */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  <span className="truncate">{patient.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{patient.phone}</span>
-                </div>
-              </div>
-
-              {/* Conditions */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Condiciones:</p>
-                <div className="flex flex-wrap gap-1">
-                  {patient.conditions.map((condition, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {condition}
-                    </Badge>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Paciente</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Edad</TableHead>
+                    <TableHead>Condiciones</TableHead>
+                    <TableHead>Última Visita</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedPatients.map((patient) => (
+                    <TableRow key={patient.id}>
+                      <TableCell className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {getInitials(patient.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{patient.name}</p>
+                          <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate max-w-[150px]">{patient.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3 w-3" />
+                            <span>{patient.phone}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{calculateAge(patient.birthDate)} años</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {patient.conditions.slice(0, 2).map((condition, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {condition}
+                            </Badge>
+                          ))}
+                          {patient.conditions.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{patient.conditions.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {patient.lastVisit ? (
+                          <span className="text-sm">
+                            {new Date(patient.lastVisit).toLocaleDateString('es-ES')}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-background z-50">
+                            <DropdownMenuItem asChild>
+                              <Link to={`/patients/${patient.id}`} className="flex items-center">
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(patient)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => setDeletePatient(patient)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            )}
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredPatients.length)} de {filteredPatients.length} pacientes
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="min-h-[44px]"
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm">{currentPage} de {totalPages}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="min-h-[44px]"
+                  >
+                    Siguiente
+                  </Button>
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-              {/* Last Visit / Next Appointment */}
-              <div className="space-y-2 text-sm">
-                {patient.lastVisit && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Última visita: {new Date(patient.lastVisit).toLocaleDateString('es-ES')}</span>
+      {/* Mobile Cards View */}
+      {isMobile && (
+        <div className="space-y-4">
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-32 w-full" />
+            ))
+          ) : (
+            paginatedPatients.map((patient) => (
+              <Card key={patient.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {getInitials(patient.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle className="text-lg">{patient.name}</CardTitle>
+                        <CardDescription>
+                          {calculateAge(patient.birthDate)} años
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background z-50">
+                        <DropdownMenuItem asChild>
+                          <Link to={`/patients/${patient.id}`} className="flex items-center">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(patient)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => setDeletePatient(patient)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                )}
-                {patient.nextAppointment && (
-                  <div className="flex items-center gap-2 text-accent">
-                    <Calendar className="h-4 w-4" />
-                    <span>Próxima cita: {new Date(patient.nextAppointment).toLocaleDateString('es-ES')}</span>
-                  </div>
-                )}
-              </div>
+                </CardHeader>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
-                <Link to={`/patients/${patient.id}`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full">
-                    Ver Detalles
-                  </Button>
-                </Link>
-                <Button variant="default" size="sm" className="flex-1">
-                  Nueva Cita
+                <CardContent className="space-y-4">
+                  {/* Contact Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span className="truncate">{patient.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      <span>{patient.phone}</span>
+                    </div>
+                  </div>
+
+                  {/* Conditions */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Condiciones:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {patient.conditions.map((condition, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {condition}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Last Visit / Next Appointment */}
+                  <div className="space-y-2 text-sm">
+                    {patient.lastVisit && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>Última visita: {new Date(patient.lastVisit).toLocaleDateString('es-ES')}</span>
+                      </div>
+                    )}
+                    {patient.nextAppointment && (
+                      <div className="flex items-center gap-2 text-accent">
+                        <Calendar className="h-4 w-4" />
+                        <span>Próxima cita: {new Date(patient.nextAppointment).toLocaleDateString('es-ES')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Link to={`/patients/${patient.id}`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full min-h-[44px]">
+                        Ver Detalles
+                      </Button>
+                    </Link>
+                    <Button variant="default" size="sm" className="flex-1 min-h-[44px]">
+                      Nueva Cita
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+          
+          {/* Mobile Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="min-h-[44px]"
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="min-h-[44px]"
+                >
+                  Siguiente
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* No Results */}
       {filteredPatients.length === 0 && searchTerm && (
@@ -190,7 +435,7 @@ export const Patients = () => {
             <CardDescription className="mb-4">
               Comienza agregando el primer paciente o activa el modo demo
             </CardDescription>
-            <Button>
+            <Button onClick={handleNewPatient}>
               <Plus className="h-4 w-4 mr-2" />
               Agregar Primer Paciente
             </Button>
@@ -231,6 +476,45 @@ export const Patients = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* FAB for Mobile */}
+      {isMobile && (
+        <Button
+          onClick={handleNewPatient}
+          className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-40"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
+      {/* Dialogs */}
+      <PatientWizardDialog
+        open={showWizard}
+        onOpenChange={setShowWizard}
+        patient={editingPatient}
+      />
+
+      <AlertDialog open={!!deletePatient} onOpenChange={() => setDeletePatient(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar paciente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente al paciente{' '}
+              <strong>{deletePatient?.name}</strong> del sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="min-h-[44px]">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(deletePatient?.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
