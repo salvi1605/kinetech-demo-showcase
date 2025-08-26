@@ -3,6 +3,15 @@ import { createContext, useContext, useReducer, ReactNode } from 'react';
 // Types
 export type UserRole = 'admin' | 'recep' | 'kinesio';
 
+export interface Preferences {
+  timezone: string;
+  weekStartsOn: number;
+  slotMinutes: number;
+  showWeekends: boolean;
+  gridSize: 'sm' | 'md' | 'lg';
+  multiTenant?: boolean;
+}
+
 export interface AppState {
   currentWeek: Date;
   userRole: UserRole;
@@ -14,6 +23,7 @@ export interface AppState {
   appointments: Appointment[];
   isAuthenticated: boolean;
   currentUser?: User;
+  preferences: Preferences;
 }
 
 export interface Patient {
@@ -44,7 +54,7 @@ export interface Appointment {
   startTime: string;
   endTime: string;
   type: 'consultation' | 'therapy' | 'follow-up';
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes?: string;
 }
 
@@ -90,6 +100,14 @@ const initialState: AppState = {
   practitioners: [],
   appointments: [],
   isAuthenticated: false,
+  preferences: {
+    timezone: 'America/Argentina/Buenos_Aires',
+    weekStartsOn: 1,
+    slotMinutes: 30,
+    showWeekends: false,
+    gridSize: 'md',
+    multiTenant: false,
+  },
 };
 
 // Reducer

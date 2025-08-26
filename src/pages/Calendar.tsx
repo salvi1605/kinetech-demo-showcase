@@ -27,6 +27,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
+import { RoleGuard } from '@/components/shared/RoleGuard';
+import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
+import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
@@ -133,18 +137,67 @@ export const Calendar = () => {
     }
   };
 
-  const handleExport = () => {
-    toast({
-      title: "Exportando agenda",
-      description: "Se ha iniciado la exportación de la agenda semanal",
-    });
+  const handleExport = async () => {
+    try {
+      const scheduleText = `AGENDA SEMANAL - ${format(weekDates[0], 'd MMM', { locale: es })} al ${format(weekDates[4], 'd MMM yyyy', { locale: es })}
+
+${weekDates.map((date, dayIndex) => {
+  const dayAppointments = TIME_SLOTS.map(time => {
+    const appointments = getAppointmentsForSlot(dayIndex, time);
+    if (appointments.length > 0) {
+      const apt = appointments[0];
+      const patient = state.patients.find(p => p.id === apt.patientId);
+      const practitioner = state.practitioners.find(p => p.id === apt.practitionerId);
+      return `${time} - ${patient?.name || 'Sin paciente'} (${practitioner?.name || 'Sin profesional'})`;
+    }
+    return null;
+  }).filter(Boolean);
+  
+  return `${format(date, 'EEEE d/MM', { locale: es })}:
+${dayAppointments.length > 0 ? dayAppointments.join('\n') : 'Sin turnos programados'}`;
+}).join('\n\n')}
+
+Generado el ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+
+      await navigator.clipboard.writeText(scheduleText);
+      
+      toast({
+        title: "Agenda exportada",
+        description: "La agenda semanal ha sido copiada al portapapeles",
+      });
+    } catch (error) {
+      toast({
+        title: "Error al exportar",
+        description: "No se pudo copiar la agenda al portapapeles",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleCopySchedule = () => {
-    toast({
-      title: "Horario copiado",
-      description: "El horario se ha copiado al portapapeles",
-    });
+  const handleCopySchedule = async () => {
+    try {
+      const scheduleText = `HORARIO SEMANAL
+${WEEKDAYS.map((day, index) => `${day}: ${format(weekDates[index], 'd/MM')}`).join('\n')}
+
+Horarios disponibles: ${WORK_START_HOUR}:00 - ${WORK_END_HOUR}:00
+Duración de turnos: ${SLOT_MINUTES} minutos
+
+Profesionales:
+${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
+
+      await navigator.clipboard.writeText(scheduleText);
+      
+      toast({
+        title: "Horario copiado",
+        description: "El horario base ha sido copiado al portapapeles",
+      });
+    } catch (error) {
+      toast({
+        title: "Error al copiar",
+        description: "No se pudo copiar el horario al portapapeles",
+        variant: "destructive",
+      });
+    }
   };
 
   // Filtros
@@ -168,10 +221,12 @@ export const Calendar = () => {
       const colorClass = getPractitionerColor(appointment.practitionerId);
       
       return (
-        <div 
+        <button 
           key={`${dayIndex}-${time}`}
-          className={`min-h-[60px] p-2 border border-border/30 cursor-pointer hover:opacity-80 transition-all ${colorClass}`}
+          className={`min-h-[60px] p-2 border border-border/30 cursor-pointer hover:opacity-80 transition-all ${colorClass} w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1`}
           onClick={() => handleSlotClick(dayIndex, time)}
+          aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}`}
+          tabIndex={0}
         >
           <div className="text-xs font-medium text-foreground">
             {patient?.name || 'Paciente'}
@@ -190,21 +245,23 @@ export const Calendar = () => {
                appointment.status === 'completed' ? 'No-show' : appointment.status}
             </Badge>
           </div>
-        </div>
+        </button>
       );
     }
     
     if (isAvailable) {
       return (
-        <div 
+        <button 
           key={`${dayIndex}-${time}`}
-          className="min-h-[60px] p-2 border border-border/30 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center"
+          className="min-h-[60px] p-2 border border-border/30 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center w-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
           onClick={() => handleSlotClick(dayIndex, time)}
+          aria-label={`Slot disponible a las ${time}. Hacer clic para crear turno`}
+          tabIndex={0}
         >
           <Badge variant="outline" className="text-xs bg-white border-green-300 text-green-700">
             Disponible
           </Badge>
-        </div>
+        </button>
       );
     }
     
@@ -266,10 +323,12 @@ export const Calendar = () => {
             Copiar horario
           </Button>
 
-          <Button onClick={() => setShowNewAppointmentModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo turno
-          </Button>
+          <RoleGuard allowedRoles={['admin', 'recep']}>
+            <Button onClick={() => setShowNewAppointmentModal(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo turno
+            </Button>
+          </RoleGuard>
         </div>
       </div>
 
@@ -304,11 +363,7 @@ export const Calendar = () => {
           {/* Vista Desktop/Tablet - Grid semanal */}
           <div className="hidden md:block">
             {isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
+              <LoadingSkeleton variant="calendar" />
             ) : (
               <div className="overflow-x-auto">
                 <div className="grid grid-cols-6 gap-1 min-w-[800px]">
@@ -357,11 +412,7 @@ export const Calendar = () => {
               {WEEKDAYS.map((_, dayIndex) => (
                 <TabsContent key={dayIndex} value={dayIndex.toString()} className="mt-4">
                   {isLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
-                      ))}
-                    </div>
+                    <LoadingSkeleton variant="cards" />
                   ) : (
                     <div className="space-y-1">
                       {TIME_SLOTS.map((time) => {
@@ -369,16 +420,24 @@ export const Calendar = () => {
                         const isAvailable = isSlotAvailable(dayIndex, time);
                         
                         return (
-                          <div 
+                          <button 
                             key={time}
-                            className={`p-3 border rounded-lg cursor-pointer transition-all min-h-[44px] ${
+                            className={`p-3 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 ${
                               appointments.length > 0 
-                                ? `${getPractitionerColor(appointments[0].practitionerId)} hover:opacity-80`
+                                ? `${getPractitionerColor(appointments[0].practitionerId)} hover:opacity-80 cursor-pointer`
                                 : isAvailable 
-                                  ? 'bg-green-50 border-green-200 hover:bg-green-100'
-                                  : 'bg-gray-50 border-gray-200'
+                                  ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer'
+                                  : 'bg-gray-50 border-gray-200 cursor-default'
                             }`}
                             onClick={() => appointments.length > 0 || isAvailable ? handleSlotClick(dayIndex, time) : undefined}
+                            disabled={appointments.length === 0 && !isAvailable}
+                            aria-label={
+                              appointments.length > 0 
+                                ? `Turno reservado a las ${time} por ${state.patients.find(p => p.id === appointments[0].patientId)?.name}`
+                                : isAvailable 
+                                  ? `Slot disponible a las ${time}. Hacer clic para crear turno`
+                                  : `Slot no disponible a las ${time}`
+                            }
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -401,7 +460,7 @@ export const Calendar = () => {
                                 </Badge>
                               ) : null}
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -413,16 +472,15 @@ export const Calendar = () => {
         </CardContent>
       </Card>
 
-      {/* FAB Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-10">
-        <Button 
-          size="lg" 
-          className="rounded-full h-14 w-14 shadow-lg"
+      {/* FAB Mobile - Con Role Guard */}
+      <RoleGuard allowedRoles={['admin', 'recep']}>
+        <FloatingActionButton
           onClick={() => setShowNewAppointmentModal(true)}
+          ariaLabel="Crear nuevo turno"
         >
           <Plus className="h-6 w-6" />
-        </Button>
-      </div>
+        </FloatingActionButton>
+      </RoleGuard>
 
       {/* Modal Nuevo Turno */}
       <NewAppointmentDialog
@@ -440,19 +498,17 @@ export const Calendar = () => {
 
       {/* Estado vacío */}
       {!state.isDemoMode && state.appointments.length === 0 && !isLoading && (
-        <Card className="text-center p-8">
-          <CardContent>
-            <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <CardTitle className="mb-2">No hay turnos programados</CardTitle>
-            <p className="text-muted-foreground mb-4">
-              Activa el modo demo para ver datos de ejemplo o comienza creando turnos
-            </p>
-            <Button onClick={() => setShowNewAppointmentModal(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Crear primer turno
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<CalendarIcon className="h-12 w-12" />}
+          title="No hay turnos programados"
+          description="Comienza creando tu primer turno o activa el modo demo para ver datos de ejemplo"
+          action={{
+            label: "Crear primer turno",
+            onClick: () => setShowNewAppointmentModal(true),
+            disabled: !['admin', 'recep'].includes(state.userRole),
+            'aria-label': 'Crear el primer turno del calendario'
+          }}
+        />
       )}
     </div>
   );

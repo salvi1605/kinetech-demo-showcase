@@ -34,7 +34,7 @@ const editAppointmentSchema = z.object({
   startTime: z.string().min(1, 'La hora de inicio es requerida'),
   endTime: z.string().min(1, 'La hora de fin es requerida'),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
-  status: z.enum(['scheduled', 'completed', 'cancelled']),
+  status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show']),
   notes: z.string().optional(),
 }).refine((data) => {
   if (data.startTime && data.endTime) {
@@ -127,6 +127,14 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment }: App
           borderColor: 'border-red-200'
         };
       case 'completed':
+        return { 
+          label: 'Completado', 
+          icon: CheckCircle2, 
+          color: 'text-green-600',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200'
+        };
+      case 'no_show':
         return { 
           label: 'No-show', 
           icon: AlertCircle, 
@@ -386,6 +394,12 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                             </div>
                           </SelectItem>
                           <SelectItem value="completed">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              Completado
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="no_show">
                             <div className="flex items-center gap-2">
                               <AlertCircle className="h-4 w-4 text-orange-600" />
                               No-show
