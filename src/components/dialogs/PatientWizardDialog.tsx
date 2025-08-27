@@ -75,21 +75,11 @@ const patientSchema = z.object({
   billingName: z.string().optional(),
   billingTaxId: z.string().optional(),
   billingAddress: z.string().optional(),
-  consentGiven: z.boolean().optional(),
-  consentAt: z.date().optional(),
   smsAuthorization: z.boolean().optional(),
   whatsappAuthorization: z.boolean().optional(),
   emailAuthorization: z.boolean().optional(),
   reminderPreference: z.string().optional(),
   privacyNotes: z.string().optional(),
-}).refine((data) => {
-  if (data.consentGiven && !data.consentAt) {
-    return false;
-  }
-  return true;
-}, {
-  message: "La fecha de consentimiento es requerida cuando se acepta el consentimiento",
-  path: ["consentAt"],
 });
 
 type PatientFormData = z.infer<typeof patientSchema>;
@@ -109,13 +99,14 @@ const steps = [
 
 const bodyRegionOptions = [
   'Cervical', 'Torácico', 'Lumbar', 'Hombro', 'Codo', 'Muñeca/Mano', 
-  'Cadera', 'Rodilla', 'Tobillo/Pie', 'Cabeza', 'ATM'
+  'Cadera', 'Rodilla', 'Tobillo/Pie', 'Cabeza', 'ATM', 'Drenaje'
 ];
 
 const redFlagOptions = [
   'Pérdida de peso no explicada', 'Fiebre', 'Antecedente de cáncer',
   'Dolor nocturno intenso', 'Pérdida de control de esfínteres',
-  'Debilidad progresiva', 'Entumecimiento en silla de montar'
+  'Debilidad progresiva', 'Entumecimiento en silla de montar',
+  'Cáncer', 'Marcapaso', 'Embarazo'
 ];
 
 export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWizardDialogProps) => {
@@ -139,15 +130,22 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
       authorizedSessions: 0,
       usedSessions: 0,
       copay: 0,
-      consentGiven: false,
       smsAuthorization: false,
       whatsappAuthorization: false,
       emailAuthorization: false,
     }
   });
 
-  const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+  const nextStep = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+      // Focus first input of next step
+      setTimeout(() => {
+        const firstInput = document.querySelector('[data-step-content] input, [data-step-content] textarea, [data-step-content] button') as HTMLElement;
+        firstInput?.focus();
+      }, 100);
+    }
   };
 
   const prevStep = () => {
@@ -561,69 +559,6 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
             <Separator />
 
             <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="consentGiven"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Consentimiento Informado</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        El paciente ha leído y acepta el consentimiento informado
-                      </p>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch('consentGiven') && (
-                <FormField
-                  control={form.control}
-                  name="consentAt"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Consentimiento *</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
 
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Autorizaciones de Contacto</Label>
@@ -750,7 +685,9 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {renderStepContent()}
+            <div data-step-content>
+              {renderStepContent()}
+            </div>
 
             {/* Navigation */}
             <div className="flex justify-between pt-6 border-t">

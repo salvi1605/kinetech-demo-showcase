@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
+import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
@@ -103,37 +104,77 @@ export const Calendar = () => {
     });
   };
 
+  // Obtener capacidad para un slot
+  const getSlotCapacity = (dayIndex: number, time: string) => {
+    const weekday = (dayIndex + 1) % 7; // Convert to 0=Sunday format
+    const availability = state.availability.find(av => 
+      av.weekday === weekday && 
+      time >= av.from && 
+      time < av.to
+    );
+    return availability?.capacity || 5; // Default capacity
+  };
+
+  // Obtener próximo sub-slot disponible
+  const getNextAvailableSubSlot = (dayIndex: number, time: string) => {
+    const appointments = getAppointmentsForSlot(dayIndex, time);
+    const capacity = getSlotCapacity(dayIndex, time);
+    const usedSlots = appointments.map(apt => apt.slotIndex || 0);
+    
+    for (let i = 0; i < capacity; i++) {
+      if (!usedSlots.includes(i)) {
+        return i;
+      }
+    }
+    return null; // No available slots
+  };
+
   // Verificar si hay slot disponible
   const isSlotAvailable = (dayIndex: number, time: string) => {
     const appointments = getAppointmentsForSlot(dayIndex, time);
-    if (appointments.length > 0) return false;
+    const capacity = getSlotCapacity(dayIndex, time);
     
-    // Verificar si hay slots mock disponibles
-    return mockAvailableSlots.some(slot => 
-      slot.day === dayIndex + 1 && 
-      slot.time === time &&
-      (selectedPractitioner === 'all' || slot.practitionerId === selectedPractitioner)
-    );
+    // Si hay menos citas que capacidad, hay slots disponibles
+    return appointments.length < capacity;
   };
 
   // Obtener color del kinesiólogo
   const getPractitionerColor = (practitionerId: string) => {
-    const colors = ['bg-blue-100 border-blue-300', 'bg-green-100 border-green-300', 'bg-purple-100 border-purple-300'];
-    const index = state.practitioners.findIndex(p => p.id === practitionerId);
-    return colors[index % colors.length] || 'bg-gray-100 border-gray-300';
+    const practitioner = state.practitioners.find(p => p.id === practitionerId);
+    return practitioner?.color || '#6b7280'; // Default gray
+  };
+
+  // Obtener estilos con contraste accesible
+  const getPractitionerStyles = (practitionerId: string) => {
+    const bgColor = getPractitionerColor(practitionerId);
+    const textColor = getAccessibleTextColor(bgColor);
+    return {
+      backgroundColor: bgColor,
+      color: textColor,
+      borderColor: bgColor,
+    };
   };
 
   // Handlers de interacción
-  const handleSlotClick = (dayIndex: number, time: string) => {
+  const handleSlotClick = (dayIndex: number, time: string, slotIndex?: number) => {
     const appointments = getAppointmentsForSlot(dayIndex, time);
     
-    if (appointments.length > 0) {
-      // Mostrar detalle de cita existente
-      setSelectedAppointment(appointments[0]);
+    if (slotIndex !== undefined && appointments[slotIndex]) {
+      // Mostrar detalle de cita específica
+      setSelectedAppointment(appointments[slotIndex]);
     } else if (isSlotAvailable(dayIndex, time)) {
-      // Crear nueva cita
-      setSelectedSlot({ day: dayIndex, time, date: weekDates[dayIndex] });
-      setShowNewAppointmentModal(true);
+      // Verificar capacidad antes de crear nueva cita
+      const nextSlot = getNextAvailableSubSlot(dayIndex, time);
+      if (nextSlot !== null) {
+        setSelectedSlot({ day: dayIndex, time, date: weekDates[dayIndex] });
+        setShowNewAppointmentModal(true);
+      } else {
+        toast({
+          title: "Capacidad completa",
+          description: "No hay más slots disponibles en este horario",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -209,46 +250,58 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
     p.name.toLowerCase().includes(patientSearch.toLowerCase())
   );
 
-  // Renderizado de slot para grid
+  // Renderizado de slot para grid con capacidad múltiple
   const renderSlot = (dayIndex: number, time: string) => {
     const appointments = getAppointmentsForSlot(dayIndex, time);
+    const capacity = getSlotCapacity(dayIndex, time);
     const isAvailable = isSlotAvailable(dayIndex, time);
-    
+
+    // Si hay citas, mostrar sub-slots
     if (appointments.length > 0) {
-      const appointment = appointments[0];
-      const patient = state.patients.find(p => p.id === appointment.patientId);
-      const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
-      const colorClass = getPractitionerColor(appointment.practitionerId);
-      
       return (
-        <button 
-          key={`${dayIndex}-${time}`}
-          className={`min-h-[60px] p-2 border border-border/30 cursor-pointer hover:opacity-80 transition-all ${colorClass} w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1`}
-          onClick={() => handleSlotClick(dayIndex, time)}
-          aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}`}
-          tabIndex={0}
-        >
-          <div className="text-xs font-medium text-foreground">
-            {patient?.name || 'Paciente'}
-          </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-            <User className="h-3 w-3" />
-            {practitioner?.name || 'Profesional'}
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <Badge 
-              variant={appointment.status === 'cancelled' ? 'destructive' : 'secondary'}
-              className="text-xs"
-            >
-              {appointment.status === 'scheduled' ? 'Reservado' : 
-               appointment.status === 'cancelled' ? 'Cancelado' : 
-               appointment.status === 'completed' ? 'No-show' : appointment.status}
-            </Badge>
-          </div>
-        </button>
+        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
+             style={{ gridTemplateRows: `repeat(${Math.min(capacity, 3)}, 1fr)` }}>
+          {Array.from({ length: capacity }).map((_, subIndex) => {
+            const appointment = appointments.find(apt => (apt.slotIndex || 0) === subIndex);
+            
+            if (appointment) {
+              const patient = state.patients.find(p => p.id === appointment.patientId);
+              const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
+              const styles = getPractitionerStyles(appointment.practitionerId);
+              
+              return (
+                <button
+                  key={`${dayIndex}-${time}-${subIndex}`}
+                  className="text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring"
+                  style={styles}
+                  onClick={() => handleSlotClick(dayIndex, time, subIndex)}
+                  aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
+                  tabIndex={0}
+                >
+                  <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
+                  <div className="truncate opacity-75">{practitioner?.name || 'Profesional'}</div>
+                </button>
+              );
+            } else if (isAvailable && subIndex < capacity) {
+              return (
+                <button
+                  key={`${dayIndex}-${time}-${subIndex}`}
+                  className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
+                  onClick={() => handleSlotClick(dayIndex, time)}
+                  aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
+                  tabIndex={0}
+                >
+                  <span className="text-green-600">+</span>
+                </button>
+              );
+            }
+            return null;
+          })}
+        </div>
       );
     }
-    
+
+    // Slot completamente vacío
     if (isAvailable) {
       return (
         <button 
@@ -420,47 +473,58 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                         const isAvailable = isSlotAvailable(dayIndex, time);
                         
                         return (
-                          <button 
-                            key={time}
-                            className={`p-3 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 ${
-                              appointments.length > 0 
-                                ? `${getPractitionerColor(appointments[0].practitionerId)} hover:opacity-80 cursor-pointer`
-                                : isAvailable 
-                                  ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer'
-                                  : 'bg-gray-50 border-gray-200 cursor-default'
-                            }`}
-                            onClick={() => appointments.length > 0 || isAvailable ? handleSlotClick(dayIndex, time) : undefined}
-                            disabled={appointments.length === 0 && !isAvailable}
-                            aria-label={
-                              appointments.length > 0 
-                                ? `Turno reservado a las ${time} por ${state.patients.find(p => p.id === appointments[0].patientId)?.name}`
-                                : isAvailable 
-                                  ? `Slot disponible a las ${time}. Hacer clic para crear turno`
-                                  : `Slot no disponible a las ${time}`
-                            }
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{time}</span>
-                              </div>
-                              
-                              {appointments.length > 0 ? (
-                                <div className="text-right">
-                                  <div className="text-sm font-medium">
-                                    {state.patients.find(p => p.id === appointments[0].patientId)?.name}
-                                  </div>
-                                  <Badge variant="secondary" className="text-xs">
-                                    Reservado
-                                  </Badge>
-                                </div>
-                              ) : isAvailable ? (
-                                <Badge variant="outline" className="text-xs bg-white border-green-300 text-green-700">
-                                  Disponible
-                                </Badge>
-                              ) : null}
+                          <div key={time} className="space-y-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{time}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({appointments.length}/{getSlotCapacity(dayIndex, time)})
+                              </span>
                             </div>
-                          </button>
+                            
+                            {Array.from({ length: getSlotCapacity(dayIndex, time) }).map((_, subIndex) => {
+                              const appointment = appointments.find(apt => (apt.slotIndex || 0) === subIndex);
+                              
+                              if (appointment) {
+                                const patient = state.patients.find(p => p.id === appointment.patientId);
+                                const styles = getPractitionerStyles(appointment.practitionerId);
+                                
+                                return (
+                                  <button
+                                    key={`${time}-${subIndex}`}
+                                    className="p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 hover:opacity-80 cursor-pointer"
+                                    style={styles}
+                                    onClick={() => handleSlotClick(dayIndex, time, subIndex)}
+                                    aria-label={`Turno de ${patient?.name} a las ${time}, sub-slot ${subIndex + 1}`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="text-sm font-medium">{patient?.name}</div>
+                                        <Badge variant="secondary" className="text-xs">
+                                          Reservado
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              } else if (isAvailable) {
+                                return (
+                                  <button
+                                    key={`${time}-${subIndex}`}
+                                    className="p-2 border border-dashed border-green-300 bg-green-50 hover:bg-green-100 rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 cursor-pointer"
+                                    onClick={() => handleSlotClick(dayIndex, time)}
+                                    aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
+                                  >
+                                    <div className="flex items-center justify-center">
+                                      <span className="text-green-600 text-lg">+</span>
+                                      <span className="ml-2 text-green-700 text-sm">Disponible</span>
+                                    </div>
+                                  </button>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
                         );
                       })}
                     </div>

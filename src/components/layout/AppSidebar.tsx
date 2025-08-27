@@ -69,7 +69,7 @@ const authItems = [
 ];
 
 export function AppSidebar() {
-  const { state: sidebarState } = useSidebar();
+  const { state: sidebarState, open, setOpen } = useSidebar();
   const location = useLocation();
   const { state } = useApp();
   const currentPath = location.pathname;
@@ -127,7 +127,12 @@ export function AppSidebar() {
               {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClasses}>
+                    <NavLink 
+                      to={item.url} 
+                      className={getNavClasses}
+                      aria-current={isActive(item.url) ? "page" : undefined}
+                      title={collapsed ? item.title : undefined}
+                    >
                       <item.icon className="h-4 w-4 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -149,7 +154,12 @@ export function AppSidebar() {
                 {visibleAuthItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClasses}>
+                      <NavLink 
+                        to={item.url} 
+                        className={getNavClasses}
+                        aria-current={isActive(item.url) ? "page" : undefined}
+                        title={collapsed ? item.title : undefined}
+                      >
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
@@ -168,7 +178,12 @@ export function AppSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/login" className={getNavClasses}>
+                    <NavLink 
+                      to="/login" 
+                      className={getNavClasses}
+                      aria-current={isActive("/login") ? "page" : undefined}
+                      title={collapsed ? "Iniciar Sesión" : undefined}
+                    >
                       <LogIn className="h-4 w-4 shrink-0" />
                       {!collapsed && <span>Iniciar Sesión</span>}
                     </NavLink>

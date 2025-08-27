@@ -8,7 +8,7 @@ import { SkipLink } from '@/components/shared/SkipLink';
 
 export const AppLayout = () => {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <SkipLink />
       <div className="min-h-screen flex w-full bg-background">
         {/* Desktop Sidebar */}
