@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useApp, UserRole, seedDemo, clearDemo } from '@/contexts/AppContext';
+import { useApp, UserRole } from '@/contexts/AppContext';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
@@ -43,9 +43,9 @@ export const Topbar = () => {
 
   const handleDemoToggle = () => {
     if (state.isDemoMode) {
-      clearDemo(dispatch);
+      dispatch({ type: 'CLEAR_DEMO_DATA' });
     } else {
-      seedDemo(dispatch);
+      dispatch({ type: 'SEED_DEMO_DATA' });
     }
     dispatch({ type: 'TOGGLE_DEMO_MODE' });
   };
