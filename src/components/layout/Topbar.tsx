@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useApp, UserRole } from '@/contexts/AppContext';
+import { useApp, type UserRole } from '@/contexts/AppContext';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
