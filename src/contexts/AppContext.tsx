@@ -36,6 +36,7 @@ export interface AppState {
   isDemoMode: boolean;
   selectedClinic?: string;
   searchQuery: string;
+  sidebarExpanded: boolean;
   patients: Patient[];
   practitioners: Practitioner[];
   appointments: Appointment[];
@@ -100,6 +101,7 @@ export type AppAction =
   | { type: 'SET_CURRENT_WEEK'; payload: Date }
   | { type: 'SET_USER_ROLE'; payload: UserRole }
   | { type: 'TOGGLE_DEMO_MODE' }
+  | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_SELECTED_CLINIC'; payload: string }
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SEED_DEMO_DATA' }
@@ -118,6 +120,7 @@ const initialState: AppState = {
   userRole: 'admin',
   isDemoMode: false,
   searchQuery: '',
+  sidebarExpanded: true,
   patients: [],
   practitioners: [],
   appointments: [],
@@ -145,6 +148,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'TOGGLE_DEMO_MODE':
       return { ...state, isDemoMode: !state.isDemoMode };
+    
+    case 'TOGGLE_SIDEBAR':
+      return { ...state, sidebarExpanded: !state.sidebarExpanded };
     
     case 'SET_SELECTED_CLINIC':
       return { ...state, selectedClinic: action.payload };

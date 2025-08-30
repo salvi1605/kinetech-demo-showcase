@@ -1,4 +1,4 @@
-import { Calendar, Users, UserCheck, Clock, Copy, Settings, LogIn, Building } from 'lucide-react';
+import { Calendar, Users, UserCheck, Clock, Copy, Settings, LogIn, Building, ChevronLeft, ChevronRight } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -9,9 +9,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useApp } from '@/contexts/AppContext';
 
 const navigationItems = [
@@ -69,18 +70,19 @@ const authItems = [
 ];
 
 export function AppSidebar() {
-  const { state: sidebarState, open, setOpen } = useSidebar();
   const location = useLocation();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const currentPath = location.pathname;
-  const collapsed = sidebarState === 'collapsed';
+  const collapsed = !state.sidebarExpanded;
 
   const isActive = (path: string) => currentPath === path;
   
   const getNavClasses = ({ isActive }: { isActive: boolean }) =>
-    isActive 
-      ? "bg-primary text-primary-foreground font-medium" 
-      : "hover:bg-muted/50 transition-colors";
+    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+      isActive 
+        ? "bg-primary text-primary-foreground font-medium" 
+        : "hover:bg-muted/50"
+    }`;
 
   const filterItemsByRole = (items: typeof navigationItems) => {
     return items.filter(item => item.roles.includes(state.userRole));
@@ -89,24 +91,86 @@ export function AppSidebar() {
   const visibleNavItems = filterItemsByRole(navigationItems);
   const visibleAuthItems = filterItemsByRole(authItems);
 
+  const toggleSidebar = () => {
+    dispatch({ type: 'TOGGLE_SIDEBAR' });
+  };
+
+  const SidebarItem = ({ item, isAuth = false }: { item: typeof navigationItems[0], isAuth?: boolean }) => {
+    const active = isActive(item.url);
+    
+    const linkContent = (
+      <NavLink 
+        to={item.url} 
+        className={getNavClasses}
+        aria-current={active ? "page" : undefined}
+      >
+        <item.icon className="h-4 w-4 shrink-0" />
+        <span className={collapsed ? "sr-only" : ""}>{item.title}</span>
+      </NavLink>
+    );
+
+    if (collapsed) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  {linkContent}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="font-medium">
+              {item.title}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          {linkContent}
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
   return (
     <Sidebar
-      className={collapsed ? "w-14" : "w-64"}
-      collapsible="icon"
+      className={collapsed ? "w-16" : "w-64"}
     >
       <SidebarContent className="p-2">
-        {/* Logo Section (when expanded) */}
-        {!collapsed && (
-          <div className="flex items-center gap-2 px-3 py-4 border-b mb-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-md flex items-center justify-center">
-              <span className="text-white font-bold text-sm">K</span>
+        {/* Header with Logo and Toggle Button */}
+        <div className="flex items-center justify-between px-3 py-4 border-b mb-2">
+          {!collapsed && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-md flex items-center justify-center">
+                <span className="text-white font-bold text-sm">K</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground">Kine-UI</h2>
+                <p className="text-xs text-muted-foreground">Sistema de Gestión</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-bold text-foreground">Kine-UI</h2>
-              <p className="text-xs text-muted-foreground">Sistema de Gestión</p>
-            </div>
-          </div>
-        )}
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+            className="h-8 w-8 p-0 shrink-0"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
 
         {/* Demo Mode Indicator */}
         {state.isDemoMode && !collapsed && (
@@ -125,19 +189,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClasses}
-                      aria-current={isActive(item.url) ? "page" : undefined}
-                      title={collapsed ? item.title : undefined}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <SidebarItem key={item.title} item={item} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -152,19 +204,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAuthItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
-                        className={getNavClasses}
-                        aria-current={isActive(item.url) ? "page" : undefined}
-                        title={collapsed ? item.title : undefined}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <SidebarItem key={item.title} item={item} isAuth />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -176,19 +216,14 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/login" 
-                      className={getNavClasses}
-                      aria-current={isActive("/login") ? "page" : undefined}
-                      title={collapsed ? "Iniciar Sesión" : undefined}
-                    >
-                      <LogIn className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>Iniciar Sesión</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <SidebarItem 
+                  item={{
+                    title: 'Iniciar Sesión',
+                    url: '/login',
+                    icon: LogIn,
+                    roles: ['admin', 'recep', 'kinesio']
+                  }} 
+                />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
