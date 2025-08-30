@@ -1,111 +1,39 @@
-import { Calendar, Users, UserCheck, Clock, Copy, Settings, LogIn, Building, ChevronLeft, ChevronRight } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '@/components/ui/sidebar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useApp } from '@/contexts/AppContext';
-
-const navigationItems = [
-  {
-    title: 'Agenda',
-    url: '/calendar',
-    icon: Calendar,
-    roles: ['admin', 'recep', 'kinesio'],
-  },
-  {
-    title: 'Pacientes',
-    url: '/patients',
-    icon: Users,
-    roles: ['admin', 'recep', 'kinesio'],
-  },
-  {
-    title: 'Profesionales',
-    url: '/practitioners',
-    icon: UserCheck,
-    roles: ['admin', 'recep'],
-  },
-  {
-    title: 'Disponibilidad',
-    url: '/availability',
-    icon: Clock,
-    roles: ['admin', 'kinesio'],
-  },
-  {
-    title: 'Excepciones',
-    url: '/exceptions',
-    icon: Calendar,
-    roles: ['admin', 'kinesio'],
-  },
-  {
-    title: 'Copiar Horarios',
-    url: '/copy-schedule',
-    icon: Copy,
-    roles: ['admin'],
-  },
-];
-
-const authItems = [
-  {
-    title: 'Seleccionar Clínica',
-    url: '/select-clinic',
-    icon: Building,
-    roles: ['admin', 'recep', 'kinesio'],
-  },
-  {
-    title: 'Configuración',
-    url: '/settings',
-    icon: Settings,
-    roles: ['admin'],
-  },
-];
-
+// Cambios clave marcados con // ★
 export function AppSidebar() {
   const location = useLocation();
   const { state, dispatch } = useApp();
   const currentPath = location.pathname;
   const collapsed = !state.sidebarExpanded;
 
-  const isActive = (path: string) => currentPath === path;
-  
+  // Classes de nav en esquema oscuro-azul
   const getNavClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-      isActive 
-        ? "bg-primary text-primary-foreground font-medium" 
-        : "hover:bg-muted/50"
-    }`;
+    [
+      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      isActive
+        ? "bg-white/20 text-white font-medium" // ★ activo: contraste alto
+        : "text-white/90 hover:bg-white/10",    // ★ normal/hover legible sobre azul
+    ].join(" ");
 
-  const filterItemsByRole = (items: typeof navigationItems) => {
-    return items.filter(item => item.roles.includes(state.userRole));
-  };
+  const filterItemsByRole = (items: typeof navigationItems) =>
+    items.filter(item => item.roles.includes(state.userRole));
 
   const visibleNavItems = filterItemsByRole(navigationItems);
   const visibleAuthItems = filterItemsByRole(authItems);
 
-  const toggleSidebar = () => {
-    dispatch({ type: 'TOGGLE_SIDEBAR' });
-  };
+  const toggleSidebar = () => dispatch({ type: 'TOGGLE_SIDEBAR' });
 
-  const SidebarItem = ({ item, isAuth = false }: { item: typeof navigationItems[0], isAuth?: boolean }) => {
-    const active = isActive(item.url);
-    
+  const SidebarItem = ({ item }: { item: typeof navigationItems[0] }) => {
+    const active = currentPath === item.url;
+
     const linkContent = (
-      <NavLink 
-        to={item.url} 
+      <NavLink
+        to={item.url}
         className={getNavClasses}
         aria-current={active ? "page" : undefined}
       >
-        <item.icon className="h-4 w-4 shrink-0" />
-        <span className={collapsed ? "sr-only" : ""}>{item.title}</span>
+        <item.icon className="h-4 w-4 shrink-0 text-white" /> {/* ★ icono blanco */}
+        <span className={collapsed ? "sr-only" : "text-white"}>{item.title}</span> {/* ★ texto blanco */}
       </NavLink>
     );
 
@@ -120,6 +48,7 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </TooltipTrigger>
+            {/* tooltip por defecto está bien; si quieres oscuro: className="bg-slate-900 text-white" */}
             <TooltipContent side="right" className="font-medium">
               {item.title}
             </TooltipContent>
@@ -139,30 +68,34 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-16" : "w-64"} bg-blue-50 border-blue-200`}
+      className={[
+        collapsed ? "w-16" : "w-64",
+        "bg-blue-700 text-white border-r border-blue-800", // ★ fondo azul + texto blanco
+      ].join(" ")}
     >
-      <SidebarContent className="p-2">
-        {/* Header with Logo and Toggle Button */}
-        <div className="flex items-center justify-between px-3 py-4 border-b mb-2">
+      {/* ★ A veces el content hereda bg; forzamos aquí también */}
+      <SidebarContent className="p-2 bg-blue-700 text-white"> {/* ★ */}
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-4 border-b border-blue-600 mb-2"> {/* ★ bordes en tonos azules */}
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-md flex items-center justify-center">
+              <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">K</span>
               </div>
               <div>
-                <h2 className="font-bold text-foreground">Kine-UI</h2>
-                <p className="text-xs text-muted-foreground">Sistema de Gestión</p>
+                <h2 className="font-bold text-white">Kine-UI</h2> {/* ★ */}
+                <p className="text-xs text-white/70">Sistema de Gestión</p> {/* ★ */}
               </div>
             </div>
           )}
-          
+
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleSidebar}
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
-            className="h-8 w-8 p-0 shrink-0"
+            className="h-8 w-8 p-0 shrink-0 text-white hover:bg-white/10" // ★ que se vea
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -175,7 +108,7 @@ export function AppSidebar() {
         {/* Demo Mode Indicator */}
         {state.isDemoMode && !collapsed && (
           <div className="mx-3 mb-4">
-            <Badge variant="secondary" className="w-full justify-center">
+            <Badge className="w-full justify-center bg-white/10 text-white border-white/20"> {/* ★ legible sobre azul */}
               Modo Demostración
             </Badge>
           </div>
@@ -183,7 +116,7 @@ export function AppSidebar() {
 
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : "text-white/70"}> {/* ★ */}
             Navegación Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -195,44 +128,44 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Authentication & Settings */}
+        {/* Auth & Settings */}
         {visibleAuthItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+            <SidebarGroupLabel className={collapsed ? "sr-only" : "text-white/70"}> {/* ★ */}
               Sistema
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAuthItems.map((item) => (
-                  <SidebarItem key={item.title} item={item} isAuth />
+                  <SidebarItem key={item.title} item={item} />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Login Link (if not authenticated) */}
+        {/* Login link when not authenticated */}
         {!state.isAuthenticated && (
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarItem 
+                <SidebarItem
                   item={{
                     title: 'Iniciar Sesión',
                     url: '/login',
                     icon: LogIn,
-                    roles: ['admin', 'recep', 'kinesio']
-                  }} 
+                    roles: ['admin', 'recep', 'kinesio'],
+                  }}
                 />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Role Indicator (when collapsed) */}
+        {/* Role chip colapsado */}
         {collapsed && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+            <div className="w-8 h-8 bg-white/20 text-white rounded-md flex items-center justify-center"> {/* ★ */}
               <span className="text-xs font-medium">
                 {state.userRole === 'admin' ? 'A' : state.userRole === 'recep' ? 'R' : 'K'}
               </span>
