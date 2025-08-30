@@ -139,7 +139,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={collapsed ? "w-16" : "w-64"}
+      className={`${collapsed ? "w-16" : "w-64"} bg-blue-50 border-blue-200`}
     >
       <SidebarContent className="p-2">
         {/* Header with Logo and Toggle Button */}
