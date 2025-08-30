@@ -1,4 +1,85 @@
-// Cambios clave marcados con // ★
+import { NavLink, useLocation } from 'react-router-dom';
+import { 
+  Calendar,
+  Users,
+  UserCheck,
+  Clock,
+  Calendar1,
+  Copy,
+  Settings,
+  LogIn,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { useApp, type UserRole } from '@/contexts/AppContext';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+// Navigation items definition
+const navigationItems = [
+  {
+    title: 'Agenda',
+    url: '/calendar',
+    icon: Calendar,
+    roles: ['admin', 'recep', 'kinesio'] as UserRole[],
+  },
+  {
+    title: 'Pacientes',
+    url: '/patients',
+    icon: Users,
+    roles: ['admin', 'recep'] as UserRole[],
+  },
+  {
+    title: 'Profesionales',
+    url: '/practitioners',
+    icon: UserCheck,
+    roles: ['admin'] as UserRole[],
+  },
+  {
+    title: 'Disponibilidad',
+    url: '/availability',
+    icon: Clock,
+    roles: ['admin'] as UserRole[],
+  },
+  {
+    title: 'Excepciones',
+    url: '/exceptions',
+    icon: Calendar1,
+    roles: ['admin'] as UserRole[],
+  },
+  {
+    title: 'Copiar Horario',
+    url: '/copy-schedule',
+    icon: Copy,
+    roles: ['admin'] as UserRole[],
+  },
+];
+
+const authItems = [
+  {
+    title: 'Configuración',
+    url: '/settings',
+    icon: Settings,
+    roles: ['admin'] as UserRole[],
+  },
+];
+
 export function AppSidebar() {
   const location = useLocation();
   const { state, dispatch } = useApp();
