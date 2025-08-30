@@ -94,7 +94,7 @@ export function AppSidebar() {
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       isActive
         ? "bg-white/20 text-white font-medium" // ★ activo: contraste alto
-        : "text-white/90 hover:bg-white/10",    // ★ normal/hover legible sobre azul
+        : "text-white/90 hover:bg-blue-600/20",    // ★ normal/hover azul más oscuro semi-transparente
     ].join(" ");
 
   const filterItemsByRole = (items: typeof navigationItems) =>
