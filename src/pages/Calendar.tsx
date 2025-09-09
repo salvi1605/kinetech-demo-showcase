@@ -163,20 +163,18 @@ export const Calendar = () => {
       // Mostrar detalle de cita específica
       setSelectedAppointment(appointments[subIndex]);
     } else if (isSlotAvailable(dayIndex, time)) {
-      // Verificar capacidad antes de crear nueva cita
-      const nextSlot = getNextAvailableSubSlot(dayIndex, time);
-      if (nextSlot !== null) {
+      if (subIndex !== undefined) {
         setSelectedSlot({ 
           day: dayIndex, 
           time, 
           date: weekDates[dayIndex],
-          slotIndex: subIndex // ← Agrega esta línea para guardar el sub-slot clickeado
+          slotIndex: subIndex
         });
         setShowNewAppointmentModal(true);
       } else {
         toast({
-          title: "Capacidad completa",
-          description: "No hay más slots disponibles en este horario",
+          title: "Error",
+          description: "No se pudo determinar la posición del slot",
           variant: "destructive",
         });
       }
