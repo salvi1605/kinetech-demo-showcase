@@ -40,7 +40,7 @@ type NewAppointmentForm = z.infer<typeof newAppointmentSchema>;
 interface NewAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedSlot: { day: number; time: string; date: Date } | null;
+  selectedSlot: { day: number; time: string; date: Date; slotIndex?: number } | null;
 }
 
 export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAppointmentDialogProps) => {
@@ -129,6 +129,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
     const newAppointment = {
       id: Date.now().toString(),
+      slotIndex: selectedSlot?.slotIndex ?? 0,
       date: selectedSlot.date.toISOString(),
       startTime: data.startTime,
       endTime: data.endTime,
