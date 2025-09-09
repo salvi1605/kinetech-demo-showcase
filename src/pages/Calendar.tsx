@@ -292,7 +292,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
                   className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
-                  onClick={() => handleSlotClick(dayIndex, time)}
+                  onClick={() => handleSlotClick(dayIndex, time, subIndex)}
                   aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
@@ -315,7 +315,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
             <button
               key={`${dayIndex}-${time}-${subIndex}`}
               className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
-              onClick={() => handleSlotClick(dayIndex, time)}
+              onClick={() => handleSlotClick(dayIndex, time, subIndex)}
               aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
               tabIndex={0}
             >
