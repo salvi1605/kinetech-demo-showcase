@@ -304,17 +304,20 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
     // Slot completamente vacío
     if (isAvailable) {
       return (
-        <button 
-          key={`${dayIndex}-${time}`}
-          className="min-h-[60px] p-2 border border-border/30 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center w-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-          onClick={() => handleSlotClick(dayIndex, time)}
-          aria-label={`Slot disponible a las ${time}. Hacer clic para crear turno`}
-          tabIndex={0}
-        >
-          <Badge variant="outline" className="text-xs bg-white border-green-300 text-green-700">
-            Disponible
-          </Badge>
-        </button>
+        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
+             style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
+          {Array.from({ length: 5 }).map((_, subIndex) => (
+            <button
+              key={`${dayIndex}-${time}-${subIndex}`}
+              className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
+              onClick={() => handleSlotClick(dayIndex, time)}
+              aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
+              tabIndex={0}
+            >
+              <span className="text-green-600">+</span>
+            </button>
+          ))}
+        </div>
       );
     }
     
