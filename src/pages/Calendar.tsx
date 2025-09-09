@@ -156,12 +156,12 @@ export const Calendar = () => {
   };
 
   // Handlers de interacción
-  const handleSlotClick = (dayIndex: number, time: string, slotIndex?: number) => {
+  const handleSlotClick = (dayIndex: number, time: string, subIndex?: number) => {
     const appointments = getAppointmentsForSlot(dayIndex, time);
     
-    if (slotIndex !== undefined && appointments[slotIndex]) {
+    if (subIndex !== undefined && appointments[subIndex]) {
       // Mostrar detalle de cita específica
-      setSelectedAppointment(appointments[slotIndex]);
+      setSelectedAppointment(appointments[subIndex]);
     } else if (isSlotAvailable(dayIndex, time)) {
       // Verificar capacidad antes de crear nueva cita
       const nextSlot = getNextAvailableSubSlot(dayIndex, time);
@@ -170,7 +170,7 @@ export const Calendar = () => {
           day: dayIndex, 
           time, 
           date: weekDates[dayIndex],
-          slotIndex: slotIndex // ← Agrega esta línea para guardar el sub-slot clickeado
+          slotIndex: subIndex // ← Agrega esta línea para guardar el sub-slot clickeado
         });
         setShowNewAppointmentModal(true);
       } else {
