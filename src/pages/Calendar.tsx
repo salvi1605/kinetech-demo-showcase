@@ -163,21 +163,14 @@ export const Calendar = () => {
       // Mostrar detalle de cita específica
       setSelectedAppointment(appointments[subIndex]);
     } else if (isSlotAvailable(dayIndex, time)) {
-      if (subIndex !== undefined) {
-        setSelectedSlot({ 
-          day: dayIndex, 
-          time, 
-          date: weekDates[dayIndex],
-          slotIndex: subIndex
-        });
-        setShowNewAppointmentModal(true);
-      } else {
-        toast({
-          title: "Error",
-          description: "No se pudo determinar la posición del slot",
-          variant: "destructive",
-        });
-      }
+      // Usar el subIndex del click directo, ignorar capacidad
+      setSelectedSlot({ 
+        day: dayIndex, 
+        time, 
+        date: weekDates[dayIndex],
+        slotIndex: subIndex // ← Usa el subIndex del click
+      });
+      setShowNewAppointmentModal(true);
     }
   };
 
