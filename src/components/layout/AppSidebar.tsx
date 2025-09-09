@@ -114,7 +114,7 @@ export function AppSidebar() {
         className={getNavClasses}
         aria-current={active ? "page" : undefined}
       >
-        <item.icon className="h-4 w-4 shrink-0 text-white" /> {/* ★ icono blanco */}
+        <item.icon className="h-4 w-4 shrink-0 text-white group-hover:!text-black" /> {/* ★ icono blanco */}
         <span className="text-white group-hover:!text-black">{item.title}</span> {/* ★ texto blanco */}
       </NavLink>
     );
