@@ -74,7 +74,7 @@ export const Calendar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; slotIndex?: number } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
   // Cambio de semana con skeleton
@@ -166,7 +166,12 @@ export const Calendar = () => {
       // Verificar capacidad antes de crear nueva cita
       const nextSlot = getNextAvailableSubSlot(dayIndex, time);
       if (nextSlot !== null) {
-        setSelectedSlot({ day: dayIndex, time, date: weekDates[dayIndex] });
+        setSelectedSlot({ 
+          day: dayIndex, 
+          time, 
+          date: weekDates[dayIndex],
+          slotIndex: slotIndex // ← Agrega esta línea para guardar el sub-slot clickeado
+        });
         setShowNewAppointmentModal(true);
       } else {
         toast({
