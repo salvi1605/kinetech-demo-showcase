@@ -93,7 +93,7 @@ export function AppSidebar() {
       "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       isActive
-        ? "bg-white/20 text-white font-medium" // ★ activo: contraste alto
+        ? "bg-blue-900 text-white font-medium ring-2 ring-white/30" // ★ activo: contraste alto
         : "text-blue/90 hover:bg-blue-600/20",    // ★ normal/hover azul más oscuro semi-transparente
     ].join(" ");
 
@@ -115,7 +115,7 @@ export function AppSidebar() {
         aria-current={active ? "page" : undefined}
       >
         <item.icon className="h-4 w-4 shrink-0 text-white" /> {/* ★ icono blanco */}
-        <span className={collapsed ? "sr-only" : "text-white"}>{item.title}</span> {/* ★ texto blanco */}
+        <span className="text-white">{item.title}</span> {/* ★ texto blanco */}
       </NavLink>
     );
 
