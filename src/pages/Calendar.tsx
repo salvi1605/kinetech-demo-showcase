@@ -260,8 +260,8 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
     if (appointments.length > 0) {
       return (
         <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
-             style={{ gridTemplateRows: `repeat(${Math.min(capacity, 3)}, 1fr)` }}>
-          {Array.from({ length: capacity }).map((_, subIndex) => {
+             style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
+          {Array.from({ length: 5 }).map((_, subIndex) => {
             const appointment = appointments.find(apt => (apt.slotIndex || 0) === subIndex);
             
             if (appointment) {
