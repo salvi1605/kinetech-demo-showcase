@@ -258,7 +258,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
         <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
              style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
-            const appointment = appointments.find(apt => (apt.slotIndex || 0) === subIndex);
+            const appointment = appointments.find(apt => apt.slotIndex === subIndex);
             
             if (appointment) {
               const patient = state.patients.find(p => p.id === appointment.patientId);
@@ -482,7 +482,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                             </div>
                             
                             {Array.from({ length: getSlotCapacity(dayIndex, time) }).map((_, subIndex) => {
-                              const appointment = appointments.find(apt => (apt.slotIndex || 0) === subIndex);
+                              const appointment = appointments.find(apt => apt.slotIndex === subIndex);
                               
                               if (appointment) {
                                 const patient = state.patients.find(p => p.id === appointment.patientId);
