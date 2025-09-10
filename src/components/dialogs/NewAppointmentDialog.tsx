@@ -129,7 +129,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
     const newAppointment = {
       id: Date.now().toString(),
-      slotIndex: selectedSlot?.slotIndex ?? 0,
       date: selectedSlot.date.toISOString(),
       startTime: data.startTime,
       endTime: data.endTime,
@@ -137,7 +136,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       patientId: data.patientId || '',
       status: 'scheduled' as const,
       type: 'consultation' as const,
-      notes: data.notes || ''
+      notes: data.notes || '',
+      slotIndex: selectedSlot.slotIndex // ← Usa el slotIndex del selectedSlot
     };
 
     dispatch({ type: 'ADD_APPOINTMENT', payload: newAppointment });
@@ -150,7 +150,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       description: `Turno para ${patient?.name || 'Sin paciente'} con ${practitioner?.name} el ${format(selectedSlot.date, 'dd/MM/yyyy')} a las ${data.startTime}`,
     });
 
-    // Limpiar formulario y cerrar modal
     form.reset();
     setPatientSearch('');
     onOpenChange(false);
