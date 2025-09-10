@@ -95,12 +95,17 @@ export const Calendar = () => {
 
   const weekDates = getWeekDates();
 
-  // Obtener citas para un slot específico
-  const getAppointmentsForSlot = (dayIndex: number, time: string) => {
+  // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
+  const getAppointmentsForSlot = (dayIndex: number, time: string, subIndex?: number) => {
     const targetDate = weekDates[dayIndex];
     return state.appointments.filter(apt => {
       const aptDate = new Date(apt.date);
-      return isSameDay(aptDate, targetDate) && apt.startTime === time;
+      const matchesSlot = isSameDay(aptDate, targetDate) && apt.startTime === time;
+      // Si se especifica subIndex, filtrar por subIndex también
+      if (subIndex !== undefined) {
+        return matchesSlot && apt.slotIndex === subIndex;
+      }
+      return matchesSlot;
     });
   };
 
@@ -157,7 +162,7 @@ export const Calendar = () => {
 
   // Handlers de interacción
   const handleSlotClick = (dayIndex: number, time: string, subIndex?: number) => {
-    const appointments = getAppointmentsForSlot(dayIndex, time);
+    const appointments = getAppointmentsForSlot(dayIndex, time, subIndex);
     
     if (subIndex !== undefined && appointments[subIndex]) {
       // Mostrar detalle de cita específica
