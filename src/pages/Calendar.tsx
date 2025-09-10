@@ -472,9 +472,9 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                     <LoadingSkeleton variant="cards" />
                   ) : (
                     <div className="space-y-1">
-                      {TIME_SLOTS.map((time) => {
-                        const appointments = getAppointmentsForSlot(dayIndex, time);
-                        const isAvailable = isSlotAvailable(dayIndex, time);
+                       {TIME_SLOTS.map((time) => {
+                         const appointments = getAppointmentsForSlot(dayIndex, time);
+                         const isAvailable = isSlotAvailable(dayIndex, time);
                         
                         return (
                           <div key={time} className="space-y-1">
