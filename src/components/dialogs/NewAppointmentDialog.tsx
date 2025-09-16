@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Calendar, Clock, User, UserPlus, NotebookPen } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +50,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
   const [patientSearch, setPatientSearch] = useState('');
   const [showQuickCreatePatient, setShowQuickCreatePatient] = useState(false);
   const [quickPatientName, setQuickPatientName] = useState('');
+  const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  
+  const practitionerSelectRef = useRef<HTMLButtonElement>(null);
+  const patientSearchRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<NewAppointmentForm>({
     resolver: zodResolver(newAppointmentSchema),
@@ -123,9 +129,27 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     });
   };
 
-  // Enviar formulario
-  const onSubmit = (data: NewAppointmentForm) => {
+  // Verificar campos requeridos
+  const requiredMissing = (values: { patientId?: string; practitionerId?: string }) => {
+    const missing: string[] = [];
+    if (!values.patientId) missing.push('paciente');
+    if (!values.practitionerId) missing.push('kinesiólogo');
+    return missing;
+  };
+
+  // Crear cita segura
+  const createAppointment = (data: NewAppointmentForm) => {
     if (!selectedSlot) return;
+    
+    // Guarda de seguridad: rechazar si falta algún ID
+    if (!data.patientId || !data.practitionerId) {
+      toast({
+        title: "Error de validación",
+        description: "No se puede crear la cita sin paciente y kinesiólogo",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const newAppointment = {
       id: Date.now().toString(),
@@ -133,11 +157,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       startTime: data.startTime,
       endTime: data.endTime,
       practitionerId: data.practitionerId,
-      patientId: data.patientId || '',
+      patientId: data.patientId,
       status: 'scheduled' as const,
       type: 'consultation' as const,
       notes: data.notes || '',
-      slotIndex: selectedSlot.slotIndex // ← Usa el slotIndex del selectedSlot
+      slotIndex: selectedSlot.slotIndex
     };
 
     dispatch({ type: 'ADD_APPOINTMENT', payload: newAppointment });
@@ -153,6 +177,33 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     form.reset();
     setPatientSearch('');
     onOpenChange(false);
+  };
+
+  // Manejar confirmación de creación
+  const onConfirmCreate = (values: NewAppointmentForm) => {
+    const missing = requiredMissing(values);
+    if (missing.length) {
+      setMissingFields(missing);
+      setShowMissingFieldsDialog(true);
+      // No cerrar el diálogo "Nuevo Turno"
+      return;
+    }
+    createAppointment(values); // Continúa flujo normal
+  };
+
+  // Enfocar primer campo faltante después del popup
+  const focusFirstMissingField = () => {
+    if (missingFields.includes('kinesiólogo')) {
+      practitionerSelectRef.current?.focus();
+    } else if (missingFields.includes('paciente')) {
+      patientSearchRef.current?.focus();
+    }
+  };
+
+  // Enviar formulario
+  const onSubmit = (data: NewAppointmentForm) => {
+    onConfirmCreate(data);
+
   };
 
   return (
@@ -244,11 +295,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
                     <User className="h-4 w-4" />
                     Kinesiólogo
                   </FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar kinesiólogo" />
-                      </SelectTrigger>
+                   <FormControl>
+                     <Select value={field.value} onValueChange={field.onChange}>
+                       <SelectTrigger ref={practitionerSelectRef}>
+                         <SelectValue placeholder="Seleccionar kinesiólogo" />
+                       </SelectTrigger>
                       <SelectContent>
                         {state.practitioners.map((practitioner) => (
                           <SelectItem key={practitioner.id} value={practitioner.id}>
@@ -276,12 +327,13 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
               </Label>
               
               <div className="space-y-2">
-                <Input
-                  placeholder="Buscar por nombre o teléfono..."
-                  value={patientSearch}
-                  onChange={(e) => setPatientSearch(e.target.value)}
-                  className="w-full"
-                />
+                 <Input
+                   ref={patientSearchRef}
+                   placeholder="Buscar por nombre o teléfono..."
+                   value={patientSearch}
+                   onChange={(e) => setPatientSearch(e.target.value)}
+                   className="w-full"
+                 />
 
                 {patientSearch && (
                   <div className="border rounded-lg max-h-32 overflow-y-auto">
@@ -427,6 +479,32 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
           </form>
         </Form>
       </DialogContent>
+      
+      {/* AlertDialog para campos faltantes */}
+      <AlertDialog open={showMissingFieldsDialog} onOpenChange={setShowMissingFieldsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Información requerida</AlertDialogTitle>
+            <AlertDialogDescription>
+              {missingFields.length === 1 
+                ? `Falta la información del ${missingFields[0]} para poder agendar la cita.`
+                : 'Falta la información del paciente y del kinesiólogo para poder agendar la cita.'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowMissingFieldsDialog(false);
+                // Enfocar el primer campo faltante después de cerrar el popup
+                setTimeout(focusFirstMissingField, 100);
+              }}
+            >
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
