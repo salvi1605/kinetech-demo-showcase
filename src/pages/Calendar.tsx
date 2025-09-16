@@ -28,6 +28,7 @@ import { useApp, Appointment } from '@/contexts/AppContext';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
+import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
 import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
@@ -71,7 +72,7 @@ const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string;
 };
 
 export const Calendar = () => {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedPractitioner, setSelectedPractitioner] = useState<string>('all');
@@ -81,6 +82,7 @@ export const Calendar = () => {
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; slotIndex?: number } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [showMassCreateModal, setShowMassCreateModal] = useState(false);
 
   // Obtener fechas de la semana laboral
   const getWeekDates = () => {
@@ -178,6 +180,14 @@ export const Calendar = () => {
     };
   };
 
+  // Verificar si multi-selección está habilitada
+  const isMultiSelectEnabled = state.userRole === 'admin' || state.userRole === 'recep';
+
+  // Función para alternar selección de slot
+  const toggleSelect = (key: string) => {
+    dispatch({ type: 'TOGGLE_SLOT_SELECTION', payload: key });
+  };
+
   // Handler de clic en sub-slot
   const onSubSlotClick = (meta: { dayIndex: number; time: string; subSlot: number }) => {
     const dateISO = format(weekDates[meta.dayIndex], 'yyyy-MM-dd');
@@ -185,10 +195,13 @@ export const Calendar = () => {
     const appointment = appointmentsBySlotKey.get(key);
     
     if (appointment) {
-      // Abrir detalle de turno existente
+      // Abrir detalle de turno existente (sin seleccionar)
       setSelectedAppointment(appointment);
+    } else if (isMultiSelectEnabled) {
+      // Alternar selección si está libre y multi-select está habilitado
+      toggleSelect(key);
     } else {
-      // Abrir nuevo turno
+      // Abrir nuevo turno (para rol kinesio)
       setSelectedSlot({ 
         day: meta.dayIndex, 
         time: meta.time, 
@@ -197,6 +210,24 @@ export const Calendar = () => {
       });
       setShowNewAppointmentModal(true);
     }
+  };
+
+  // Función para confirmar selección múltiple
+  const confirmSelection = () => {
+    if (state.selectedSlots.size === 0) {
+      toast({
+        title: "Sin selección",
+        description: "No hay horarios seleccionados",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowMassCreateModal(true);
+  };
+
+  // Función para limpiar selección
+  const clearSelection = () => {
+    dispatch({ type: 'CLEAR_SLOT_SELECTION' });
   };
 
   // Handlers de interacción (mantener para compatibilidad)
@@ -321,15 +352,25 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                 </button>
               );
             } else if (subIndex < capacity) {
+              const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+              const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+              const isSelected = state.selectedSlots.has(key);
+              
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
-                  className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
+                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring ${
+                    isSelected 
+                      ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                      : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
+                  }`}
                   onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                  aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
+                  aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
-                  <span className="text-green-600">+</span>
+                  <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
+                    {isSelected ? '✓' : '+'}
+                  </span>
                 </button>
               );
             }
@@ -343,21 +384,33 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
     return (
       <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
            style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
-        {Array.from({ length: 5 }).map((_, subIndex) => (
-          subIndex < capacity ? (
-            <button
-              key={`${dayIndex}-${time}-${subIndex}`}
-              className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
-              onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-              aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
-              tabIndex={0}
-            >
-              <span className="text-green-600">+</span>
-            </button>
-          ) : (
-            <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />
-          )
-        ))}
+         {Array.from({ length: 5 }).map((_, subIndex) => {
+           if (subIndex >= capacity) {
+             return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
+           }
+           
+           const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+           const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+           const isSelected = state.selectedSlots.has(key);
+           
+           return (
+             <button
+               key={`${dayIndex}-${time}-${subIndex}`}
+               className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring ${
+                 isSelected 
+                   ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                   : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
+               }`}
+               onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+               aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
+               tabIndex={0}
+             >
+               <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
+                 {isSelected ? '✓' : '+'}
+               </span>
+             </button>
+           );
+         })}
       </div>
     );
   };
@@ -365,7 +418,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
   return (
     <div className="p-4 lg:p-6 space-y-6 pb-20 lg:pb-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <CalendarIcon className="h-6 w-6 text-primary" />
@@ -375,6 +428,66 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
             Gestiona turnos y horarios de kinesiología
           </p>
         </div>
+
+        {/* Lista de selecciones múltiples para admin/recep */}
+        {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-blue-900">
+                Horarios seleccionados ({state.selectedSlots.size})
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                className="text-blue-700 hover:text-blue-900 h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2 max-h-32 overflow-y-auto mb-3">
+              {Array.from(state.selectedSlots)
+                .sort((a, b) => {
+                  const aSlot = a.split('_');
+                  const bSlot = b.split('_');
+                  if (aSlot[0] !== bSlot[0]) return aSlot[0].localeCompare(bSlot[0]);
+                  if (aSlot[1] !== bSlot[1]) return aSlot[1].localeCompare(bSlot[1]);
+                  return parseInt(aSlot[2]) - parseInt(bSlot[2]);
+                })
+                .map((key) => {
+                  const [dateISO, hour, subSlotStr] = key.split('_');
+                  const date = new Date(dateISO);
+                  const dayName = format(date, 'EEE', { locale: es });
+                  const dateNum = format(date, 'd/MM');
+                  const subSlot = parseInt(subSlotStr);
+                  
+                  return (
+                    <div key={key} className="flex items-center justify-between text-sm bg-white rounded p-2">
+                      <span className="text-blue-900">
+                        {dayName.charAt(0).toUpperCase() + dayName.slice(1)} {dateNum} • {hour} • Slot {subSlot + 1}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleSelect(key)}
+                        className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={confirmSelection} className="flex-1">
+                Confirmar selección
+              </Button>
+              <Button variant="outline" size="sm" onClick={clearSelection}>
+                Limpiar
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Filtros Desktop */}
         <div className="hidden lg:flex items-center gap-2 flex-wrap">
@@ -551,21 +664,33 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                                     </div>
                                   </button>
                                 );
-                               } else {
-                                 return (
-                                   <button
-                                     key={`${time}-${subIndex}`}
-                                     className="p-2 border border-dashed border-green-300 bg-green-50 hover:bg-green-100 rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 cursor-pointer"
-                                     onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                     aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
-                                   >
-                                     <div className="flex items-center justify-center">
-                                       <span className="text-green-600 text-lg">+</span>
-                                       <span className="ml-2 text-green-700 text-sm">Disponible</span>
-                                     </div>
-                                   </button>
-                                 );
-                               }
+                                } else {
+                                  const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+                                  const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+                                  const isSelected = state.selectedSlots.has(key);
+                                  
+                                  return (
+                                    <button
+                                      key={`${time}-${subIndex}`}
+                                      className={`p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 cursor-pointer ${
+                                        isSelected 
+                                          ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                                          : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
+                                      }`}
+                                      onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                      aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
+                                    >
+                                      <div className="flex items-center justify-center">
+                                        <span className={`text-lg ${isSelected ? 'text-blue-600' : 'text-green-600'}`}>
+                                          {isSelected ? '✓' : '+'}
+                                        </span>
+                                        <span className={`ml-2 text-sm ${isSelected ? 'text-blue-700' : 'text-green-700'}`}>
+                                          {isSelected ? 'Seleccionado' : 'Disponible'}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                }
                               return null;
                             })}
                           </div>
@@ -601,6 +726,12 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
         open={!!selectedAppointment}
         onOpenChange={(open) => !open && setSelectedAppointment(null)}
         appointment={selectedAppointment}
+      />
+
+      <MassCreateAppointmentDialog
+        open={showMassCreateModal}
+        onOpenChange={setShowMassCreateModal}
+        selectedSlotKeys={Array.from(state.selectedSlots)}
       />
 
 

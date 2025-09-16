@@ -45,6 +45,7 @@ export interface AppState {
   isAuthenticated: boolean;
   currentUser?: User;
   preferences: Preferences;
+  selectedSlots: Set<string>;
 }
 
 export interface Patient {
@@ -113,7 +114,10 @@ export type AppAction =
   | { type: 'DELETE_PATIENT'; payload: string }
   | { type: 'ADD_APPOINTMENT'; payload: Appointment }
   | { type: 'UPDATE_APPOINTMENT'; payload: { id: string; updates: Partial<Appointment> } }
-  | { type: 'DELETE_APPOINTMENT'; payload: string };
+  | { type: 'DELETE_APPOINTMENT'; payload: string }
+  | { type: 'TOGGLE_SLOT_SELECTION'; payload: string }
+  | { type: 'CLEAR_SLOT_SELECTION' }
+  | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] };
 
 // Initial State
 const initialState: AppState = {
@@ -136,6 +140,7 @@ const initialState: AppState = {
     gridSize: 'md',
     multiTenant: false,
   },
+  selectedSlots: new Set<string>(),
 };
 
 // Reducer
@@ -232,6 +237,30 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         appointments: state.appointments.filter(a => a.id !== action.payload),
+      };
+    
+    case 'TOGGLE_SLOT_SELECTION':
+      const newSelectedSlots = new Set(state.selectedSlots);
+      if (newSelectedSlots.has(action.payload)) {
+        newSelectedSlots.delete(action.payload);
+      } else {
+        newSelectedSlots.add(action.payload);
+      }
+      return {
+        ...state,
+        selectedSlots: newSelectedSlots,
+      };
+    
+    case 'CLEAR_SLOT_SELECTION':
+      return {
+        ...state,
+        selectedSlots: new Set<string>(),
+      };
+    
+    case 'ADD_MULTIPLE_APPOINTMENTS':
+      return {
+        ...state,
+        appointments: [...state.appointments, ...action.payload],
       };
     
     default:

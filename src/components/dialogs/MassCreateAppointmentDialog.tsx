@@ -1,0 +1,376 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useApp, Appointment } from '@/contexts/AppContext';
+import { Search, User, Clock, AlertCircle } from 'lucide-react';
+import { format, parse } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface MassCreateAppointmentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedSlotKeys: string[];
+}
+
+interface SlotInfo {
+  key: string;
+  dateISO: string;
+  hour: string;
+  subSlot: number;
+  displayText: string;
+}
+
+const parseSlotKey = (key: string): { dateISO: string; hour: string; subSlot: number } => {
+  const [dateISO, hour, subSlotStr] = key.split('_');
+  return { dateISO, hour, subSlot: parseInt(subSlotStr) };
+};
+
+const formatSlotDisplay = (dateISO: string, hour: string, subSlot: number): string => {
+  const date = new Date(dateISO);
+  const dayName = format(date, 'EEE', { locale: es });
+  const dateNum = format(date, 'd/MM');
+  return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dateNum} • ${hour} • Slot ${subSlot + 1}`;
+};
+
+const byDateTime = (aKey: string, bKey: string): number => {
+  const a = parseSlotKey(aKey);
+  const b = parseSlotKey(bKey);
+  
+  if (a.dateISO !== b.dateISO) {
+    return a.dateISO.localeCompare(b.dateISO);
+  }
+  if (a.hour !== b.hour) {
+    return a.hour.localeCompare(b.hour);
+  }
+  return a.subSlot - b.subSlot;
+};
+
+export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKeys }: MassCreateAppointmentDialogProps) => {
+  const { state, dispatch } = useApp();
+  const { toast } = useToast();
+  
+  const [patientId, setPatientId] = useState<string>('');
+  const [practitionerId, setPractitionerId] = useState<string>('');
+  const [notes, setNotes] = useState('');
+  const [patientSearch, setPatientSearch] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [showFailureDialog, setShowFailureDialog] = useState(false);
+  const [failedSlots, setFailedSlots] = useState<string[]>([]);
+
+  // Preparar slots ordenados
+  const sortedSlots: SlotInfo[] = selectedSlotKeys
+    .sort(byDateTime)
+    .map(key => {
+      const { dateISO, hour, subSlot } = parseSlotKey(key);
+      return {
+        key,
+        dateISO,
+        hour,
+        subSlot,
+        displayText: formatSlotDisplay(dateISO, hour, subSlot)
+      };
+    });
+
+  // Filtrar pacientes por búsqueda
+  const filteredPatients = state.patients.filter(p =>
+    p.name.toLowerCase().includes(patientSearch.toLowerCase())
+  );
+
+  // Función para verificar choques de citas
+  const hasAppointmentConflict = (slot: SlotInfo): boolean => {
+    if (!practitionerId) return false;
+    
+    return state.appointments.some(apt => 
+      apt.practitionerId === practitionerId &&
+      apt.date === slot.dateISO &&
+      apt.startTime === slot.hour
+    );
+  };
+
+  // Función para verificar si el slot ya está ocupado
+  const isSlotOccupied = (slot: SlotInfo): boolean => {
+    return state.appointments.some(apt =>
+      apt.date === slot.dateISO &&
+      apt.startTime === slot.hour &&
+      apt.slotIndex === slot.subSlot
+    );
+  };
+
+  const removeSlot = (keyToRemove: string) => {
+    dispatch({ type: 'TOGGLE_SLOT_SELECTION', payload: keyToRemove });
+  };
+
+  const handleConfirm = async () => {
+    // Validación
+    if (!patientId || !practitionerId) {
+      const missing = [];
+      if (!patientId) missing.push('paciente');
+      if (!practitionerId) missing.push('kinesiólogo');
+      
+      const message = missing.length === 1 
+        ? `Falta la información del ${missing[0]} para poder agendar las citas`
+        : 'Falta la información del paciente y del kinesiólogo para poder agendar las citas';
+      
+      toast({
+        title: "Datos incompletos",
+        description: message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      const successfulAppointments: Appointment[] = [];
+      const failed: string[] = [];
+
+      // Crear citas para cada slot válido
+      for (const slot of sortedSlots) {
+        // Verificar si el slot está ocupado o hay choque
+        if (isSlotOccupied(slot) || hasAppointmentConflict(slot)) {
+          failed.push(slot.displayText);
+          continue;
+        }
+
+        // Crear la cita
+        const appointment: Appointment = {
+          id: `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          patientId,
+          practitionerId,
+          date: slot.dateISO,
+          startTime: slot.hour,
+          endTime: format(parse(slot.hour, 'HH:mm', new Date()).getTime() + 30 * 60 * 1000, 'HH:mm'),
+          type: 'consultation',
+          status: 'scheduled',
+          notes: notes || undefined,
+          slotIndex: slot.subSlot,
+        };
+
+        successfulAppointments.push(appointment);
+      }
+
+      // Agregar las citas exitosas
+      if (successfulAppointments.length > 0) {
+        dispatch({ type: 'ADD_MULTIPLE_APPOINTMENTS', payload: successfulAppointments });
+      }
+
+      // Limpiar selección
+      dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+
+      // Mostrar resultado
+      if (failed.length > 0) {
+        setFailedSlots(failed);
+        setShowFailureDialog(true);
+      }
+
+      toast({
+        title: "Citas creadas",
+        description: `${successfulAppointments.length} turnos creados exitosamente`,
+      });
+
+      // Cerrar modal solo si no hay fallos o después de cerrar el diálogo de fallos
+      if (failed.length === 0) {
+        onOpenChange(false);
+        resetForm();
+      }
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al crear las citas",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCancel = () => {
+    // Conservar selección al cancelar
+    onOpenChange(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setPatientId('');
+    setPractitionerId('');
+    setNotes('');
+    setPatientSearch('');
+  };
+
+  const handleFailureDialogClose = () => {
+    setShowFailureDialog(false);
+    onOpenChange(false);
+    resetForm();
+  };
+
+  if (selectedSlotKeys.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleCancel}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nueva cita masiva</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Lista de slots seleccionados */}
+            <div>
+              <Label className="text-sm font-medium">
+                Horarios seleccionados ({sortedSlots.length})
+              </Label>
+              <div className="mt-2 max-h-40 overflow-y-auto border rounded-md p-3 space-y-2">
+                {sortedSlots.map((slot) => (
+                  <div key={slot.key} className="flex items-center justify-between bg-muted/50 p-2 rounded">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{slot.displayText}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeSlot(slot.key)}
+                      className="h-6 w-6 p-0"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Selección de kinesiólogo */}
+            <div>
+              <Label htmlFor="practitioner">Kinesiólogo *</Label>
+              <Select value={practitionerId} onValueChange={setPractitionerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar kinesiólogo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {state.practitioners.map((practitioner) => (
+                    <SelectItem key={practitioner.id} value={practitioner.id}>
+                      {practitioner.name} - {practitioner.specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Búsqueda y selección de paciente */}
+            <div>
+              <Label htmlFor="patient">Paciente *</Label>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar paciente..."
+                    value={patientSearch}
+                    onChange={(e) => setPatientSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {patientSearch && (
+                  <div className="border rounded-md max-h-40 overflow-y-auto">
+                    {filteredPatients.length > 0 ? (
+                      filteredPatients.map((patient) => (
+                        <button
+                          key={patient.id}
+                          className="w-full text-left p-3 hover:bg-muted/50 border-b last:border-b-0 flex items-center gap-2"
+                          onClick={() => {
+                            setPatientId(patient.id);
+                            setPatientSearch(patient.name);
+                          }}
+                        >
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">{patient.name}</div>
+                            <div className="text-sm text-muted-foreground">{patient.phone}</div>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-center text-muted-foreground">
+                        No se encontraron pacientes
+                      </div>
+                    )}
+                  </div>
+                )}
+                {patientId && (
+                  <Badge variant="secondary" className="mt-2">
+                    {state.patients.find(p => p.id === patientId)?.name}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Notas */}
+            <div>
+              <Label htmlFor="notes">Notas (opcional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Notas adicionales para todas las citas..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancel} disabled={isCreating}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirm} 
+              disabled={isCreating || !patientId || !practitionerId}
+            >
+              {isCreating ? 'Creando...' : 'Confirmar selección'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de fallos */}
+      <AlertDialog open={showFailureDialog} onOpenChange={setShowFailureDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Algunos turnos no pudieron crearse
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-3">
+                  Los siguientes horarios no pudieron ser agendados debido a conflictos o porque ya están ocupados:
+                </p>
+                <div className="bg-muted/50 p-3 rounded max-h-40 overflow-y-auto">
+                  {failedSlots.map((slot, index) => (
+                    <div key={index} className="text-sm py-1">
+                      • {slot}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleFailureDialogClose}>
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
