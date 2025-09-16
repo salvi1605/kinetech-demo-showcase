@@ -65,6 +65,11 @@ const mockAvailableSlots = [
   { day: 5, time: '16:00', practitionerId: '2' },
 ];
 
+// Crear clave única para cada sub-slot
+const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string; subSlot: number }) => {
+  return `${dateISO}_${hour}_${subSlot}`;
+};
+
 export const Calendar = () => {
   const { state } = useApp();
   const { toast } = useToast();
@@ -77,6 +82,26 @@ export const Calendar = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; slotIndex?: number } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
+  // Obtener fechas de la semana laboral
+  const getWeekDates = () => {
+    const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lunes
+    return Array.from({ length: 5 }, (_, i) => addDays(start, i));
+  };
+
+  const weekDates = getWeekDates();
+
+  // Índice de citas por clave de sub-slot
+  const appointmentsBySlotKey = new Map<string, Appointment>();
+
+  // Construir índice de citas
+  state.appointments.forEach(appointment => {
+    const appointmentDate = new Date(appointment.date);
+    const dateISO = format(appointmentDate, 'yyyy-MM-dd');
+    const subSlot = appointment.slotIndex || 0;
+    const key = getSlotKey({ dateISO, hour: appointment.startTime, subSlot });
+    appointmentsBySlotKey.set(key, appointment);
+  });
+
   // Cambio de semana con skeleton
   const changeWeek = (direction: 'prev' | 'next') => {
     setIsLoading(true);
@@ -87,13 +112,6 @@ export const Calendar = () => {
     setTimeout(() => setIsLoading(false), 800);
   };
 
-  // Obtener fechas de la semana laboral
-  const getWeekDates = () => {
-    const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lunes
-    return Array.from({ length: 5 }, (_, i) => addDays(start, i));
-  };
-
-  const weekDates = getWeekDates();
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
   const getAppointmentsForSlot = (dayIndex: number, time: string, subIndex?: number) => {
@@ -160,22 +178,34 @@ export const Calendar = () => {
     };
   };
 
-  // Handlers de interacción
-  const handleSlotClick = (dayIndex: number, time: string, subIndex?: number) => {
-    const appointments = getAppointmentsForSlot(dayIndex, time, subIndex);
+  // Handler de clic en sub-slot
+  const onSubSlotClick = (meta: { dayIndex: number; time: string; subSlot: number }) => {
+    const dateISO = format(weekDates[meta.dayIndex], 'yyyy-MM-dd');
+    const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
+    const appointment = appointmentsBySlotKey.get(key);
     
-    if (subIndex !== undefined && appointments[subIndex]) {
-      // Mostrar detalle de cita específica
-      setSelectedAppointment(appointments[subIndex]);
-    } else if (isSlotAvailable(dayIndex, time)) {
-      // Usar el subIndex del click directo, ignorar capacidad
+    if (appointment) {
+      // Abrir detalle de turno existente
+      setSelectedAppointment(appointment);
+    } else {
+      // Abrir nuevo turno
       setSelectedSlot({ 
-        day: dayIndex, 
-        time, 
-        date: weekDates[dayIndex],
-        slotIndex: subIndex // ← Usa el subIndex del click
+        day: meta.dayIndex, 
+        time: meta.time, 
+        date: weekDates[meta.dayIndex],
+        slotIndex: meta.subSlot
       });
       setShowNewAppointmentModal(true);
+    }
+  };
+
+  // Handlers de interacción (mantener para compatibilidad)
+  const handleSlotClick = (dayIndex: number, time: string, subIndex?: number) => {
+    if (subIndex !== undefined) {
+      onSubSlotClick({ dayIndex, time, subSlot: subIndex });
+    } else {
+      // Fallback para clicks sin subIndex específico
+      onSubSlotClick({ dayIndex, time, subSlot: 0 });
     }
   };
 
@@ -253,17 +283,24 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
 
   // Renderizado de slot para grid con capacidad múltiple
   const renderSlot = (dayIndex: number, time: string) => {
-    const appointments = getAppointmentsForSlot(dayIndex, time);
     const capacity = getSlotCapacity(dayIndex, time);
-    const isAvailable = isSlotAvailable(dayIndex, time);
+    const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+    
+    // Obtener citas usando el índice de sub-slots
+    const slotAppointments = Array.from({ length: 5 }, (_, subIndex) => {
+      const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+      return appointmentsBySlotKey.get(key);
+    });
+    
+    const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
-    if (appointments.length > 0) {
+    if (hasAppointments) {
       return (
         <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
              style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
-            const appointment = appointments.find(apt => apt.slotIndex === subIndex);
+            const appointment = slotAppointments[subIndex];
             
             if (appointment) {
               const patient = state.patients.find(p => p.id === appointment.patientId);
@@ -275,7 +312,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                   key={`${dayIndex}-${time}-${subIndex}`}
                   className="text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring"
                   style={styles}
-                  onClick={() => handleSlotClick(dayIndex, time, subIndex)}
+                  onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                   aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
@@ -283,12 +320,12 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                   <div className="truncate opacity-75">{practitioner?.name || 'Profesional'}</div>
                 </button>
               );
-            } else if (isAvailable && subIndex < capacity) {
+            } else if (subIndex < capacity) {
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
                   className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
-                  onClick={() => handleSlotClick(dayIndex, time, subIndex)}
+                  onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                   aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
@@ -302,31 +339,26 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
       );
     }
 
-    // Slot completamente vacío
-    if (isAvailable) {
-      return (
-        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
-             style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
-          {Array.from({ length: 5 }).map((_, subIndex) => (
+    // Slot completamente vacío - mostrar todos los sub-slots disponibles
+    return (
+      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
+           style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
+        {Array.from({ length: 5 }).map((_, subIndex) => (
+          subIndex < capacity ? (
             <button
               key={`${dayIndex}-${time}-${subIndex}`}
               className="text-xs p-1 rounded border border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring"
-              onClick={() => handleSlotClick(dayIndex, time, subIndex)}
+              onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
               aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
               tabIndex={0}
             >
               <span className="text-green-600">+</span>
             </button>
-          ))}
-        </div>
-      );
-    }
-    
-    return (
-      <div 
-        key={`${dayIndex}-${time}`}
-        className="min-h-[60px] p-2 border border-border/30 bg-gray-50"
-      />
+          ) : (
+            <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />
+          )
+        ))}
+      </div>
     );
   };
 
@@ -473,21 +505,29 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                   ) : (
                     <div className="space-y-1">
                        {TIME_SLOTS.map((time) => {
-                         const appointments = getAppointmentsForSlot(dayIndex, time);
-                         const isAvailable = isSlotAvailable(dayIndex, time);
-                        
-                        return (
-                          <div key={time} className="space-y-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">{time}</span>
-                              <span className="text-xs text-muted-foreground">
-                                ({appointments.length}/{getSlotCapacity(dayIndex, time)})
-                              </span>
-                            </div>
-                            
-                            {Array.from({ length: getSlotCapacity(dayIndex, time) }).map((_, subIndex) => {
-                              const appointment = appointments.find(apt => apt.slotIndex === subIndex);
+                          const capacity = getSlotCapacity(dayIndex, time);
+                          const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+                          
+                          // Obtener citas usando el índice de sub-slots
+                          const slotAppointments = Array.from({ length: 5 }, (_, subIndex) => {
+                            const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+                            return appointmentsBySlotKey.get(key);
+                          });
+                          
+                          const appointmentCount = slotAppointments.filter(apt => apt !== undefined).length;
+                         
+                         return (
+                           <div key={time} className="space-y-1">
+                             <div className="flex items-center gap-2 mb-2">
+                               <Clock className="h-4 w-4 text-muted-foreground" />
+                               <span className="font-medium">{time}</span>
+                               <span className="text-xs text-muted-foreground">
+                                 ({appointmentCount}/{capacity})
+                               </span>
+                             </div>
+                             
+                             {Array.from({ length: capacity }).map((_, subIndex) => {
+                               const appointment = slotAppointments[subIndex];
                               
                               if (appointment) {
                                 const patient = state.patients.find(p => p.id === appointment.patientId);
@@ -498,7 +538,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                                     key={`${time}-${subIndex}`}
                                     className="p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 hover:opacity-80 cursor-pointer"
                                     style={styles}
-                                    onClick={() => handleSlotClick(dayIndex, time, subIndex)}
+                                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                                     aria-label={`Turno de ${patient?.name} a las ${time}, sub-slot ${subIndex + 1}`}
                                   >
                                     <div className="flex items-center justify-between">
@@ -511,21 +551,21 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                                     </div>
                                   </button>
                                 );
-                              } else if (isAvailable) {
-                                return (
-                                  <button
-                                    key={`${time}-${subIndex}`}
-                                    className="p-2 border border-dashed border-green-300 bg-green-50 hover:bg-green-100 rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 cursor-pointer"
-                                    onClick={() => handleSlotClick(dayIndex, time)}
-                                    aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
-                                  >
-                                    <div className="flex items-center justify-center">
-                                      <span className="text-green-600 text-lg">+</span>
-                                      <span className="ml-2 text-green-700 text-sm">Disponible</span>
-                                    </div>
-                                  </button>
-                                );
-                              }
+                               } else {
+                                 return (
+                                   <button
+                                     key={`${time}-${subIndex}`}
+                                     className="p-2 border border-dashed border-green-300 bg-green-50 hover:bg-green-100 rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 cursor-pointer"
+                                     onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                     aria-label={`Agregar turno ${time} sub-slot ${subIndex + 1}`}
+                                   >
+                                     <div className="flex items-center justify-center">
+                                       <span className="text-green-600 text-lg">+</span>
+                                       <span className="ml-2 text-green-700 text-sm">Disponible</span>
+                                     </div>
+                                   </button>
+                                 );
+                               }
                               return null;
                             })}
                           </div>
