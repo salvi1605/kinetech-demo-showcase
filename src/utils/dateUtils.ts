@@ -1,0 +1,42 @@
+import { parse, format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+/**
+ * Parse a local date from ISO string format (yyyy-MM-dd) without timezone conversion
+ */
+export const parseLocalDate = (dateISO: string) => parse(dateISO, 'yyyy-MM-dd', new Date());
+
+/**
+ * Display label for selected slot in the format: "Lun 15/09 • 08:00 • Slot 3"
+ */
+export const displaySelectedLabel = (
+  { dateISO, hour, subSlot }: { dateISO: string; hour: string; subSlot: 1 | 2 | 3 | 4 | 5 }
+) => {
+  const dayName = format(parseLocalDate(dateISO), 'EEE', { locale: es });
+  const dateNum = format(parseLocalDate(dateISO), 'dd/MM');
+  return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dateNum} • ${hour} • Slot ${subSlot}`;
+};
+
+/**
+ * Parse slot key to extract dateISO, hour, and subSlot
+ */
+export const parseSlotKey = (key: string): { dateISO: string; hour: string; subSlot: number } => {
+  const [dateISO, hour, subSlotStr] = key.split('_');
+  return { dateISO, hour, subSlot: parseInt(subSlotStr) };
+};
+
+/**
+ * Sort slot keys by date and time
+ */
+export const byDateTime = (aKey: string, bKey: string): number => {
+  const a = parseSlotKey(aKey);
+  const b = parseSlotKey(bKey);
+  
+  if (a.dateISO !== b.dateISO) {
+    return a.dateISO.localeCompare(b.dateISO);
+  }
+  if (a.hour !== b.hour) {
+    return a.hour.localeCompare(b.hour);
+  }
+  return a.subSlot - b.subSlot;
+};

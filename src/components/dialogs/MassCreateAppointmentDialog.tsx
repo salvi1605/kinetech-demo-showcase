@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { Search, User, Clock, AlertCircle } from 'lucide-react';
 import { format, parse } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { displaySelectedLabel, parseSlotKey, byDateTime } from '@/utils/dateUtils';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -27,30 +27,6 @@ interface SlotInfo {
   displayText: string;
 }
 
-const parseSlotKey = (key: string): { dateISO: string; hour: string; subSlot: number } => {
-  const [dateISO, hour, subSlotStr] = key.split('_');
-  return { dateISO, hour, subSlot: parseInt(subSlotStr) };
-};
-
-const formatSlotDisplay = (dateISO: string, hour: string, subSlot: number): string => {
-  const date = new Date(dateISO);
-  const dayName = format(date, 'EEE', { locale: es });
-  const dateNum = format(date, 'd/MM');
-  return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dateNum} • ${hour} • Slot ${subSlot + 1}`;
-};
-
-const byDateTime = (aKey: string, bKey: string): number => {
-  const a = parseSlotKey(aKey);
-  const b = parseSlotKey(bKey);
-  
-  if (a.dateISO !== b.dateISO) {
-    return a.dateISO.localeCompare(b.dateISO);
-  }
-  if (a.hour !== b.hour) {
-    return a.hour.localeCompare(b.hour);
-  }
-  return a.subSlot - b.subSlot;
-};
 
 export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKeys }: MassCreateAppointmentDialogProps) => {
   const { state, dispatch } = useApp();
@@ -74,7 +50,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         dateISO,
         hour,
         subSlot,
-        displayText: formatSlotDisplay(dateISO, hour, subSlot)
+        displayText: displaySelectedLabel({ dateISO, hour, subSlot: (subSlot + 1) as 1 | 2 | 3 | 4 | 5 })
       };
     });
 

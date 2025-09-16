@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
+import { displaySelectedLabel, parseSlotKey } from '@/utils/dateUtils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
@@ -455,16 +456,13 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                   return parseInt(aSlot[2]) - parseInt(bSlot[2]);
                 })
                 .map((key) => {
-                  const [dateISO, hour, subSlotStr] = key.split('_');
-                  const date = new Date(dateISO);
-                  const dayName = format(date, 'EEE', { locale: es });
-                  const dateNum = format(date, 'd/MM');
-                  const subSlot = parseInt(subSlotStr);
+                  const { dateISO, hour, subSlot } = parseSlotKey(key);
+                  const displayText = displaySelectedLabel({ dateISO, hour, subSlot: (subSlot + 1) as 1 | 2 | 3 | 4 | 5 });
                   
                   return (
                     <div key={key} className="flex items-center justify-between text-sm bg-white rounded p-2">
                       <span className="text-blue-900">
-                        {dayName.charAt(0).toUpperCase() + dayName.slice(1)} {dateNum} • {hour} • Slot {subSlot + 1}
+                        {displayText}
                       </span>
                       <Button
                         variant="ghost"
