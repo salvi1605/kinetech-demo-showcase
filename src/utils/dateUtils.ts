@@ -40,3 +40,11 @@ export const byDateTime = (aKey: string, bKey: string): number => {
   }
   return a.subSlot - b.subSlot;
 };
+
+export const addMinutesStr = (hhmm: string, min: number) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  const t = h * 60 + m + min;
+  const hh = String(Math.floor((t % 1440) / 60)).padStart(2, '0');
+  const mm = String(t % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+};

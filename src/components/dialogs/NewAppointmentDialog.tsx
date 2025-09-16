@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
+import { addMinutesStr } from '@/utils/dateUtils';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -88,12 +89,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       form.setValue('date', format(selectedSlot.date, 'yyyy-MM-dd'));
       form.setValue('startTime', selectedSlot.time);
       
-      // Calcular hora de fin (30 minutos después)
-      const [hours, minutes] = selectedSlot.time.split(':').map(Number);
-      const endMinutes = minutes + 30;
-      const endHours = endMinutes >= 60 ? hours + 1 : hours;
-      const finalMinutes = endMinutes >= 60 ? endMinutes - 60 : endMinutes;
-      const endTime = `${endHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+      // Calcular hora de fin según preferencia de duración del slot
+      const endTime = addMinutesStr(selectedSlot.time, state.preferences.slotMinutes || 30);
       form.setValue('endTime', endTime);
     }
   }, [selectedSlot, open, form]);
@@ -153,7 +150,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
     const newAppointment = {
       id: Date.now().toString(),
-      date: selectedSlot.date.toISOString(),
+      date: format(selectedSlot.date, 'yyyy-MM-dd'),
       startTime: data.startTime,
       endTime: data.endTime,
       practitionerId: data.practitionerId,

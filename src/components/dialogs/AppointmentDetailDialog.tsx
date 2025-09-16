@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
+import { parseLocalDate } from '@/utils/dateUtils';
 import { es } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -90,8 +91,10 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment }: App
   // Actualizar formulario cuando cambia la cita
   useEffect(() => {
     if (appointment && open) {
-      const appointmentDate = parseISO(appointment.date);
-      form.setValue('date', format(appointmentDate, 'yyyy-MM-dd'));
+      const dateStr = appointment.date.length === 10
+        ? appointment.date
+        : format(parseISO(appointment.date), 'yyyy-MM-dd');
+      form.setValue('date', dateStr);
       form.setValue('startTime', appointment.startTime);
       form.setValue('endTime', appointment.endTime);
       form.setValue('practitionerId', appointment.practitionerId);
@@ -105,7 +108,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment }: App
 
   const patient = state.patients.find(p => p.id === appointment.patientId);
   const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
-  const appointmentDate = parseISO(appointment.date);
+  const appointmentDate = appointment.date.length === 10 ? parseLocalDate(appointment.date) : parseISO(appointment.date);
 
   // Obtener estado y color
   const getStatusInfo = (status: string) => {
@@ -205,7 +208,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
   // Enviar formulario
   const onSubmit = (data: EditAppointmentForm) => {
     const updates = {
-      date: new Date(`${data.date}T00:00:00`).toISOString(),
+      date: data.date,
       startTime: data.startTime,
       endTime: data.endTime,
       practitionerId: data.practitionerId,

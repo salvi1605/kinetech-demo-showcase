@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { Search, User, Clock, AlertCircle } from 'lucide-react';
 import { format, parse } from 'date-fns';
-import { displaySelectedLabel, parseSlotKey, byDateTime } from '@/utils/dateUtils';
+import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr } from '@/utils/dateUtils';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -123,7 +123,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           practitionerId,
           date: slot.dateISO,
           startTime: slot.hour,
-          endTime: format(parse(slot.hour, 'HH:mm', new Date()).getTime() + 30 * 60 * 1000, 'HH:mm'),
+          endTime: addMinutesStr(slot.hour, state.preferences.slotMinutes || 30),
           type: 'consultation',
           status: 'scheduled',
           notes: notes || undefined,

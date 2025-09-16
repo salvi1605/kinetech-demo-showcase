@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, startOfWeek, addDays, isSameDay, addWeeks, subWeeks } from 'date-fns';
+import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   Calendar as CalendarIcon, 
@@ -98,8 +98,9 @@ export const Calendar = () => {
 
   // Construir índice de citas
   state.appointments.forEach(appointment => {
-    const appointmentDate = new Date(appointment.date);
-    const dateISO = format(appointmentDate, 'yyyy-MM-dd');
+    const dateISO = appointment.date.length === 10
+      ? appointment.date
+      : format(parseISO(appointment.date), 'yyyy-MM-dd');
     const subSlot = appointment.slotIndex || 0;
     const key = getSlotKey({ dateISO, hour: appointment.startTime, subSlot });
     appointmentsBySlotKey.set(key, appointment);
@@ -118,11 +119,12 @@ export const Calendar = () => {
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
   const getAppointmentsForSlot = (dayIndex: number, time: string, subIndex?: number) => {
-    const targetDate = weekDates[dayIndex];
+    const targetDateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
     return state.appointments.filter(apt => {
-      const aptDate = new Date(apt.date);
-      const matchesSlot = isSameDay(aptDate, targetDate) && apt.startTime === time;
-      // Si se especifica subIndex, filtrar por subIndex también
+      const aptISO = apt.date.length === 10
+        ? apt.date
+        : format(parseISO(apt.date), 'yyyy-MM-dd');
+      const matchesSlot = aptISO === targetDateISO && apt.startTime === time;
       if (subIndex !== undefined) {
         return matchesSlot && apt.slotIndex === subIndex;
       }
