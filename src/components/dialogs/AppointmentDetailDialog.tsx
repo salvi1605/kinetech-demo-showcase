@@ -188,17 +188,17 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
   };
 
   // Eliminar cita
-  const handleDeleteAppointment = () => {
-    // En una app real, aquí se eliminaría de la base de datos
-    // Por ahora, solo actualizamos el estado en memoria
-    const updatedAppointments = state.appointments.filter(a => a.id !== appointment.id);
+  const onDeleteAppointment = (appt: Appointment) => {
+    // Eliminar del estado global usando el reducer
+    dispatch({ type: 'DELETE_APPOINTMENT', payload: appt.id });
     
-    // Simular actualización del estado
+    // Mostrar confirmación
     toast({
       title: "Turno eliminado",
       description: `El turno de ${patient?.name || 'Sin paciente'} ha sido eliminado`,
     });
     
+    // Cerrar el modal
     onOpenChange(false);
   };
 
@@ -352,7 +352,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction 
-                      onClick={handleDeleteAppointment}
+                      onClick={() => onDeleteAppointment(appointment)}
                       className="bg-red-600 hover:bg-red-700"
                     >
                       Eliminar turno
