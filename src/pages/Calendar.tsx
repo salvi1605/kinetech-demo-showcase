@@ -525,12 +525,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
             Copiar horario
           </Button>
 
-          <RoleGuard allowedRoles={['admin', 'recep']}>
-            <Button onClick={() => setShowNewAppointmentModal(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo turno
-            </Button>
-          </RoleGuard>
         </div>
       </div>
 
@@ -705,15 +699,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
         </CardContent>
       </Card>
 
-      {/* FAB Mobile - Con Role Guard */}
-      <RoleGuard allowedRoles={['admin', 'recep']}>
-        <FloatingActionButton
-          onClick={() => setShowNewAppointmentModal(true)}
-          ariaLabel="Crear nuevo turno"
-        >
-          <Plus className="h-6 w-6" />
-        </FloatingActionButton>
-      </RoleGuard>
 
       {/* Modal Nuevo Turno */}
       <NewAppointmentDialog

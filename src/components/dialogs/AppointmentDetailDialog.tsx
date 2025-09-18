@@ -17,6 +17,8 @@ import {
   XCircle,
   AlertCircle
 } from 'lucide-react';
+import { FreeAppointmentDialog } from './FreeAppointmentDialog';
+import { RoleGuard } from '@/components/shared/RoleGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -61,6 +63,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment }: App
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [showFreeDialog, setShowFreeDialog] = useState(false);
 
   const form = useForm<EditAppointmentForm>({
     resolver: zodResolver(editAppointmentSchema),
@@ -335,34 +338,16 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 Copiar resumen
               </Button>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Eliminar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta acción no se puede deshacer. El turno será eliminado permanentemente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => onDeleteAppointment(appointment)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Eliminar turno
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <RoleGuard allowedRoles={['admin', 'recep']}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFreeDialog(true)}
+                  className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Liberar Cita
+                </Button>
+              </RoleGuard>
             </div>
           </div>
         )}
@@ -560,6 +545,13 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             </Button>
           </DialogFooter>
         )}
+
+        {/* Diálogo Liberar Cita */}
+        <FreeAppointmentDialog
+          open={showFreeDialog}
+          onOpenChange={setShowFreeDialog}
+          appointment={appointment}
+        />
       </DialogContent>
     </Dialog>
   );
