@@ -711,6 +711,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
         open={!!selectedAppointment}
         onOpenChange={(open) => !open && setSelectedAppointment(null)}
         appointment={selectedAppointment}
+        onAppointmentChange={(appointment) => setSelectedAppointment(appointment)}
       />
 
       <MassCreateAppointmentDialog

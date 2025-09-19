@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
+import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePatientAppointments';
 import type { Appointment } from '@/contexts/AppContext';
 
 const editAppointmentSchema = z.object({
@@ -57,13 +58,17 @@ interface AppointmentDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: Appointment | null;
+  onAppointmentChange?: (appointment: Appointment) => void;
 }
 
-export const AppointmentDetailDialog = ({ open, onOpenChange, appointment }: AppointmentDetailDialogProps) => {
+export const AppointmentDetailDialog = ({ open, onOpenChange, appointment, onAppointmentChange }: AppointmentDetailDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [showFreeDialog, setShowFreeDialog] = useState(false);
+  
+  // Hook para obtener citas del paciente
+  const { futuras, pasadas } = usePatientAppointments(appointment?.patientId || '');
 
   const form = useForm<EditAppointmentForm>({
     resolver: zodResolver(editAppointmentSchema),
@@ -289,19 +294,101 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               </div>
             </div>
 
-            {/* Fecha y hora */}
+            {/* Citas del Paciente */}
             <div className="space-y-3">
               <Label className="flex items-center gap-2 text-base font-medium">
-                <Clock className="h-4 w-4" />
-                Fecha y Horario
+                <Calendar className="h-4 w-4" />
+                Citas del Paciente
               </Label>
-              <div className="bg-muted/30 p-4 rounded-lg">
-                <p className="font-medium">
-                  {format(appointmentDate, 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
-                </p>
-                <p className="text-muted-foreground mt-1">
-                  {appointment.startTime} - {appointment.endTime}
-                </p>
+              <div className="bg-muted/30 p-4 rounded-lg max-h-96 overflow-auto">
+                {/* Citas Futuras */}
+                {futuras.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2 uppercase tracking-wider">
+                      Futuras ({futuras.length})
+                    </h4>
+                    <div className="space-y-2 divide-y">
+                      {futuras.map((apt) => {
+                        const display = formatAppointmentDisplay(apt, state.practitioners);
+                        const isCurrentAppointment = apt.id === appointment.id;
+                        
+                        return (
+                          <div 
+                            key={apt.id} 
+                            className={`py-2 cursor-pointer hover:bg-muted/50 rounded px-2 transition-colors ${
+                              isCurrentAppointment ? 'ring-2 ring-primary ring-offset-2 bg-primary/5' : ''
+                            }`}
+                            onClick={() => onAppointmentChange?.(apt)}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm">
+                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {display.slotNumber} • {display.practitionerName}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {display.statusLabel}
+                                </Badge>
+                                {isCurrentAppointment && (
+                                  <Badge variant="default" className="text-xs">
+                                    Actual
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Citas Pasadas */}
+                {pasadas.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2 uppercase tracking-wider">
+                      Pasadas ({pasadas.length})
+                    </h4>
+                    <div className="space-y-2 divide-y">
+                      {pasadas.map((apt) => {
+                        const display = formatAppointmentDisplay(apt, state.practitioners);
+                        const isCurrentAppointment = apt.id === appointment.id;
+                        
+                        return (
+                          <div 
+                            key={apt.id} 
+                            className={`py-2 cursor-pointer hover:bg-muted/50 rounded px-2 transition-colors opacity-75 ${
+                              isCurrentAppointment ? 'ring-2 ring-primary ring-offset-2 bg-primary/5' : ''
+                            }`}
+                            onClick={() => onAppointmentChange?.(apt)}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm">
+                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {display.slotNumber} • {display.practitionerName}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {display.statusLabel}
+                                </Badge>
+                                {isCurrentAppointment && (
+                                  <Badge variant="default" className="text-xs">
+                                    Actual
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sin citas */}
+                {futuras.length === 0 && pasadas.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No hay otras citas para este paciente
+                  </p>
+                )}
               </div>
             </div>
 
