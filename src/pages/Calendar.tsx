@@ -32,6 +32,7 @@ import { RoleGuard } from '@/components/shared/RoleGuard';
 import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { KinesioCombobox } from '@/components/shared/KinesioCombobox';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
@@ -464,9 +465,20 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
         {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-blue-900">
-                {state.selectedSlots.size} horario{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-blue-900">
+                  {state.selectedSlots.size} horario{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
+                </span>
+                {state.selectedSlots.size > 0 && isMultiSelectEnabled && (
+                  <KinesioCombobox
+                    value={state.selectedPractitionerId}
+                    onChange={(practitionerId) => dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId })}
+                    options={state.practitioners.map(p => ({ value: p.id, label: p.name }))}
+                    placeholder="Selecciona Kinesiólogo"
+                    className="text-xs"
+                  />
+                )}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -507,7 +519,12 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                 })}
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={confirmSelection} className="flex-1">
+              <Button 
+                size="sm" 
+                onClick={confirmSelection} 
+                className="flex-1"
+                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId}
+              >
                 Confirmar selección
               </Button>
               <Button variant="outline" size="sm" onClick={clearSelection}>
