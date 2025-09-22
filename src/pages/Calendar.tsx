@@ -73,7 +73,6 @@ const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string;
 export const Calendar = () => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
-  const [currentWeek, setCurrentWeek] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
@@ -83,6 +82,9 @@ export const Calendar = () => {
 
   // Obtener fechas de la semana laboral
   const getWeekDates = () => {
+    const currentWeek = state.calendarWeekStart 
+      ? new Date(state.calendarWeekStart + 'T00:00:00') 
+      : new Date();
     const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lunes
     return Array.from({ length: 5 }, (_, i) => addDays(start, i));
   };
@@ -102,15 +104,14 @@ export const Calendar = () => {
     appointmentsBySlotKey.set(key, appointment);
   });
 
-  // Cambio de semana con skeleton
-  const changeWeek = (direction: 'prev' | 'next') => {
-    setIsLoading(true);
-    const newWeek = direction === 'prev' ? subWeeks(currentWeek, 1) : addWeeks(currentWeek, 1);
-    setCurrentWeek(newWeek);
-    
-    // Simular loading
-    setTimeout(() => setIsLoading(false), 800);
-  };
+  // Effect to update loading when week changes
+  useEffect(() => {
+    if (state.calendarWeekStart) {
+      setIsLoading(true);
+      const timer = setTimeout(() => setIsLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [state.calendarWeekStart]);
 
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
@@ -458,35 +459,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
 
       {/* Rest of component remains the same */}
       <div className="space-y-4">
-        {/* Week Navigation and Filters */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-card border rounded-lg">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => changeWeek('prev')}
-                className="rounded-r-none"
-                disabled={isLoading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="px-4 py-2 text-sm font-medium border-x min-w-[200px] text-center">
-                {format(weekDates[0], 'd MMM', { locale: es })} - {format(weekDates[4], 'd MMM yyyy', { locale: es })}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => changeWeek('next')}
-                className="rounded-l-none"
-                disabled={isLoading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-        </div>
 
         {/* Clear selection button */}
         {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
@@ -562,29 +534,9 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
       {/* Navegación de semana */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">
-              {format(weekDates[0], 'd MMM', { locale: es })} - {format(weekDates[4], 'd MMM yyyy', { locale: es })}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => changeWeek('prev')}
-                disabled={isLoading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => changeWeek('next')}
-                disabled={isLoading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <CardTitle className="text-lg">
+            {format(weekDates[0], 'd MMM', { locale: es })} - {format(weekDates[4], 'd MMM yyyy', { locale: es })}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {/* Vista Desktop/Tablet - Grid semanal */}

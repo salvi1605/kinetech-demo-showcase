@@ -32,6 +32,7 @@ export interface Exception {
 
 export interface AppState {
   currentWeek: Date;
+  calendarWeekStart?: string; // ISO date string for calendar week start
   userRole: UserRole;
   isDemoMode: boolean;
   selectedClinic?: string;
@@ -101,6 +102,7 @@ export interface User {
 // Action Types
 export type AppAction =
   | { type: 'SET_CURRENT_WEEK'; payload: Date }
+  | { type: 'SET_CALENDAR_WEEK'; payload: string } // ISO date string
   | { type: 'SET_USER_ROLE'; payload: UserRole }
   | { type: 'TOGGLE_DEMO_MODE' }
   | { type: 'TOGGLE_SIDEBAR' }
@@ -151,6 +153,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'SET_CURRENT_WEEK':
       return { ...state, currentWeek: action.payload };
+    
+    case 'SET_CALENDAR_WEEK':
+      return { ...state, calendarWeekStart: action.payload };
     
     case 'SET_USER_ROLE':
       return { ...state, userRole: action.payload };

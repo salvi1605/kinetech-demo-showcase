@@ -6,9 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useApp, type UserRole } from '@/contexts/AppContext';
+import { WeekNavigator } from '@/components/navigation/WeekNavigator';
+import { useLocation } from 'react-router-dom';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
+  const location = useLocation();
+  const isCalendarRoute = location.pathname === '/calendar';
 
   const handleRoleChange = (role: UserRole) => {
     dispatch({ type: 'SET_USER_ROLE', payload: role });
@@ -49,9 +53,14 @@ export const Topbar = () => {
       <div className="flex items-center gap-4">
         <SidebarTrigger className="lg:hidden" />
         
-        <div className="hidden lg:flex items-center gap-2">
-          <h1 className="text-xl font-bold text-primary">Kine-UI</h1>
-          <Badge variant="outline" className="text-xs">v2</Badge>
+        <div className="hidden lg:flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-primary">Kine-UI</h1>
+            <Badge variant="outline" className="text-xs">v2</Badge>
+          </div>
+          
+          {/* Week Navigator - only on calendar route */}
+          {isCalendarRoute && <WeekNavigator />}
         </div>
 
       </div>
