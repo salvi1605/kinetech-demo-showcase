@@ -4,12 +4,10 @@ import { es } from 'date-fns/locale';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
-  Filter, 
   ChevronLeft, 
   ChevronRight,
   Download,
   Copy,
-  Search,
   User,
   Clock,
   X
@@ -76,8 +74,6 @@ export const Calendar = () => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [selectedPractitioner, setSelectedPractitioner] = useState<string>('all');
-  const [patientSearch, setPatientSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
@@ -320,14 +316,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
     }
   };
 
-  // Filtros
-  const filteredPractitioners = selectedPractitioner === 'all' 
-    ? state.practitioners 
-    : state.practitioners.filter(p => p.id === selectedPractitioner);
-
-  const filteredPatients = state.patients.filter(p => 
-    p.name.toLowerCase().includes(patientSearch.toLowerCase())
-  );
 
   // Renderizado de slot para grid con capacidad múltiple
   const renderSlot = (dayIndex: number, time: string) => {
@@ -498,36 +486,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Practitioner Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedPractitioner} onValueChange={setSelectedPractitioner}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filtrar por profesional" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los profesionales</SelectItem>
-                  {state.practitioners.map((practitioner) => (
-                    <SelectItem key={practitioner.id} value={practitioner.id}>
-                      {practitioner.name} - {practitioner.specialty}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Patient Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar paciente..."
-                value={patientSearch}
-                onChange={(e) => setPatientSearch(e.target.value)}
-                className="pl-10 w-[200px]"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Clear selection button */}
@@ -587,32 +545,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
           </div>
         )}
 
-        {/* Filtros Desktop */}
-        <div className="hidden lg:flex items-center gap-2 flex-wrap">
-          <Select value={selectedPractitioner} onValueChange={setSelectedPractitioner}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Kinesiólogo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {state.practitioners.map((practitioner) => (
-                <SelectItem key={practitioner.id} value={practitioner.id}>
-                  {practitioner.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar paciente..."
-              value={patientSearch}
-              onChange={(e) => setPatientSearch(e.target.value)}
-              className="pl-10 w-[160px]"
-            />
-          </div>
-
+        <div className="hidden lg:flex items-center gap-2 flex-wrap justify-end">
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Exportar

@@ -261,6 +261,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         selectedSlots: new Set<string>(),
+        selectedPractitionerId: undefined, // Reset practitioner selection when clearing slots
       };
     
     case 'ADD_MULTIPLE_APPOINTMENTS':
