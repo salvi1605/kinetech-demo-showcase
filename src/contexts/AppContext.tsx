@@ -117,7 +117,8 @@ export type AppAction =
   | { type: 'DELETE_APPOINTMENT'; payload: string }
   | { type: 'TOGGLE_SLOT_SELECTION'; payload: string }
   | { type: 'CLEAR_SLOT_SELECTION' }
-  | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] };
+  | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] }
+  | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } };
 
 // Initial State
 const initialState: AppState = {
@@ -261,6 +262,24 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         appointments: [...state.appointments, ...action.payload],
+      };
+    
+    case 'DELETE_APPOINTMENTS_BULK':
+      const { patientId, fromDateTime, statuses } = action.payload;
+      const filteredAppointments = state.appointments.filter(apt => {
+        // Solo eliminar citas que coincidan con los criterios
+        if (apt.patientId !== patientId) return true;
+        if (!statuses.includes(apt.status)) return true;
+        
+        // Comparar fecha/hora local sin crear Date object
+        const aptDateTime = `${apt.date}T${apt.startTime}:00`;
+        return aptDateTime < fromDateTime;
+      });
+      
+      return {
+        ...state,
+        appointments: filteredAppointments,
+        selectedSlots: new Set<string>(), // Limpiar selección
       };
     
     default:

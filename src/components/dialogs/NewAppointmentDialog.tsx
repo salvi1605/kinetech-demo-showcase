@@ -134,6 +134,27 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     return missing;
   };
 
+  // Función para detectar solapamiento de rangos horarios
+  const overlap = (a: {start: string, end: string}, b: {start: string, end: string}) => 
+    a.start < b.end && b.start < a.end;
+
+  // Función para verificar choques en el mismo subSlot
+  const collidesSameSlot = (practitionerId: string, date: string, startTime: string, endTime: string, subSlot: number) => {
+    return state.appointments.some(appointment => {
+      const appointmentSubSlot = appointment.slotIndex ?? 0; // Asumir subSlot=0 si no está definido
+      
+      return (
+        appointment.practitionerId === practitionerId &&
+        appointmentSubSlot === subSlot &&
+        appointment.date === date &&
+        overlap(
+          { start: startTime, end: endTime },
+          { start: appointment.startTime, end: appointment.endTime }
+        )
+      );
+    });
+  };
+
   // Crear cita segura
   const createAppointment = (data: NewAppointmentForm) => {
     if (!selectedSlot) return;
@@ -143,6 +164,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       toast({
         title: "Error de validación",
         description: "No se puede crear la cita sin paciente y kinesiólogo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verificar conflictos en el mismo subSlot
+    const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
+    const subSlot = selectedSlot.slotIndex ?? 0;
+    
+    if (collidesSameSlot(data.practitionerId, appointmentDate, data.startTime, data.endTime, subSlot)) {
+      toast({
+        title: "Conflicto de horario",
+        description: "El doctor ya tiene un turno en este Slot y horario.",
         variant: "destructive"
       });
       return;

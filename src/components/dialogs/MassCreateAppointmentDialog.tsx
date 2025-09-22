@@ -59,24 +59,31 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     p.name.toLowerCase().includes(patientSearch.toLowerCase())
   );
 
-  // Función para verificar choques de citas
-  const hasAppointmentConflict = (slot: SlotInfo): boolean => {
-    if (!practitionerId) return false;
+  // Función para detectar solapamiento de rangos horarios
+  const overlap = (a: {start: string, end: string}, b: {start: string, end: string}) => 
+    a.start < b.end && b.start < a.end;
+
+  // Función para verificar choques en el mismo subSlot
+  const collidesSameSlot = (slot: SlotInfo, appointment: Appointment) => {
+    const slotEnd = addMinutesStr(slot.hour, state.preferences.slotMinutes || 30);
+    const appointmentSubSlot = appointment.slotIndex ?? 0; // Asumir subSlot=0 si no está definido
     
-    return state.appointments.some(apt => 
-      apt.practitionerId === practitionerId &&
-      apt.date === slot.dateISO &&
-      apt.startTime === slot.hour
+    return (
+      appointment.practitionerId === practitionerId &&
+      appointmentSubSlot === slot.subSlot &&
+      appointment.date === slot.dateISO &&
+      overlap(
+        { start: slot.hour, end: slotEnd },
+        { start: appointment.startTime, end: appointment.endTime }
+      )
     );
   };
 
-  // Función para verificar si el slot ya está ocupado
-  const isSlotOccupied = (slot: SlotInfo): boolean => {
-    return state.appointments.some(apt =>
-      apt.date === slot.dateISO &&
-      apt.startTime === slot.hour &&
-      apt.slotIndex === slot.subSlot
-    );
+  // Función para verificar conflictos de citas
+  const hasAppointmentConflict = (slot: SlotInfo): boolean => {
+    if (!practitionerId) return false;
+    
+    return state.appointments.some(apt => collidesSameSlot(slot, apt));
   };
 
   const removeSlot = (keyToRemove: string) => {
@@ -110,8 +117,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
       // Crear citas para cada slot válido
       for (const slot of sortedSlots) {
-        // Verificar si el slot está ocupado o hay choque
-        if (isSlotOccupied(slot) || hasAppointmentConflict(slot)) {
+        // Verificar conflictos solo en el mismo subSlot con solapamiento
+        if (hasAppointmentConflict(slot)) {
           failed.push(slot.displayText);
           continue;
         }
@@ -328,7 +335,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
             <AlertDialogDescription asChild>
               <div>
                 <p className="mb-3">
-                  Los siguientes horarios no pudieron ser agendados debido a conflictos o porque ya están ocupados:
+                  Los siguientes horarios no pudieron ser agendados porque el doctor ya tiene un turno en ese Slot y horario:
                 </p>
                 <div className="bg-muted/50 p-3 rounded max-h-40 overflow-y-auto">
                   {failedSlots.map((slot, index) => (
