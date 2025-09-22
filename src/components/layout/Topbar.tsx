@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Calendar, Users, Settings, Menu } from 'lucide-react';
+import { Search, Calendar, Users, Settings, Menu, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,6 +48,10 @@ export const Topbar = () => {
       dispatch({ type: 'SEED_DEMO_DATA' });
     }
     dispatch({ type: 'TOGGLE_DEMO_MODE' });
+  };
+
+  const handlePractitionerChange = (practitionerId: string) => {
+    dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId || undefined });
   };
 
   const getRoleDisplayName = (role: UserRole) => {
@@ -100,6 +104,49 @@ export const Topbar = () => {
             →
           </Button>
         </div>
+
+        {/* Kinesiólogo selector (solo admin/recep) */}
+        {(state.userRole === 'admin' || state.userRole === 'recep') && (
+          <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <Select 
+              value={state.selectedPractitionerId || ''} 
+              onValueChange={handlePractitionerChange}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Seleccionar kinesiólogo" />
+              </SelectTrigger>
+              <SelectContent>
+                {state.practitioners.map((practitioner) => (
+                  <SelectItem key={practitioner.id} value={practitioner.id}>
+                    {practitioner.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Lista de slots seleccionados */}
+        {(state.userRole === 'admin' || state.userRole === 'recep') && state.selectedSlots.size > 0 && (
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-md p-2">
+            <Calendar className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-900">
+              {state.selectedSlots.size} slot{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
+            </span>
+            <Button
+              size="sm"
+              disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId}
+              onClick={() => {
+                // Trigger mass create modal - this would need to be passed as prop or handled via context
+                const event = new CustomEvent('openMassCreateModal');
+                window.dispatchEvent(event);
+              }}
+            >
+              Confirmar selección
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Center Section - Search */}

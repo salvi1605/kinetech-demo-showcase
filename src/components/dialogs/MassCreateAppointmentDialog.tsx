@@ -33,12 +33,12 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const { toast } = useToast();
   
   const [patientId, setPatientId] = useState<string>('');
-  const [practitionerId, setPractitionerId] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [patientSearch, setPatientSearch] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [showFailureDialog, setShowFailureDialog] = useState(false);
   const [failedSlots, setFailedSlots] = useState<string[]>([]);
+  const [perItemPractitioner, setPerItemPractitioner] = useState<Record<string, string>>({});
 
   // Preparar slots ordenados
   const sortedSlots: SlotInfo[] = selectedSlotKeys
@@ -64,7 +64,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     a.start < b.end && b.start < a.end;
 
   // Función para verificar choques en el mismo subSlot
-  const collidesSameSlot = (slot: SlotInfo, appointment: Appointment) => {
+  const collidesSameSlot = (slot: SlotInfo, appointment: Appointment, practitionerId: string) => {
     const slotEnd = addMinutesStr(slot.hour, state.preferences.slotMinutes || 30);
     const appointmentSubSlot = appointment.slotIndex ?? 0; // Asumir subSlot=0 si no está definido
     
@@ -80,10 +80,10 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   };
 
   // Función para verificar conflictos de citas
-  const hasAppointmentConflict = (slot: SlotInfo): boolean => {
+  const hasAppointmentConflict = (slot: SlotInfo, practitionerId: string): boolean => {
     if (!practitionerId) return false;
     
-    return state.appointments.some(apt => collidesSameSlot(slot, apt));
+    return state.appointments.some(apt => collidesSameSlot(slot, apt, practitionerId));
   };
 
   const removeSlot = (keyToRemove: string) => {
@@ -92,18 +92,10 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
   const handleConfirm = async () => {
     // Validación
-    if (!patientId || !practitionerId) {
-      const missing = [];
-      if (!patientId) missing.push('paciente');
-      if (!practitionerId) missing.push('kinesiólogo');
-      
-      const message = missing.length === 1 
-        ? `Falta la información del ${missing[0]} para poder agendar las citas`
-        : 'Falta la información del paciente y del kinesiólogo para poder agendar las citas';
-      
+    if (!patientId) {
       toast({
         title: "Datos incompletos",
-        description: message,
+        description: "Falta la información del paciente para poder agendar las citas",
         variant: "destructive",
       });
       return;
@@ -117,8 +109,16 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
       // Crear citas para cada slot válido
       for (const slot of sortedSlots) {
+        // Calcular practitionerId para este slot
+        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+        
+        if (!slotPractitionerId) {
+          failed.push(`${slot.displayText} - Sin kinesiólogo asignado`);
+          continue;
+        }
+
         // Verificar conflictos solo en el mismo subSlot con solapamiento
-        if (hasAppointmentConflict(slot)) {
+        if (hasAppointmentConflict(slot, slotPractitionerId)) {
           failed.push(slot.displayText);
           continue;
         }
@@ -127,7 +127,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         const appointment: Appointment = {
           id: `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           patientId,
-          practitionerId,
+          practitionerId: slotPractitionerId,
           date: slot.dateISO,
           startTime: slot.hour,
           endTime: addMinutesStr(slot.hour, state.preferences.slotMinutes || 30),
@@ -184,9 +184,9 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
   const resetForm = () => {
     setPatientId('');
-    setPractitionerId('');
     setNotes('');
     setPatientSearch('');
+    setPerItemPractitioner({});
   };
 
   const handleFailureDialogClose = () => {
@@ -208,46 +208,68 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Lista de slots seleccionados */}
+            {/* Lista de slots seleccionados con kinesiólogos por ítem */}
             <div>
               <Label className="text-sm font-medium">
                 Horarios seleccionados ({sortedSlots.length})
               </Label>
-              <div className="mt-2 max-h-40 overflow-y-auto border rounded-md p-3 space-y-2">
-                {sortedSlots.map((slot) => (
-                  <div key={slot.key} className="flex items-center justify-between bg-muted/50 p-2 rounded">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{slot.displayText}</span>
+              <div className="mt-2 max-h-80 overflow-y-auto border rounded-md p-3 space-y-3">
+                {sortedSlots.map((slot) => {
+                  const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+                  
+                  return (
+                    <div key={slot.key} className="bg-muted/50 p-3 rounded space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">{slot.displayText}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSlot(slot.key)}
+                          className="h-6 w-6 p-0"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground min-w-[80px]">Kinesiólogo:</span>
+                        <Select 
+                          value={currentPractitionerId || ''} 
+                          onValueChange={(value) => {
+                            if (value) {
+                              setPerItemPractitioner(prev => ({
+                                ...prev,
+                                [slot.key]: value
+                              }));
+                            } else {
+                              // Si limpian, restaurar al global
+                              setPerItemPractitioner(prev => {
+                                const newState = { ...prev };
+                                delete newState[slot.key];
+                                return newState;
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Seleccionar kinesiólogo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {state.practitioners.map((practitioner) => (
+                              <SelectItem key={practitioner.id} value={practitioner.id}>
+                                {practitioner.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeSlot(slot.key)}
-                      className="h-6 w-6 p-0"
-                    >
-                      ×
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
-
-            {/* Selección de kinesiólogo */}
-            <div>
-              <Label htmlFor="practitioner">Kinesiólogo *</Label>
-              <Select value={practitionerId} onValueChange={setPractitionerId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar kinesiólogo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.practitioners.map((practitioner) => (
-                    <SelectItem key={practitioner.id} value={practitioner.id}>
-                      {practitioner.name} - {practitioner.specialty}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Búsqueda y selección de paciente */}
@@ -316,7 +338,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
             </Button>
             <Button 
               onClick={handleConfirm} 
-              disabled={isCreating || !patientId || !practitionerId}
+              disabled={isCreating || !patientId}
             >
               {isCreating ? 'Creando...' : 'Confirmar selección'}
             </Button>

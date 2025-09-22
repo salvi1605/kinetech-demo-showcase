@@ -46,6 +46,7 @@ export interface AppState {
   currentUser?: User;
   preferences: Preferences;
   selectedSlots: Set<string>;
+  selectedPractitionerId?: string;
 }
 
 export interface Patient {
@@ -105,6 +106,7 @@ export type AppAction =
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_SELECTED_CLINIC'; payload: string }
   | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'SET_SELECTED_PRACTITIONER'; payload: string | undefined }
   | { type: 'SEED_DEMO_DATA' }
   | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOGIN'; payload: User }
@@ -164,6 +166,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'SET_SEARCH_QUERY':
       return { ...state, searchQuery: action.payload };
+    
+    case 'SET_SELECTED_PRACTITIONER':
+      return { ...state, selectedPractitionerId: action.payload };
     
     case 'SEED_DEMO_DATA':
       return {

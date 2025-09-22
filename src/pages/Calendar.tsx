@@ -217,16 +217,30 @@ export const Calendar = () => {
 
   // Función para confirmar selección múltiple
   const confirmSelection = () => {
-    if (state.selectedSlots.size === 0) {
+    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId) {
+      const missing = [];
+      if (state.selectedSlots.size === 0) missing.push('horarios');
+      if (!state.selectedPractitionerId) missing.push('kinesiólogo');
+      
       toast({
-        title: "Sin selección",
-        description: "No hay horarios seleccionados",
+        title: "Datos incompletos",
+        description: `Falta seleccionar: ${missing.join(' y ')}`,
         variant: "destructive",
       });
       return;
     }
     setShowMassCreateModal(true);
   };
+
+  // Listen for mass create modal trigger from topbar
+  useEffect(() => {
+    const handleOpenMassCreate = () => {
+      confirmSelection();
+    };
+    
+    window.addEventListener('openMassCreateModal', handleOpenMassCreate);
+    return () => window.removeEventListener('openMassCreateModal', handleOpenMassCreate);
+  }, [state.selectedSlots.size, state.selectedPractitionerId]);
 
   // Función para limpiar selección
   const clearSelection = () => {
@@ -432,15 +446,99 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
           </p>
         </div>
 
-        {/* Lista de selecciones múltiples para admin/recep */}
-        {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-blue-900">
-                Horarios seleccionados ({state.selectedSlots.size})
-              </h3>
+        {/* Botones de acción para admin/recep (simplificado) */}
+        {isMultiSelectEnabled && (
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowNewAppointmentModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo turno
+            </Button>
+            <Button variant="outline" onClick={handleCopySchedule}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copiar horario
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Rest of component remains the same */}
+      <div className="space-y-4">
+        {/* Week Navigation and Filters */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-card border rounded-lg">
               <Button
                 variant="ghost"
+                size="sm"
+                onClick={() => changeWeek('prev')}
+                className="rounded-r-none"
+                disabled={isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="px-4 py-2 text-sm font-medium border-x min-w-[200px] text-center">
+                {format(weekDates[0], 'd MMM', { locale: es })} - {format(weekDates[4], 'd MMM yyyy', { locale: es })}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => changeWeek('next')}
+                className="rounded-l-none"
+                disabled={isLoading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Practitioner Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedPractitioner} onValueChange={setSelectedPractitioner}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filtrar por profesional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los profesionales</SelectItem>
+                  {state.practitioners.map((practitioner) => (
+                    <SelectItem key={practitioner.id} value={practitioner.id}>
+                      {practitioner.name} - {practitioner.specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Patient Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar paciente..."
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                className="pl-10 w-[200px]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Clear selection button */}
+        {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-blue-900">
+                {state.selectedSlots.size} horario{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={clearSelection}
                 className="text-blue-700 hover:text-blue-900 h-6 w-6 p-0"
