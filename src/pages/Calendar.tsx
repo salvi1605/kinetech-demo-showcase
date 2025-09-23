@@ -12,6 +12,7 @@ import {
   Clock,
   X
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -190,6 +191,29 @@ export const Calendar = () => {
     dispatch({ type: 'TOGGLE_SLOT_SELECTION', payload: key });
   };
 
+  // Handler para toggle de completado
+  const onToggleCompleted = (apt: Appointment, isCompleted: boolean) => {
+    const nextStatus = isCompleted ? 'completed' : 'scheduled';
+    dispatch({ 
+      type: 'UPDATE_APPOINTMENT', 
+      payload: { 
+        id: apt.id, 
+        updates: { status: nextStatus } 
+      } 
+    });
+    
+    // Actualizar el índice local
+    const dateISO = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
+    const subSlot = apt.slotIndex || 0;
+    const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot });
+    appointmentsBySlotKey.set(key, { ...apt, status: nextStatus });
+    
+    toast({
+      title: isCompleted ? "Turno marcado como completado" : "Turno marcado como pendiente",
+      description: isCompleted ? "El turno se ha completado exitosamente" : "El turno está pendiente de completar",
+    });
+  };
+
   // Handler de clic en sub-slot
   const onSubSlotClick = (meta: { dayIndex: number; time: string; subSlot: number }) => {
     const dateISO = format(weekDates[meta.dayIndex], 'yyyy-MM-dd');
@@ -345,18 +369,49 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
               const patient = state.patients.find(p => p.id === appointment.patientId);
               const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
               const styles = getPractitionerStyles(appointment.practitionerId);
+              const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
+              const isCompleted = appointment.status === 'completed';
+              const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
               
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
-                  className="text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring"
+                  className={`text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring ${
+                    isCompleted ? 'opacity-70' : ''
+                  }`}
                   style={styles}
                   onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                   aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
-                  <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
-                  <div className="truncate opacity-75">{practitioner?.name || 'Profesional'}</div>
+                  <div className="flex items-center gap-1">
+                    {canShowCheckbox && hasPermission && (
+                      <Checkbox
+                        checked={isCompleted}
+                        onCheckedChange={(checked) => onToggleCompleted(appointment, Boolean(checked))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                        }}
+                        disabled={appointment.status === 'cancelled'}
+                        className="h-3 w-3"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
+                      <div className="truncate opacity-75">{practitioner?.name || 'Profesional'}</div>
+                      {isCompleted && (
+                        <Badge variant="secondary" className="text-xs mt-1">
+                          Completado
+                        </Badge>
+                      )}
+                      {appointment.status === 'scheduled' && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          Reservado
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </button>
               );
             } else if (subIndex < capacity) {
@@ -645,28 +700,53 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                              {Array.from({ length: capacity }).map((_, subIndex) => {
                                const appointment = slotAppointments[subIndex];
                               
-                              if (appointment) {
-                                const patient = state.patients.find(p => p.id === appointment.patientId);
-                                const styles = getPractitionerStyles(appointment.practitionerId);
-                                
-                                return (
-                                  <button
-                                    key={`${time}-${subIndex}`}
-                                    className="p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 hover:opacity-80 cursor-pointer"
-                                    style={styles}
-                                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                    aria-label={`Turno de ${patient?.name} a las ${time}, sub-slot ${subIndex + 1}`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <div className="text-sm font-medium">{patient?.name}</div>
-                                        <Badge variant="secondary" className="text-xs">
-                                          Reservado
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  </button>
-                                );
+                               if (appointment) {
+                                 const patient = state.patients.find(p => p.id === appointment.patientId);
+                                 const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
+                                 const styles = getPractitionerStyles(appointment.practitionerId);
+                                 const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
+                                 const isCompleted = appointment.status === 'completed';
+                                 const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
+                                 
+                                 return (
+                                   <button
+                                     key={`${time}-${subIndex}`}
+                                     className={`p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 hover:opacity-80 cursor-pointer ${
+                                       isCompleted ? 'opacity-70' : ''
+                                     }`}
+                                     style={styles}
+                                     onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                     aria-label={`Turno de ${patient?.name} a las ${time}, sub-slot ${subIndex + 1}`}
+                                   >
+                                     <div className="flex items-center gap-2">
+                                       {canShowCheckbox && hasPermission && (
+                                         <Checkbox
+                                           checked={isCompleted}
+                                           onCheckedChange={(checked) => onToggleCompleted(appointment, Boolean(checked))}
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             e.preventDefault();
+                                           }}
+                                           disabled={appointment.status === 'cancelled'}
+                                           className="h-4 w-4 shrink-0"
+                                         />
+                                       )}
+                                       <div className="flex-1 min-w-0">
+                                         <div className="text-sm font-medium">{patient?.name}</div>
+                                         <div className="text-xs opacity-75 mb-1">{practitioner?.name || 'Profesional'}</div>
+                                         {isCompleted ? (
+                                           <Badge variant="secondary" className="text-xs">
+                                             Completado
+                                           </Badge>
+                                         ) : (
+                                           <Badge variant="outline" className="text-xs">
+                                             Reservado
+                                           </Badge>
+                                         )}
+                                       </div>
+                                     </div>
+                                   </button>
+                                 );
                                 } else {
                                   const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
                                   const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
