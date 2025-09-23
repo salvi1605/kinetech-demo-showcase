@@ -374,28 +374,28 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
               const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
               
               return (
-                <button
-                  key={`${dayIndex}-${time}-${subIndex}`}
-                  className={`text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring ${
-                    isCompleted ? 'opacity-70' : ''
-                  }`}
-                  style={styles}
-                  onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                  aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
-                  tabIndex={0}
-                >
-                  <div className="flex items-center gap-1">
+                <div className="flex justify-center items-center px-1">
+                  <button
+                    key={`${dayIndex}-${time}-${subIndex}`}
+                    className="mx-auto text-xs p-2 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-3 w-full max-w-full"
+                    style={styles}
+                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                    aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
+                    tabIndex={0}
+                  >
                     {canShowCheckbox && hasPermission && (
-                      <Checkbox
-                        checked={isCompleted}
-                        onCheckedChange={(checked) => onToggleCompleted(appointment, Boolean(checked))}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
-                        disabled={appointment.status === 'cancelled'}
-                        className="h-3 w-3"
-                      />
+                      <div onClick={(e) => e.stopPropagation()} className="pointer-events-auto">
+                        <Checkbox
+                          checked={isCompleted}
+                          onCheckedChange={(checked) => onToggleCompleted(appointment, Boolean(checked))}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                          disabled={appointment.status === 'cancelled'}
+                          className="h-5 w-5 shrink-0 cursor-pointer pointer-events-auto"
+                        />
+                      </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
@@ -411,8 +411,8 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                         </Badge>
                       )}
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               );
             } else if (subIndex < capacity) {
               const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
