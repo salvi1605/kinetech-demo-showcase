@@ -85,7 +85,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment, onApp
   // Generar slots de tiempo
   const generateTimeSlots = () => {
     const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
+    for (let hour = 8; hour < 19; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(time);
@@ -305,7 +305,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 {futuras.length > 0 && (
                   <div className="mb-4">
                     <h4 className="font-medium text-sm text-muted-foreground mb-2 uppercase tracking-wider">
-                      Futuras ({futuras.length})
+                      Próximos turnos ({futuras.length})
                     </h4>
                     <div className="space-y-2 divide-y">
                       {futuras.map((apt) => {
@@ -346,7 +346,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 {pasadas.length > 0 && (
                   <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-2 uppercase tracking-wider">
-                      Pasadas ({pasadas.length})
+                      Turnos anteriores ({pasadas.length})
                     </h4>
                     <div className="space-y-2 divide-y">
                       {pasadas.map((apt) => {
