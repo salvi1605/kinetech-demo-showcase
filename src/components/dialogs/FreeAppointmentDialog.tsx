@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { parseLocalDate, displaySelectedLabel, parseSlotKey } from '@/utils/dateUtils';
-import { Trash2, Calendar, AlertTriangle, X } from 'lucide-react';
+import { Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, type Appointment } from '@/contexts/AppContext';
 
@@ -19,7 +20,8 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectAllCheckboxRef = useRef<HTMLButtonElement>(null);
 
   if (!appointment) return null;
 
@@ -61,21 +63,41 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
   };
 
   const futureAppointments = getFutureAppointments();
-  const selectedAppointments = futureAppointments.filter(apt => !excludedIds.has(apt.id));
-  const selectedCount = selectedAppointments.length;
+  
+  // Inicializar selección al abrir el modal
+  useEffect(() => {
+    if (open) {
+      setSelectedIds(new Set(futureAppointments.map(a => a.id)));
+    }
+  }, [open, futureAppointments.length]);
 
-  // Función para excluir/incluir turno
-  const toggleExclude = (appointmentId: string) => {
-    setExcludedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(appointmentId)) {
-        newSet.delete(appointmentId);
-      } else {
-        newSet.add(appointmentId);
-      }
-      return newSet;
+  const selectedAppointments = futureAppointments.filter(apt => selectedIds.has(apt.id));
+  const selectedCount = selectedIds.size;
+
+  // Función para alternar selección de un turno
+  const toggleOne = (id: string) => {
+    setSelectedIds(s => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
     });
   };
+
+  // Función para seleccionar/deseleccionar todos
+  const toggleAll = (all: boolean) => {
+    setSelectedIds(all ? new Set(futureAppointments.map(a => a.id)) : new Set());
+  };
+
+  // Manejar estado indeterminado del checkbox maestro
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      const input = selectAllCheckboxRef.current.querySelector('input') as HTMLInputElement;
+      if (input) {
+        const isIndeterminate = selectedIds.size > 0 && selectedIds.size < futureAppointments.length;
+        input.indeterminate = isIndeterminate;
+      }
+    }
+  }, [selectedIds.size, futureAppointments.length]);
 
   // Función para formatear turno
   const formatAppointmentDisplay = (apt: Appointment) => {
@@ -183,35 +205,41 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
                 </div>
                 <p className="text-sm text-orange-700">
                   {selectedCount === 0 
-                    ? "No hay turnos para eliminar" 
+                    ? "No hay turnos seleccionados para eliminar" 
                     : `${selectedCount} turno${selectedCount !== 1 ? 's' : ''} seleccionado${selectedCount !== 1 ? 's' : ''} para eliminación`
                   }
                 </p>
+              </div>
+
+              {/* Checkbox maestro "Seleccionar todo" */}
+              <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                <Checkbox
+                  ref={selectAllCheckboxRef}
+                  checked={selectedIds.size === futureAppointments.length}
+                  onCheckedChange={(checked) => toggleAll(!!checked)}
+                />
+                <span className="text-sm font-medium">Seleccionar todo</span>
               </div>
 
               {/* Lista scrollable de turnos */}
               <div className="max-h-80 overflow-auto divide-y border rounded-lg">
                 {futureAppointments.map((apt) => {
                   const { displayText } = formatAppointmentDisplay(apt);
-                  const isExcluded = excludedIds.has(apt.id);
+                  const isSelected = selectedIds.has(apt.id);
                   
                   return (
                     <div 
                       key={apt.id} 
-                      className={`flex items-center justify-between p-3 text-sm ${
-                        isExcluded ? 'bg-muted/50 text-muted-foreground line-through' : 'bg-background'
+                      className={`flex items-center gap-3 p-3 text-sm cursor-pointer hover:bg-muted/50 ${
+                        !isSelected ? 'text-muted-foreground' : 'bg-background'
                       }`}
+                      onClick={() => toggleOne(apt.id)}
                     >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleOne(apt.id)}
+                      />
                       <span className="flex-1">{displayText}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleExclude(apt.id)}
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
-                        title={isExcluded ? "Incluir en eliminación" : "Excluir de eliminación"}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
                     </div>
                   );
                 })}
@@ -265,11 +293,24 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
                     Eliminación Múltiple ({selectedCount} turnos)
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-lg">
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Eliminar turnos seleccionados?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Se eliminarán {selectedCount} turno{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''} de {patient?.name || 'este paciente'}. Esta acción no se puede deshacer.
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-3">
+                        <p>Se eliminarán estos {selectedCount} turnos:</p>
+                        <div className="max-h-60 overflow-auto divide-y border rounded-lg bg-muted/30">
+                          {selectedAppointments.map((apt) => {
+                            const { displayText } = formatAppointmentDisplay(apt);
+                            return (
+                              <div key={apt.id} className="p-2 text-sm">
+                                {displayText}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer.</p>
+                      </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
