@@ -376,7 +376,7 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
               return (
                 <div className="flex justify-center items-center px-1">
                   <div 
-                    className="mx-auto text-xs p-2 rounded border cursor-pointer hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-3 w-full max-w-full relative"
+                    className="mx-auto text-xs p-2 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-3 w-full max-w-full relative"
                     style={styles}
                     role="button"
                     tabIndex={0}
@@ -390,25 +390,14 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
                     aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
                   >
                     {canShowCheckbox && hasPermission && (
-                      <div 
-                        onClick={(e) => e.stopPropagation()} 
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className="pointer-events-auto relative z-10"
-                      >
-                        <Checkbox
-                          checked={isCompleted}
-                          onCheckedChange={(checked) => onToggleCompleted(appointment, Boolean(checked))}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                          onPointerDown={(e) => {
-                            e.stopPropagation();
-                          }}
-                          disabled={appointment.status === 'cancelled'}
-                          className="h-6 w-6 shrink-0 cursor-pointer pointer-events-auto"
-                        />
-                      </div>
+                      <Checkbox
+                        checked={appointment.status === 'completed'}
+                        onCheckedChange={(v) => onToggleCompleted(appointment, Boolean(v))}
+                        onClick={(e) => { e.stopPropagation(); }}
+                        onPointerDown={(e) => { e.stopPropagation(); }}
+                        className="h-6 w-6 shrink-0 cursor-pointer pointer-events-auto z-10"
+                        disabled={appointment.status === 'cancelled' || !appointment.practitionerId || !appointment.patientId}
+                      />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
