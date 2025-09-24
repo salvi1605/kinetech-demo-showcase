@@ -243,7 +243,7 @@ export const PatientDetailTabs = () => {
                       <div key={apt.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div>
                           <p className="font-medium">{new Date(apt.date).toLocaleDateString('es-ES')}</p>
-                          <p className="text-sm text-muted-foreground">{apt.startTime} - {apt.endTime}</p>
+                          <p className="text-sm text-muted-foreground">{apt.startTime}</p>
                         </div>
                         <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
                       </div>
@@ -591,7 +591,7 @@ export const PatientDetailTabs = () => {
                                       appointment.type === 'therapy' ? 'Terapia' : 'Seguimiento'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(appointment.date).toLocaleDateString('es-ES')} • {appointment.startTime} - {appointment.endTime}
+                            {new Date(appointment.date).toLocaleDateString('es-ES')} • {appointment.startTime}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {getPractitionerName(appointment.practitionerId)}

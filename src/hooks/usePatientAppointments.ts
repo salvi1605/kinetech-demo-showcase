@@ -92,10 +92,10 @@ export const formatAppointmentDisplay = (appointment: Appointment, practitioners
   return {
     dayName: dayName.charAt(0).toUpperCase() + dayName.slice(1),
     dateStr,
-    timeRange: `${appointment.startTime}–${appointment.endTime}`,
+    timeRange: appointment.startTime,
     slotNumber,
     practitionerName: practitioner?.name || 'Sin asignar',
     statusLabel: getStatusLabel(appointment.status),
-    fullDisplay: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dateStr} • ${appointment.startTime}–${appointment.endTime} • Slot ${slotNumber} • ${practitioner?.name || 'Sin asignar'} • ${getStatusLabel(appointment.status)}`
+    fullDisplay: `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dateStr} • ${appointment.startTime} • Slot ${slotNumber} • ${practitioner?.name || 'Sin asignar'} • ${getStatusLabel(appointment.status)}`
   };
 };

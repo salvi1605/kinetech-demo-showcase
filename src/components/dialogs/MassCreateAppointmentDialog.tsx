@@ -74,7 +74,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       appointment.date === slot.dateISO &&
       overlap(
         { start: slot.hour, end: slotEnd },
-        { start: appointment.startTime, end: appointment.endTime }
+        { start: appointment.startTime, end: addMinutesStr(appointment.startTime, 30) }
       )
     );
   };
@@ -130,7 +130,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           practitionerId: slotPractitionerId,
           date: slot.dateISO,
           startTime: slot.hour,
-          endTime: addMinutesStr(slot.hour, state.preferences.slotMinutes || 30),
+          
           type: 'consultation',
           status: 'scheduled',
           notes: notes || undefined,

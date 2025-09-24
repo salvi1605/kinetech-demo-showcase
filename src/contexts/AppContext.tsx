@@ -77,7 +77,6 @@ export interface Appointment {
   practitionerId: string;
   date: string;
   startTime: string;
-  endTime: string;
   type: 'consultation' | 'therapy' | 'follow-up';
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes?: string;
@@ -488,7 +487,6 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '1',
       date: format(prevWeek, 'yyyy-MM-dd'),
       startTime: '10:00',
-      endTime: '11:00',
       type: 'consultation',
       status: 'completed',
       notes: 'Seguimiento de lesión de rodilla',
@@ -500,7 +498,7 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '2',
       date: format(prevWeek, 'yyyy-MM-dd'),
       startTime: '14:00',
-      endTime: '15:00',
+      
       type: 'therapy',
       status: 'no_show',
       notes: 'No se presentó',
@@ -514,7 +512,7 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '3',
       date: format(currentWeek, 'yyyy-MM-dd'),
       startTime: '11:00',
-      endTime: '12:00',
+      
       type: 'therapy',
       status: 'scheduled',
       notes: 'Fisioterapia respiratoria',
@@ -526,7 +524,6 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '1',
       date: format(currentWeek, 'yyyy-MM-dd'),
       startTime: '15:00',
-      endTime: '16:00',
       type: 'consultation',
       status: 'scheduled',
       notes: 'Evaluación inicial',
@@ -540,7 +537,7 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '2',
       date: format(nextWeek, 'yyyy-MM-dd'),
       startTime: '10:00',
-      endTime: '11:00',
+      
       type: 'therapy',
       status: 'scheduled',
       notes: 'Sesión de kinesiología',
@@ -552,7 +549,6 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '3',
       date: format(nextWeek2, 'yyyy-MM-dd'),
       startTime: '16:00',
-      endTime: '17:00',
       type: 'follow-up',
       status: 'scheduled',
       notes: 'Control post-tratamiento',

@@ -48,3 +48,8 @@ export const addMinutesStr = (hhmm: string, min: number) => {
   const mm = String(t % 60).padStart(2, '0');
   return `${hh}:${mm}`;
 };
+
+// Función para derivar endTime en runtime cuando sea necesario (duración fija de 30 min)
+export const getAppointmentEndTime = (startTime: string): string => {
+  return addMinutesStr(startTime, 30);
+};

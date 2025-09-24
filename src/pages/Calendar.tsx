@@ -425,25 +425,14 @@ export const Calendar = () => {
   return (
     <div className="p-4 lg:p-6 space-y-6 pb-20 lg:pb-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <CalendarIcon className="h-6 w-6 text-primary" />
-              Agenda
-            </h1>
-            <p className="text-muted-foreground">
-              Gestiona turnos y horarios de kinesiología
-            </p>
-          </div>
-          <div className="lg:hidden">
-            <WeekNavigatorCompact />
-          </div>
-        </div>
-        <div className="hidden lg:block">
-          <WeekNavigatorCompact />
-        </div>
-
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <CalendarIcon className="h-6 w-6 text-primary" />
+          Agenda
+        </h1>
+        <p className="text-muted-foreground">
+          Gestiona turnos y horarios de kinesiología
+        </p>
       </div>
 
       {/* Rest of component remains the same */}

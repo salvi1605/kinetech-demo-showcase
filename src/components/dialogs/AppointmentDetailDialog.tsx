@@ -35,21 +35,14 @@ import type { Appointment } from '@/contexts/AppContext';
 
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
-  startTime: z.string().min(1, 'La hora de inicio es requerida'),
-  endTime: z.string().min(1, 'La hora de fin es requerida'),
+  startTime: z.string().min(1, 'La hora de inicio es requerida').refine((time) => {
+    return time <= '19:00';
+  }, {
+    message: "La hora de inicio no puede ser posterior a las 19:00"
+  }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
   status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show']),
   notes: z.string().optional(),
-}).refine((data) => {
-  if (data.startTime && data.endTime) {
-    const start = parseInt(data.startTime.replace(':', ''));
-    const end = parseInt(data.endTime.replace(':', ''));
-    return end > start;
-  }
-  return true;
-}, {
-  message: "La hora de fin debe ser posterior a la hora de inicio",
-  path: ["endTime"]
 });
 
 type EditAppointmentForm = z.infer<typeof editAppointmentSchema>;
@@ -75,7 +68,6 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment, onApp
     defaultValues: {
       date: '',
       startTime: '',
-      endTime: '',
       practitionerId: '',
       status: 'scheduled',
       notes: '',
@@ -85,10 +77,11 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment, onApp
   // Generar slots de tiempo
   const generateTimeSlots = () => {
     const slots = [];
-    for (let hour = 8; hour < 19; hour++) {
+    for (let hour = 8; hour <= 19; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(time);
+        if (hour === 19 && minute === 0) break; // Incluir solo 19:00, no 19:30
       }
     }
     return slots;
@@ -104,7 +97,6 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointment, onApp
         : format(parseISO(appointment.date), 'yyyy-MM-dd');
       form.setValue('date', dateStr);
       form.setValue('startTime', appointment.startTime);
-      form.setValue('endTime', appointment.endTime);
       form.setValue('practitionerId', appointment.practitionerId);
       form.setValue('status', appointment.status);
       form.setValue('notes', appointment.notes || '');
@@ -175,7 +167,7 @@ RESUMEN DE TURNO
 Paciente: ${patient?.name || 'Sin paciente'}
 Kinesiólogo: ${practitioner?.name || 'Sin asignar'}
 Fecha: ${format(appointmentDate, 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
-Horario: ${appointment.startTime} - ${appointment.endTime}
+Horario: ${appointment.startTime}
 Estado: ${statusInfo.label}
 ${appointment.notes ? `Notas: ${appointment.notes}` : ''}
 
@@ -218,7 +210,6 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     const updates = {
       date: data.date,
       startTime: data.startTime,
-      endTime: data.endTime,
       practitionerId: data.practitionerId,
       status: data.status,
       notes: data.notes || ''
@@ -504,7 +495,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               />
 
               {/* Horarios */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <FormField
                   control={form.control}
                   name="startTime"
@@ -530,30 +521,6 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="endTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hora de fin</FormLabel>
-                      <FormControl>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeSlots.map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               {/* Kinesiólogo */}

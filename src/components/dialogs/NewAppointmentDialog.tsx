@@ -20,21 +20,14 @@ import { addMinutesStr } from '@/utils/dateUtils';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
-  startTime: z.string().min(1, 'La hora de inicio es requerida'),
-  endTime: z.string().min(1, 'La hora de fin es requerida'),
+  startTime: z.string().min(1, 'La hora de inicio es requerida').refine((time) => {
+    return time <= '19:00';
+  }, {
+    message: "La hora de inicio no puede ser posterior a las 19:00"
+  }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
   patientId: z.string().optional(),
   notes: z.string().optional(),
-}).refine((data) => {
-  if (data.startTime && data.endTime) {
-    const start = parseInt(data.startTime.replace(':', ''));
-    const end = parseInt(data.endTime.replace(':', ''));
-    return end > start;
-  }
-  return true;
-}, {
-  message: "La hora de fin debe ser posterior a la hora de inicio",
-  path: ["endTime"]
 });
 
 type NewAppointmentForm = z.infer<typeof newAppointmentSchema>;
@@ -62,7 +55,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     defaultValues: {
       date: '',
       startTime: '',
-      endTime: '',
       practitionerId: '',
       patientId: '',
       notes: '',
@@ -72,10 +64,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
   // Generar slots de tiempo
   const generateTimeSlots = () => {
     const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
+    for (let hour = 8; hour <= 19; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(time);
+        if (hour === 19 && minute === 0) break; // Incluir solo 19:00, no 19:30
       }
     }
     return slots;
@@ -88,10 +81,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     if (selectedSlot && open) {
       form.setValue('date', format(selectedSlot.date, 'yyyy-MM-dd'));
       form.setValue('startTime', selectedSlot.time);
-      
-      // Calcular hora de fin según preferencia de duración del slot
-      const endTime = addMinutesStr(selectedSlot.time, state.preferences.slotMinutes || 30);
-      form.setValue('endTime', endTime);
     }
   }, [selectedSlot, open, form]);
 
@@ -138,8 +127,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
   const overlap = (a: {start: string, end: string}, b: {start: string, end: string}) => 
     a.start < b.end && b.start < a.end;
 
-  // Función para verificar choques en el mismo subSlot
-  const collidesSameSlot = (practitionerId: string, date: string, startTime: string, endTime: string, subSlot: number) => {
+  // Función para verificar choques en el mismo subSlot con misma hora de inicio
+  const collidesSameSlotSameStart = (practitionerId: string, date: string, startTime: string, subSlot: number) => {
     return state.appointments.some(appointment => {
       const appointmentSubSlot = appointment.slotIndex ?? 0; // Asumir subSlot=0 si no está definido
       
@@ -147,10 +136,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
         appointment.practitionerId === practitionerId &&
         appointmentSubSlot === subSlot &&
         appointment.date === date &&
-        overlap(
-          { start: startTime, end: endTime },
-          { start: appointment.startTime, end: appointment.endTime }
-        )
+        appointment.startTime === startTime
       );
     });
   };
@@ -169,11 +155,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       return;
     }
 
-    // Verificar conflictos en el mismo subSlot
+    // Verificar conflictos en el mismo subSlot con misma hora de inicio
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
     const subSlot = selectedSlot.slotIndex ?? 0;
     
-    if (collidesSameSlot(data.practitionerId, appointmentDate, data.startTime, data.endTime, subSlot)) {
+    if (collidesSameSlotSameStart(data.practitionerId, appointmentDate, data.startTime, subSlot)) {
       toast({
         title: "Conflicto de horario",
         description: "El doctor ya tiene un turno en este Slot y horario.",
@@ -186,7 +172,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       id: Date.now().toString(),
       date: format(selectedSlot.date, 'yyyy-MM-dd'),
       startTime: data.startTime,
-      endTime: data.endTime,
       practitionerId: data.practitionerId,
       patientId: data.patientId,
       status: 'scheduled' as const,
@@ -263,7 +248,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <FormField
                   control={form.control}
                   name="startTime"
@@ -289,30 +274,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="endTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hora de fin</FormLabel>
-                      <FormControl>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar hora" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeSlots.map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </div>
 
