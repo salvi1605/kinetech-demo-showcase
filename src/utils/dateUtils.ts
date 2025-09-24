@@ -7,6 +7,17 @@ import { es } from 'date-fns/locale';
 export const parseLocalDate = (dateISO: string) => parse(dateISO, 'yyyy-MM-dd', new Date());
 
 /**
+ * Get today's date in ISO format using browser timezone
+ */
+export const todayISO = () => format(new Date(), 'yyyy-MM-dd');
+
+/**
+ * Check if a date is in the past (before today)
+ */
+export const isPastDay = (dateISO: string) => dateISO < todayISO();
+
+
+/**
  * Display label for selected slot in the format: "Lun 15/09 • 08:00 • Slot 3"
  */
 export const displaySelectedLabel = (

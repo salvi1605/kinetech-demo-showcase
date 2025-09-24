@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
-import { displaySelectedLabel, parseSlotKey } from '@/utils/dateUtils';
+import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
@@ -79,6 +79,7 @@ export const Calendar = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; slotIndex?: number } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
+  const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
 
   // Obtener fechas de la semana laboral
   const getWeekDates = () => {
@@ -104,11 +105,26 @@ export const Calendar = () => {
     appointmentsBySlotKey.set(key, appointment);
   });
 
-  // Effect to update loading when week changes
+  // Effect to update loading when week changes and clean past selections
   useEffect(() => {
     if (state.calendarWeekStart) {
       setIsLoading(true);
       const timer = setTimeout(() => setIsLoading(false), 300);
+      
+      // Clean past day selections
+      const filteredSlots = [...state.selectedSlots].filter(key => {
+        const [dateISO] = key.split('_');
+        return !isPastDay(dateISO);
+      });
+      
+      if (filteredSlots.length !== state.selectedSlots.size) {
+        // Clear all selections if any past day slots were found
+        dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+      }
+      
+      // Clear banner
+      setAgendaBanner(null);
+      
       return () => clearTimeout(timer);
     }
   }, [state.calendarWeekStart]);
@@ -217,21 +233,32 @@ export const Calendar = () => {
     const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
     const appointment = appointmentsBySlotKey.get(key);
     
+    // Clear banner on any valid click
+    setAgendaBanner(null);
+    
     if (appointment) {
       // Abrir detalle de turno existente (sin seleccionar)
       setSelectedAppointment(appointment);
-    } else if (isMultiSelectEnabled) {
-      // Alternar selección si está libre y multi-select está habilitado
-      toggleSelect(key);
     } else {
-      // Abrir nuevo turno (para rol kinesio)
-      setSelectedSlot({ 
-        day: meta.dayIndex, 
-        time: meta.time, 
-        date: weekDates[meta.dayIndex],
-        slotIndex: meta.subSlot
-      });
-      setShowNewAppointmentModal(true);
+      // Check if trying to schedule in past day
+      if (isPastDay(dateISO)) {
+        setAgendaBanner({ type: 'error', text: 'No se pueden elegir citas de días anteriores' });
+        return;
+      }
+      
+      if (isMultiSelectEnabled) {
+        // Alternar selección si está libre y multi-select está habilitado
+        toggleSelect(key);
+      } else {
+        // Abrir nuevo turno (para rol kinesio)
+        setSelectedSlot({ 
+          day: meta.dayIndex, 
+          time: meta.time, 
+          date: weekDates[meta.dayIndex],
+          slotIndex: meta.subSlot
+        });
+        setShowNewAppointmentModal(true);
+      }
     }
   };
 
@@ -430,6 +457,11 @@ export const Calendar = () => {
           <CalendarIcon className="h-6 w-6 text-primary" />
           Agenda
         </h1>
+        {agendaBanner?.type === 'error' && (
+          <div className="w-full mt-2 text-sm font-medium text-red-600">
+            {agendaBanner.text}
+          </div>
+        )}
         <p className="text-muted-foreground">
           Gestiona turnos y horarios de kinesiología
         </p>
