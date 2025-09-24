@@ -7,7 +7,8 @@ import {
   ChevronRight,
   User,
   Clock,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,6 @@ import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog'
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
-import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KinesioCombobox } from '@/components/shared/KinesioCombobox';
@@ -277,7 +277,14 @@ export const Calendar = () => {
     }
   };
 
-
+  // Handler para exportar datos
+  const handleExport = () => {
+    // Implementar lógica de exportación
+    toast({
+      title: "Exportar datos",
+      description: "Funcionalidad de exportación en desarrollo",
+    });
+  };
 
   // Renderizado de slot para grid con capacidad múltiple
   const renderSlot = (dayIndex: number, time: string) => {
@@ -369,7 +376,7 @@ export const Calendar = () => {
                   tabIndex={0}
                 >
                   <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
-                    {isSelected ? '✓' : '+'}
+                    {isSelected ? '✓' : <Plus className="h-3 w-3" />}
                   </span>
                 </button>
               );
@@ -406,7 +413,7 @@ export const Calendar = () => {
                tabIndex={0}
              >
                <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
-                 {isSelected ? '✓' : '+'}
+                 {isSelected ? '✓' : <Plus className="h-3 w-3" />}
                </span>
              </button>
            );
@@ -622,58 +629,45 @@ export const Calendar = () => {
                                  const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
                                  
                                   return (
-                                    <div
+                                    <Card
                                       key={`${time}-${subIndex}`}
-                                      className="p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 hover:opacity-80 cursor-pointer relative"
-                                      style={styles}
-                                      role="button"
-                                      tabIndex={0}
+                                      className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors"
+                                      style={{ borderLeftColor: getPractitionerColor(appointment.practitionerId) }}
                                       onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault();
-                                          onSubSlotClick({ dayIndex, time, subSlot: subIndex });
-                                        }
-                                      }}
-                                      aria-label={`Turno de ${patient?.name} a las ${time}, sub-slot ${subIndex + 1}`}
                                     >
-                                      <div className="flex items-center gap-3">
-                                        {canShowCheckbox && hasPermission && (
-                                          <div 
-                                            onClick={(e) => e.stopPropagation()} 
-                                            onPointerDown={(e) => e.stopPropagation()}
-                                            className="pointer-events-auto relative z-10"
-                                          >
-                                            <Checkbox
-                                              checked={isCompleted}
-                                              onCheckedChange={(checked) => onToggleCompleted(appointment, Boolean(checked))}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                e.preventDefault();
-                                              }}
-                                              onPointerDown={(e) => {
-                                                e.stopPropagation();
-                                              }}
-                                              disabled={appointment.status === 'cancelled'}
-                                              className="h-6 w-6 shrink-0 cursor-pointer pointer-events-auto"
-                                            />
-                                          </div>
-                                        )}
+                                      <div className="flex items-center justify-between">
                                         <div className="flex-1 min-w-0">
-                                          <div className="text-sm font-medium">{patient?.name}</div>
-                                          <div className="text-xs opacity-75 mb-1">{practitioner?.name || 'Profesional'}</div>
-                                          {isCompleted ? (
-                                            <Badge variant="secondary" className="text-xs">
-                                              Completado
-                                            </Badge>
-                                          ) : (
-                                            <Badge variant="outline" className="text-xs">
-                                              Reservado
-                                            </Badge>
-                                          )}
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <div className="font-medium text-sm truncate">
+                                              {patient?.name || 'Paciente'}
+                                            </div>
+                                            {appointment.status === 'completed' && (
+                                              <Badge variant="secondary" className="text-xs">
+                                                Completado
+                                              </Badge>
+                                            )}
+                                            {appointment.status === 'scheduled' && (
+                                              <Badge variant="outline" className="text-xs">
+                                                Reservado
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                            <User className="h-3 w-3" />
+                                            <span className="truncate">{practitioner?.name || 'Profesional'}</span>
+                                          </div>
                                         </div>
+                                        {canShowCheckbox && hasPermission && (
+                                          <Checkbox
+                                            checked={appointment.status === 'completed'}
+                                            onCheckedChange={(v) => onToggleCompleted(appointment, Boolean(v))}
+                                            onClick={(e) => { e.stopPropagation(); }}
+                                            className="ml-2 h-6 w-6"
+                                            disabled={appointment.status === 'cancelled' || !appointment.practitionerId || !appointment.patientId}
+                                          />
+                                        )}
                                       </div>
-                                    </div>
+                                    </Card>
                                   );
                                 } else {
                                   const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
@@ -681,25 +675,21 @@ export const Calendar = () => {
                                   const isSelected = state.selectedSlots.has(key);
                                   
                                   return (
-                                    <button
+                                    <Card
                                       key={`${time}-${subIndex}`}
-                                      className={`p-2 border rounded-lg transition-all min-h-[44px] w-full text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 cursor-pointer ${
+                                      className={`p-3 cursor-pointer border-dashed transition-colors ${
                                         isSelected 
-                                          ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
-                                          : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
+                                          ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' 
+                                          : 'border-green-300 bg-green-50 hover:bg-green-100'
                                       }`}
                                       onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                      aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                                     >
                                       <div className="flex items-center justify-center">
                                         <span className={`text-lg ${isSelected ? 'text-blue-600' : 'text-green-600'}`}>
-                                          {isSelected ? '✓' : '+'}
-                                        </span>
-                                        <span className={`ml-2 text-sm ${isSelected ? 'text-blue-700' : 'text-green-700'}`}>
-                                          {isSelected ? 'Seleccionado' : 'Disponible'}
+                                          {isSelected ? '✓' : <Plus className="h-4 w-4" />}
                                         </span>
                                       </div>
-                                    </button>
+                                    </Card>
                                   );
                                 }
                               return null;
