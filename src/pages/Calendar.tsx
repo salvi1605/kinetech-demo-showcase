@@ -77,7 +77,7 @@ export const Calendar = () => {
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; slotIndex?: number } | null>(null);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
 
@@ -238,7 +238,7 @@ export const Calendar = () => {
     
     if (appointment) {
       // Abrir detalle de turno existente (sin seleccionar)
-      setSelectedAppointment(appointment);
+      setSelectedAppointmentId(appointment.id);
     } else {
       // Check if trying to schedule in past day
       if (isPastDay(dateISO)) {
@@ -736,10 +736,10 @@ export const Calendar = () => {
       />
 
       <AppointmentDetailDialog
-        open={!!selectedAppointment}
-        onOpenChange={(open) => !open && setSelectedAppointment(null)}
-        appointment={selectedAppointment}
-        onAppointmentChange={(appointment) => setSelectedAppointment(appointment)}
+        open={!!selectedAppointmentId}
+        onOpenChange={(open) => !open && setSelectedAppointmentId(null)}
+        appointmentId={selectedAppointmentId}
+        onAppointmentChange={(appointmentId) => setSelectedAppointmentId(appointmentId)}
       />
 
       <MassCreateAppointmentDialog

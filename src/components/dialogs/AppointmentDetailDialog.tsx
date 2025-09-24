@@ -29,7 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useApp } from '@/contexts/AppContext';
+import { useApp, updateAppointment } from '@/contexts/AppContext';
 import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePatientAppointments';
 import type { Appointment } from '@/contexts/AppContext';
 
@@ -50,15 +50,18 @@ type EditAppointmentForm = z.infer<typeof editAppointmentSchema>;
 interface AppointmentDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  appointment: Appointment | null;
-  onAppointmentChange?: (appointment: Appointment) => void;
+  appointmentId: string | null;
+  onAppointmentChange?: (appointmentId: string) => void;
 }
 
-export const AppointmentDetailDialog = ({ open, onOpenChange, appointment, onAppointmentChange }: AppointmentDetailDialogProps) => {
+export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onAppointmentChange }: AppointmentDetailDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [showFreeDialog, setShowFreeDialog] = useState(false);
+  
+  // Get appointment from store by ID
+  const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
   
   // Hook para obtener citas del paciente
   const { futuras, pasadas } = usePatientAppointments(appointment?.patientId || '');
@@ -207,7 +210,10 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
   // Enviar formulario
   const onSubmit = (data: EditAppointmentForm) => {
-    const updates = {
+    if (!appointment) return;
+    
+    const updatedAppointment: Appointment = {
+      ...appointment,
       date: data.date,
       startTime: data.startTime,
       practitionerId: data.practitionerId,
@@ -215,7 +221,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       notes: data.notes || ''
     };
 
-    dispatch({ type: 'UPDATE_APPOINTMENT', payload: { id: appointment.id, updates } });
+    updateAppointment(dispatch, updatedAppointment);
 
     const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
     const statusLabel = getStatusInfo(data.status).label;
@@ -228,9 +234,14 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     setIsEditing(false);
   };
 
-  // Copiar todas las citas del paciente
+  // Copiar todas las citas del paciente - computed from store each render
   const handleCopyAllPatientAppointments = async () => {
-    const allAppointments = [...futuras, ...pasadas];
+    if (!appointment) return;
+    
+    // Get all appointments for this patient from the store
+    const allAppointments = state.appointments.filter(apt => 
+      apt.patientId === appointment.patientId
+    );
     
     if (allAppointments.length === 0) return;
     
@@ -339,7 +350,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                             className={`py-2 cursor-pointer hover:bg-muted/50 rounded px-2 transition-colors ${
                               isCurrentAppointment ? 'ring-2 ring-primary ring-offset-2 bg-primary/5' : ''
                             }`}
-                            onClick={() => onAppointmentChange?.(apt)}
+                            onClick={() => onAppointmentChange?.(apt.id)}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
@@ -380,7 +391,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                             className={`py-2 cursor-pointer hover:bg-muted/50 rounded px-2 transition-colors opacity-75 ${
                               isCurrentAppointment ? 'ring-2 ring-primary ring-offset-2 bg-primary/5' : ''
                             }`}
-                            onClick={() => onAppointmentChange?.(apt)}
+                            onClick={() => onAppointmentChange?.(apt.id)}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
@@ -631,11 +642,13 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         )}
 
         {/* Diálogo Liberar Cita */}
-        <FreeAppointmentDialog
-          open={showFreeDialog}
-          onOpenChange={setShowFreeDialog}
-          appointment={appointment}
-        />
+        {appointment && (
+          <FreeAppointmentDialog
+            open={showFreeDialog}
+            onOpenChange={setShowFreeDialog}
+            appointment={appointment}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

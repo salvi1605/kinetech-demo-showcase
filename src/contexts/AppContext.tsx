@@ -41,6 +41,8 @@ export interface AppState {
   patients: Patient[];
   practitioners: Practitioner[];
   appointments: Appointment[];
+  appointmentsById: Record<string, Appointment>;
+  appointmentsBySlotKey: Map<string, Appointment>;
   availability: Availability[];
   exceptions: Exception[];
   isAuthenticated: boolean;
@@ -117,11 +119,29 @@ export type AppAction =
   | { type: 'DELETE_PATIENT'; payload: string }
   | { type: 'ADD_APPOINTMENT'; payload: Appointment }
   | { type: 'UPDATE_APPOINTMENT'; payload: { id: string; updates: Partial<Appointment> } }
+  | { type: 'UPDATE_APPOINTMENT_DIRECT'; payload: Appointment }
   | { type: 'DELETE_APPOINTMENT'; payload: string }
   | { type: 'TOGGLE_SLOT_SELECTION'; payload: string }
   | { type: 'CLEAR_SLOT_SELECTION' }
   | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] }
   | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } };
+
+// Utility functions for appointment indexing
+const getSlotKey = (appointment: Appointment): string => {
+  return `${appointment.date}:${appointment.startTime}:${appointment.practitionerId}`;
+};
+
+const buildAppointmentIndexes = (appointments: Appointment[]) => {
+  const appointmentsById: Record<string, Appointment> = {};
+  const appointmentsBySlotKey = new Map<string, Appointment>();
+  
+  appointments.forEach(apt => {
+    appointmentsById[apt.id] = apt;
+    appointmentsBySlotKey.set(getSlotKey(apt), apt);
+  });
+  
+  return { appointmentsById, appointmentsBySlotKey };
+};
 
 // Initial State
 const initialState: AppState = {
@@ -133,6 +153,8 @@ const initialState: AppState = {
   patients: [],
   practitioners: [],
   appointments: [],
+  appointmentsById: {},
+  appointmentsBySlotKey: new Map(),
   availability: [],
   exceptions: [],
   isAuthenticated: false,
@@ -174,15 +196,20 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_SELECTED_PRACTITIONER':
       return { ...state, selectedPractitionerId: action.payload };
     
-    case 'SEED_DEMO_DATA':
+    case 'SEED_DEMO_DATA': {
+      const appointments = getDemoAppointments();
+      const indexes = buildAppointmentIndexes(appointments);
       return {
         ...state,
         patients: getDemoPatients(),
         practitioners: getDemoPractitioners(),
-        appointments: getDemoAppointments(),
+        appointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
         availability: getDemoAvailability(),
         exceptions: getDemoExceptions(),
       };
+    }
     
     case 'CLEAR_DEMO_DATA':
       return {
@@ -190,6 +217,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         patients: [],
         practitioners: [],
         appointments: [],
+        appointmentsById: {},
+        appointmentsBySlotKey: new Map(),
         availability: [],
         exceptions: [],
       };
@@ -229,25 +258,53 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         patients: state.patients.filter(p => p.id !== action.payload),
       };
     
-    case 'ADD_APPOINTMENT':
+    case 'ADD_APPOINTMENT': {
+      const newAppointments = [...state.appointments, action.payload];
+      const indexes = buildAppointmentIndexes(newAppointments);
       return {
         ...state,
-        appointments: [...state.appointments, action.payload],
+        appointments: newAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
       };
+    }
     
-    case 'UPDATE_APPOINTMENT':
+    case 'UPDATE_APPOINTMENT': {
+      const updatedAppointments = state.appointments.map(a =>
+        a.id === action.payload.id ? { ...a, ...action.payload.updates } : a
+      );
+      const indexes = buildAppointmentIndexes(updatedAppointments);
       return {
         ...state,
-        appointments: state.appointments.map(a =>
-          a.id === action.payload.id ? { ...a, ...action.payload.updates } : a
-        ),
+        appointments: updatedAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
       };
+    }
     
-    case 'DELETE_APPOINTMENT':
+    case 'UPDATE_APPOINTMENT_DIRECT': {
+      const updatedAppointments = state.appointments.map(a =>
+        a.id === action.payload.id ? action.payload : a
+      );
+      const indexes = buildAppointmentIndexes(updatedAppointments);
       return {
         ...state,
-        appointments: state.appointments.filter(a => a.id !== action.payload),
+        appointments: updatedAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
       };
+    }
+    
+    case 'DELETE_APPOINTMENT': {
+      const filteredAppointments = state.appointments.filter(a => a.id !== action.payload);
+      const indexes = buildAppointmentIndexes(filteredAppointments);
+      return {
+        ...state,
+        appointments: filteredAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
+      };
+    }
     
     case 'TOGGLE_SLOT_SELECTION':
       const newSelectedSlots = new Set(state.selectedSlots);
@@ -268,13 +325,18 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         selectedPractitionerId: undefined, // Reset practitioner selection when clearing slots
       };
     
-    case 'ADD_MULTIPLE_APPOINTMENTS':
+    case 'ADD_MULTIPLE_APPOINTMENTS': {
+      const newAppointments = [...state.appointments, ...action.payload];
+      const indexes = buildAppointmentIndexes(newAppointments);
       return {
         ...state,
-        appointments: [...state.appointments, ...action.payload],
+        appointments: newAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
       };
+    }
     
-    case 'DELETE_APPOINTMENTS_BULK':
+    case 'DELETE_APPOINTMENTS_BULK': {
       const { patientId, fromDateTime, statuses } = action.payload;
       const filteredAppointments = state.appointments.filter(apt => {
         // Solo eliminar citas que coincidan con los criterios
@@ -286,11 +348,16 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         return aptDateTime < fromDateTime;
       });
       
+      const indexes = buildAppointmentIndexes(filteredAppointments);
+      
       return {
         ...state,
         appointments: filteredAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
         selectedSlots: new Set<string>(), // Limpiar selección
       };
+    }
     
     default:
       return state;
@@ -590,4 +657,9 @@ export const seedDemo = (dispatch: React.Dispatch<AppAction>) => {
 
 export const clearDemo = (dispatch: React.Dispatch<AppAction>) => {
   dispatch({ type: 'CLEAR_DEMO_DATA' });
+};
+
+// Helper function to update a single appointment immutably
+export const updateAppointment = (dispatch: React.Dispatch<AppAction>, appointment: Appointment) => {
+  dispatch({ type: 'UPDATE_APPOINTMENT_DIRECT', payload: appointment });
 };
