@@ -3,11 +3,8 @@ import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date
 import { es } from 'date-fns/locale';
 import { 
   Calendar as CalendarIcon, 
-  Plus, 
   ChevronLeft, 
   ChevronRight,
-  Download,
-  Copy,
   User,
   Clock,
   X
@@ -38,7 +35,7 @@ import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompa
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
-const WORK_END_HOUR = 19;
+const WORK_END_HOUR = 19.5; // Permitir slots hasta 19:00 (19:30 exclusivo)
 const SLOT_MINUTES = 30;
 
 // Generar slots de tiempo
@@ -280,68 +277,6 @@ export const Calendar = () => {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const scheduleText = `AGENDA SEMANAL - ${format(weekDates[0], 'd MMM', { locale: es })} al ${format(weekDates[4], 'd MMM yyyy', { locale: es })}
-
-${weekDates.map((date, dayIndex) => {
-  const dayAppointments = TIME_SLOTS.map(time => {
-    const appointments = getAppointmentsForSlot(dayIndex, time);
-    if (appointments.length > 0) {
-      const apt = appointments[0];
-      const patient = state.patients.find(p => p.id === apt.patientId);
-      const practitioner = state.practitioners.find(p => p.id === apt.practitionerId);
-      return `${time} - ${patient?.name || 'Sin paciente'} (${practitioner?.name || 'Sin profesional'})`;
-    }
-    return null;
-  }).filter(Boolean);
-  
-  return `${format(date, 'EEEE d/MM', { locale: es })}:
-${dayAppointments.length > 0 ? dayAppointments.join('\n') : 'Sin turnos programados'}`;
-}).join('\n\n')}
-
-Generado el ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
-
-      await navigator.clipboard.writeText(scheduleText);
-      
-      toast({
-        title: "Agenda exportada",
-        description: "La agenda semanal ha sido copiada al portapapeles",
-      });
-    } catch (error) {
-      toast({
-        title: "Error al exportar",
-        description: "No se pudo copiar la agenda al portapapeles",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCopySchedule = async () => {
-    try {
-      const scheduleText = `HORARIO SEMANAL
-${WEEKDAYS.map((day, index) => `${day}: ${format(weekDates[index], 'd/MM')}`).join('\n')}
-
-Horarios disponibles: ${WORK_START_HOUR}:00 - ${WORK_END_HOUR}:00
-Duración de turnos: ${SLOT_MINUTES} minutos
-
-Profesionales:
-${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
-
-      await navigator.clipboard.writeText(scheduleText);
-      
-      toast({
-        title: "Horario copiado",
-        description: "El horario base ha sido copiado al portapapeles",
-      });
-    } catch (error) {
-      toast({
-        title: "Error al copiar",
-        description: "No se pudo copiar el horario al portapapeles",
-        variant: "destructive",
-      });
-    }
-  };
 
 
   // Renderizado de slot para grid con capacidad múltiple
@@ -502,26 +437,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
           <WeekNavigatorCompact />
         </div>
 
-        {/* Botones de acción para admin/recep (simplificado) */}
-        {isMultiSelectEnabled && (
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setShowNewAppointmentModal(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Nuevo turno
-            </Button>
-            <Button variant="outline" onClick={handleCopySchedule}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copiar horario
-            </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Rest of component remains the same */}
@@ -600,18 +515,6 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
           </div>
         )}
 
-        <div className="hidden lg:flex items-center gap-2 flex-wrap justify-end">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-
-          <Button variant="outline" onClick={handleCopySchedule}>
-            <Copy className="h-4 w-4 mr-2" />
-            Copiar horario
-          </Button>
-
-        </div>
       </div>
 
       {/* Navegación de semana */}
@@ -628,6 +531,10 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
               <LoadingSkeleton variant="calendar" />
             ) : (
               <div className="overflow-x-auto">
+                {/* Navegador de semana compacto */}
+                <div className="sticky top-0 z-10 flex justify-end px-2 py-1 bg-background/80 backdrop-blur">
+                  <WeekNavigatorCompact />
+                </div>
                 <div className="grid grid-cols-6 gap-1 min-w-[800px]">
                   {/* Header */}
                   <div className="p-2 text-sm font-medium text-muted-foreground border-b">
@@ -659,6 +566,10 @@ ${state.practitioners.map(p => `- ${p.name} (${p.specialty})`).join('\n')}`;
 
           {/* Vista Mobile - Tabs por día */}
           <div className="md:hidden">
+            {/* Navegador de semana compacto para móvil */}
+            <div className="flex justify-end mb-2">
+              <WeekNavigatorCompact />
+            </div>
             <Tabs value={selectedDay.toString()} onValueChange={(v) => setSelectedDay(parseInt(v))}>
               <TabsList className="grid w-full grid-cols-5">
                 {MOBILE_WEEKDAYS.map((day, index) => (

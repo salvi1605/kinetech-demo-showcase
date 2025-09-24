@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useApp, type UserRole } from '@/contexts/AppContext';
-import { WeekNavigator } from '@/components/navigation/WeekNavigator';
 import { useLocation } from 'react-router-dom';
 
 export const Topbar = () => {
@@ -59,8 +58,6 @@ export const Topbar = () => {
             <Badge variant="outline" className="text-xs">v2</Badge>
           </div>
           
-          {/* Week Navigator - only on calendar route */}
-          {isCalendarRoute && <WeekNavigator />}
         </div>
 
       </div>
