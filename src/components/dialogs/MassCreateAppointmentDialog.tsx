@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
-import { Search, User, Clock, AlertCircle } from 'lucide-react';
+import { Search, User, Clock, AlertCircle, Copy } from 'lucide-react';
 import { format, parse } from 'date-fns';
-import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr } from '@/utils/dateUtils';
+import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard } from '@/utils/dateUtils';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -195,6 +195,20 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     resetForm();
   };
 
+  const handleCopySelected = async () => {
+    const items = sortedSlots
+      .map(slot => formatForClipboard(slot.dateISO, slot.hour))
+      .sort();
+    
+    if (items.length === 0) return;
+    
+    await copyToClipboard(items.join('\n'));
+    toast({
+      title: "Horarios copiados",
+      description: `${items.length} horarios copiados al portapapeles`,
+    });
+  };
+
   if (selectedSlotKeys.length === 0) {
     return null;
   }
@@ -204,7 +218,19 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       <Dialog open={open} onOpenChange={handleCancel}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nueva cita masiva</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Nueva cita masiva</DialogTitle>
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                onClick={handleCopySelected} 
+                disabled={selectedSlotKeys.length === 0}
+                className="flex items-center gap-1"
+              >
+                <Copy className="h-4 w-4" />
+                Copiar Horarios
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="space-y-6">

@@ -53,3 +53,28 @@ export const addMinutesStr = (hhmm: string, min: number) => {
 export const getAppointmentEndTime = (startTime: string): string => {
   return addMinutesStr(startTime, 30);
 };
+
+/**
+ * Formatear fecha y hora para copiar al portapapeles: "EEE dd/MM/yyyy • HH:mm"
+ */
+export const formatForClipboard = (dateISO: string, hour: string) => {
+  const day = format(parseLocalDate(dateISO), 'EEE dd/MM/yyyy', { locale: es });
+  const cap = day.charAt(0).toUpperCase() + day.slice(1);
+  return `${cap} • ${hour}`;
+};
+
+/**
+ * Copiar texto al portapapeles con fallback
+ */
+export const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+};

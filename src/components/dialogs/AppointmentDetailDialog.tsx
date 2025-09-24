@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { parseLocalDate } from '@/utils/dateUtils';
+import { parseLocalDate, formatForClipboard, copyToClipboard } from '@/utils/dateUtils';
 import { es } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -228,6 +228,26 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     setIsEditing(false);
   };
 
+  // Copiar todas las citas del paciente
+  const handleCopyAllPatientAppointments = async () => {
+    const allAppointments = [...futuras, ...pasadas];
+    
+    if (allAppointments.length === 0) return;
+    
+    const items = allAppointments
+      .map(apt => ({ dateISO: apt.date, hour: apt.startTime }))
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.hour.localeCompare(b.hour))
+      .map(({ dateISO, hour }) => formatForClipboard(dateISO, hour));
+    
+    await copyToClipboard(items.join('\n'));
+    
+    const n = items.length;
+    toast({
+      title: "Horarios copiados",
+      description: n === 1 ? 'Horario copiado al portapapeles' : `${n} horarios copiados al portapapeles`,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -287,10 +307,21 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
             {/* Citas del Paciente */}
             <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-base font-medium">
-                <Calendar className="h-4 w-4" />
-                Citas del Paciente
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2 text-base font-medium">
+                  <Calendar className="h-4 w-4" />
+                  Citas del Paciente
+                </Label>
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  onClick={handleCopyAllPatientAppointments}
+                  className="flex items-center gap-1"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copiar Horarios
+                </Button>
+              </div>
               <div className="bg-muted/30 p-4 rounded-lg max-h-96 overflow-auto">
                 {/* Citas Futuras */}
                 {futuras.length > 0 && (
