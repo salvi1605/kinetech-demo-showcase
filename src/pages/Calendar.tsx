@@ -371,16 +371,14 @@ export const Calendar = () => {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
                       <div className="truncate opacity-75">{practitioner?.name || 'Profesional'}</div>
-                      {isCompleted && (
-                        <Badge variant="secondary" className="text-xs mt-1">
-                          Completado
-                        </Badge>
-                      )}
-                      {appointment.status === 'scheduled' && (
-                        <Badge variant="outline" className="text-xs mt-1">
-                          Reservado
-                        </Badge>
-                      )}
+                      <div className={`text-xs px-2 py-1 rounded border mt-1 ${
+                        appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                        appointment.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
+                        'bg-red-100 text-red-800 border-red-200'
+                      }`}>
+                        {appointment.status === 'scheduled' ? 'Reservado' :
+                         appointment.status === 'completed' ? 'Asistió' : 'No Asistió'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -662,16 +660,14 @@ export const Calendar = () => {
                                             <div className="font-medium text-sm truncate">
                                               {patient?.name || 'Paciente'}
                                             </div>
-                                            {appointment.status === 'completed' && (
-                                              <Badge variant="secondary" className="text-xs">
-                                                Completado
-                                              </Badge>
-                                            )}
-                                            {appointment.status === 'scheduled' && (
-                                              <Badge variant="outline" className="text-xs">
-                                                Reservado
-                                              </Badge>
-                                            )}
+                                             <span className={`inline-block px-2 py-1 text-xs rounded ${
+                                               appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                                               appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                               'bg-red-100 text-red-800'
+                                             }`}>
+                                               {appointment.status === 'scheduled' ? 'Reservado' :
+                                                appointment.status === 'completed' ? 'Asistió' : 'No Asistió'}
+                                             </span>
                                           </div>
                                           <div className="text-xs text-muted-foreground flex items-center gap-2">
                                             <User className="h-3 w-3" />

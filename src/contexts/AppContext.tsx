@@ -80,7 +80,7 @@ export interface Appointment {
   date: string;
   startTime: string;
   type: 'consultation' | 'therapy' | 'follow-up';
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
   slotIndex?: number;
 }
@@ -567,7 +567,7 @@ const getDemoAppointments = (): Appointment[] => {
       startTime: '14:00',
       
       type: 'therapy',
-      status: 'no_show',
+      status: 'cancelled',
       notes: 'No se presentó',
       slotIndex: 1,
     },

@@ -41,7 +41,7 @@ const editAppointmentSchema = z.object({
     message: "La hora de inicio no puede ser posterior a las 19:00"
   }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
-  status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show']),
+  status: z.enum(['scheduled', 'completed', 'cancelled']),
   notes: z.string().optional(),
 });
 
@@ -494,22 +494,16 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                               Reservado
                             </div>
                           </SelectItem>
-                          <SelectItem value="cancelled">
-                            <div className="flex items-center gap-2">
-                              <XCircle className="h-4 w-4 text-red-600" />
-                              Cancelado
-                            </div>
-                          </SelectItem>
                           <SelectItem value="completed">
                             <div className="flex items-center gap-2">
                               <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              Completado
+                              Asistió
                             </div>
                           </SelectItem>
-                          <SelectItem value="no_show">
+                          <SelectItem value="cancelled">
                             <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 text-orange-600" />
-                              No-show
+                              <XCircle className="h-4 w-4 text-red-600" />
+                              No Asistió
                             </div>
                           </SelectItem>
                         </SelectContent>

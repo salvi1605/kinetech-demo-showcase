@@ -81,10 +81,8 @@ export const formatAppointmentDisplay = (appointment: Appointment, practitioners
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'scheduled': return 'Reservado';
-      case 'completed': return 'Completado';
-      case 'cancelled': return 'Cancelado';
-      case 'no_show': return 'No-show';
-      case 'checked_in': return 'En atención';
+      case 'completed': return 'Asistió';
+      case 'cancelled': return 'No Asistió';
       default: return status;
     }
   };

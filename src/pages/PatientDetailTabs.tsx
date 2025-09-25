@@ -84,9 +84,9 @@ export const PatientDetailTabs = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'Programada';
-      case 'completed': return 'Completada';
-      case 'cancelled': return 'Cancelada';
+      case 'scheduled': return 'Reservado';
+      case 'completed': return 'Asistió';
+      case 'cancelled': return 'No Asistió';
       default: return status;
     }
   };

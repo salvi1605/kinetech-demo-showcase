@@ -37,8 +37,8 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
       // Solo turnos del mismo paciente
       if (apt.patientId !== appointment.patientId) return false;
       
-      // Solo estados scheduled y checked_in
-      if (!['scheduled', 'checked_in'].includes(apt.status)) return false;
+      // Solo estado scheduled
+      if (apt.status !== 'scheduled') return false;
 
       // Comparar fecha y hora
       const aptDateStr = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
