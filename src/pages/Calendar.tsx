@@ -8,7 +8,8 @@ import {
   User,
   Clock,
   X,
-  Plus
+  Plus,
+  Check
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
+import { statusLabel } from '@/utils/statusUtils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
@@ -53,6 +55,11 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+
+// Utilidades para tri-estado
+type Status = 'scheduled' | 'completed' | 'cancelled';
+const statusToChecked = (s: Status) => s === 'completed' ? true : s === 'cancelled' ? 'indeterminate' : false;
+const nextStatus = (s: Status): Status => s === 'scheduled' ? 'completed' : s === 'completed' ? 'cancelled' : 'scheduled';
 
 // Mock appointment status for available slots
 const mockAvailableSlots = [
@@ -204,26 +211,39 @@ export const Calendar = () => {
     dispatch({ type: 'TOGGLE_SLOT_SELECTION', payload: key });
   };
 
-  // Handler para toggle de completado
-  const onToggleCompleted = (apt: Appointment, isCompleted: boolean) => {
-    const nextStatus = isCompleted ? 'completed' : 'scheduled';
+  // Handler para toggle tri-estado
+  const onTriToggle = (apt: Appointment) => {
+    const dateISO = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
+    if (isPastDay(dateISO) && state.userRole !== 'admin') {
+      toast({
+        title: "Acceso denegado",
+        description: "Solo el Administrador puede cambiar estados de días anteriores",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const nextStatusValue = nextStatus(apt.status as Status);
     dispatch({ 
       type: 'UPDATE_APPOINTMENT', 
       payload: { 
         id: apt.id, 
-        updates: { status: nextStatus } 
+        updates: { status: nextStatusValue } 
       } 
     });
     
     // Actualizar el índice local
-    const dateISO = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
     const subSlot = apt.slotIndex || 0;
     const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot });
-    appointmentsBySlotKey.set(key, { ...apt, status: nextStatus });
+    const updatedApt = { ...apt, status: nextStatusValue };
+    appointmentsBySlotKey.set(key, updatedApt);
     
+    const msg = nextStatusValue === 'completed' ? 'Turno marcado como Asistió' : 
+                nextStatusValue === 'scheduled' ? 'Turno marcado como Reservado' : 
+                'Turno marcado como No Asistió';
     toast({
-      title: isCompleted ? "Turno marcado como completado" : "Turno marcado como pendiente",
-      description: isCompleted ? "El turno se ha completado exitosamente" : "El turno está pendiente de completar",
+      title: msg,
+      description: "El estado del turno se ha actualizado",
     });
   };
 
@@ -332,20 +352,20 @@ export const Calendar = () => {
         <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
              style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
-            const appointment = slotAppointments[subIndex];
+              const appointment = slotAppointments[subIndex];
             
             if (appointment) {
               const patient = state.patients.find(p => p.id === appointment.patientId);
               const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
               const styles = getPractitionerStyles(appointment.practitionerId);
-              const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
-              const isCompleted = appointment.status === 'completed';
               const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
+              const stateAttr = statusToChecked(appointment.status as Status);
+              const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
               
               return (
                 <div className="flex justify-center items-center px-1">
                   <div 
-                    className="mx-auto text-xs p-2 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-3 w-full max-w-full relative"
+                    className="mx-auto text-xs p-2 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-2 w-full max-w-full relative"
                     style={styles}
                     role="button"
                     tabIndex={0}
@@ -358,15 +378,18 @@ export const Calendar = () => {
                     }}
                     aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
                   >
-                    {canShowCheckbox && hasPermission && (
-                      <Checkbox
-                        checked={appointment.status === 'completed'}
-                        onCheckedChange={(v) => onToggleCompleted(appointment, Boolean(v))}
-                        onClick={(e) => { e.stopPropagation(); }}
-                        onPointerDown={(e) => { e.stopPropagation(); }}
-                        className="h-6 w-6 shrink-0 cursor-pointer pointer-events-auto z-10"
-                        disabled={appointment.status === 'cancelled' || !appointment.practitionerId || !appointment.patientId}
-                      />
+                    {hasPermission && appointment.practitionerId && appointment.patientId && (
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={aria}
+                        onClick={(e) => { e.stopPropagation(); onTriToggle(appointment); }}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-sm border border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer bg-background"
+                        data-state={stateAttr === true ? 'checked' : stateAttr === 'indeterminate' ? 'indeterminate' : 'unchecked'}
+                      >
+                        {stateAttr === true && <Check className="h-4 w-4 text-green-600" />}
+                        {stateAttr === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
+                      </button>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
@@ -376,8 +399,7 @@ export const Calendar = () => {
                         appointment.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
                         'bg-red-100 text-red-800 border-red-200'
                       }`}>
-                        {appointment.status === 'scheduled' ? 'Reservado' :
-                         appointment.status === 'completed' ? 'Asistió' : 'No Asistió'}
+                        {statusLabel(appointment.status)}
                       </div>
                     </div>
                   </div>
@@ -665,8 +687,7 @@ export const Calendar = () => {
                                                appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
                                                'bg-red-100 text-red-800'
                                              }`}>
-                                               {appointment.status === 'scheduled' ? 'Reservado' :
-                                                appointment.status === 'completed' ? 'Asistió' : 'No Asistió'}
+                                                {statusLabel(appointment.status)}
                                              </span>
                                           </div>
                                           <div className="text-xs text-muted-foreground flex items-center gap-2">
@@ -674,15 +695,19 @@ export const Calendar = () => {
                                             <span className="truncate">{practitioner?.name || 'Profesional'}</span>
                                           </div>
                                         </div>
-                                        {canShowCheckbox && hasPermission && (
-                                          <Checkbox
-                                            checked={appointment.status === 'completed'}
-                                            onCheckedChange={(v) => onToggleCompleted(appointment, Boolean(v))}
-                                            onClick={(e) => { e.stopPropagation(); }}
-                                            className="ml-2 h-6 w-6"
-                                            disabled={appointment.status === 'cancelled' || !appointment.practitionerId || !appointment.patientId}
-                                          />
-                                        )}
+                        {hasPermission && appointment.practitionerId && appointment.patientId && (
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={statusToChecked(appointment.status as Status) === true ? 'true' : statusToChecked(appointment.status as Status) === 'indeterminate' ? 'mixed' : 'false'}
+                            onClick={(e) => { e.stopPropagation(); onTriToggle(appointment); }}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-sm border border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer bg-background ml-2"
+                            data-state={statusToChecked(appointment.status as Status) === true ? 'checked' : statusToChecked(appointment.status as Status) === 'indeterminate' ? 'indeterminate' : 'unchecked'}
+                          >
+                            {statusToChecked(appointment.status as Status) === true && <Check className="h-4 w-4 text-green-600" />}
+                            {statusToChecked(appointment.status as Status) === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
+                          </button>
+                        )}
                                       </div>
                                     </Card>
                                   );
