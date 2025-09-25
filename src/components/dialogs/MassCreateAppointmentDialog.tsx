@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { Search, User, Clock, AlertCircle, Copy } from 'lucide-react';
 import { format, parse } from 'date-fns';
-import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard } from '@/utils/dateUtils';
+import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -101,6 +101,20 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       return;
     }
 
+    // Salvaguarda por rol para días pasados
+    const allowedSlots = state.userRole === 'admin' 
+      ? sortedSlots 
+      : sortedSlots.filter(slot => !isPastDay(slot.dateISO));
+    
+    if (allowedSlots.length === 0 && sortedSlots.length > 0 && state.userRole !== 'admin') {
+      toast({
+        title: "Acceso denegado",
+        description: "No puedes realizar cambios en días anteriores",
+        variant: "destructive",
+      });
+      return; // No crear nada
+    }
+
     setIsCreating(true);
 
     try {
@@ -108,7 +122,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       const failed: string[] = [];
 
       // Crear citas para cada slot válido
-      for (const slot of sortedSlots) {
+      for (const slot of allowedSlots) {
         // Calcular practitionerId para este slot
         const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
         

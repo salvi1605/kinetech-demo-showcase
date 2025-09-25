@@ -204,6 +204,22 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       // No cerrar el diálogo "Nuevo Turno"
       return;
     }
+    
+    // Salvaguarda por rol para días pasados
+    if (selectedSlot) {
+      const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
+      const isPast = appointmentDate < format(new Date(), 'yyyy-MM-dd');
+      
+      if (isPast && state.userRole !== 'admin') {
+        toast({
+          title: "Acceso denegado",
+          description: "No puedes realizar cambios en días anteriores",
+          variant: "destructive",
+        });
+        return; // No crear nada
+      }
+    }
+    
     createAppointment(values); // Continúa flujo normal
   };
 

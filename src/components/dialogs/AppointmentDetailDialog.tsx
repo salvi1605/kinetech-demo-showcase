@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { parseLocalDate, formatForClipboard, copyToClipboard } from '@/utils/dateUtils';
+import { parseLocalDate, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { es } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -112,6 +112,11 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const patient = state.patients.find(p => p.id === appointment.patientId);
   const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
   const appointmentDate = appointment.date.length === 10 ? parseLocalDate(appointment.date) : parseISO(appointment.date);
+  
+  // Check if appointment is in past day
+  const appointmentDateISO = appointment.date.length === 10 ? appointment.date : format(parseISO(appointment.date), 'yyyy-MM-dd');
+  const isPast = isPastDay(appointmentDateISO);
+  const canEdit = state.userRole === 'admin' || !isPast;
 
   // Obtener estado y color
   const getStatusInfo = (status: string) => {
@@ -211,6 +216,16 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
   // Enviar formulario
   const onSubmit = (data: EditAppointmentForm) => {
     if (!appointment) return;
+    
+    // Check permissions for past day appointments
+    if (state.userRole !== 'admin' && isPast) {
+      toast({
+        title: "Acceso denegado",
+        description: "No puedes realizar cambios en días anteriores",
+        variant: "destructive",
+      });
+      return; // Impedir persistencia
+    }
     
     const updatedAppointment: Appointment = {
       ...appointment,
@@ -439,14 +454,16 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
             {/* Acciones */}
             <div className="flex flex-wrap gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2"
-              >
-                <CalendarClock className="h-4 w-4" />
-                Reprogramar
-              </Button>
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2"
+                >
+                  <CalendarClock className="h-4 w-4" />
+                  Reprogramar
+                </Button>
+              )}
               
               <Button
                 variant="outline"
@@ -483,7 +500,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <FormItem>
                     <FormLabel>Estado del turno</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -510,6 +527,9 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                       </Select>
                     </FormControl>
                     <FormMessage />
+                    {state.userRole !== 'admin' && isPast && (
+                      <p className="text-sm text-red-600 mt-2">No se puede cambiar el estado de citas de días anteriores</p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -522,7 +542,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <FormItem>
                     <FormLabel>Fecha</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={!canEdit} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -537,20 +557,20 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Hora de inicio</FormLabel>
-                      <FormControl>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeSlots.map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                       <FormControl>
+                         <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
+                           <SelectTrigger>
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {timeSlots.map((time) => (
+                               <SelectItem key={time} value={time}>
+                                 {time}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -566,7 +586,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <FormItem>
                     <FormLabel>Kinesiólogo</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -599,6 +619,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                         placeholder="Observaciones, tratamientos especiales, etc..."
                         className="resize-none"
                         rows={3}
+                        disabled={!canEdit}
                         {...field}
                       />
                     </FormControl>

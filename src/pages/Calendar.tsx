@@ -118,15 +118,17 @@ export const Calendar = () => {
       setIsLoading(true);
       const timer = setTimeout(() => setIsLoading(false), 300);
       
-      // Clean past day selections
-      const filteredSlots = [...state.selectedSlots].filter(key => {
-        const [dateISO] = key.split('_');
-        return !isPastDay(dateISO);
-      });
-      
-      if (filteredSlots.length !== state.selectedSlots.size) {
-        // Clear all selections if any past day slots were found
-        dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+      // Clean past day selections only for non-admin users
+      if (state.userRole !== 'admin') {
+        const filteredSlots = [...state.selectedSlots].filter(key => {
+          const [dateISO] = key.split('_');
+          return !isPastDay(dateISO);
+        });
+        
+        if (filteredSlots.length !== state.selectedSlots.size) {
+          // Clear all selections if any past day slots were found
+          dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+        }
       }
       
       // Clear banner
@@ -134,7 +136,7 @@ export const Calendar = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [state.calendarWeekStart]);
+  }, [state.calendarWeekStart, state.userRole]);
 
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
@@ -217,7 +219,7 @@ export const Calendar = () => {
     if (isPastDay(dateISO) && state.userRole !== 'admin') {
       toast({
         title: "Acceso denegado",
-        description: "Solo el Administrador puede cambiar estados de días anteriores",
+        description: "No puedes realizar cambios en días anteriores",
         variant: "destructive",
       });
       return;
@@ -252,19 +254,20 @@ export const Calendar = () => {
     const dateISO = format(weekDates[meta.dayIndex], 'yyyy-MM-dd');
     const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
     const appointment = appointmentsBySlotKey.get(key);
-    
-    // Clear banner on any valid click
-    setAgendaBanner(null);
+    const isPast = isPastDay(dateISO);
     
     if (appointment) {
-      // Abrir detalle de turno existente (sin seleccionar)
+      // Abrir detalle de turno existente (siempre permitido)
+      setAgendaBanner(null);
       setSelectedAppointmentId(appointment.id);
     } else {
-      // Check if trying to schedule in past day
-      if (isPastDay(dateISO)) {
+      // Sub-slot vacío (crear)
+      if (isPast && (state.userRole === 'recep' || state.userRole === 'kinesio')) {
         setAgendaBanner({ type: 'error', text: 'No se pueden elegir citas de días anteriores' });
-        return;
+        return; // No seleccionar ni abrir modales de creación
       }
+      
+      setAgendaBanner(null); // Admin o día actual/futuro
       
       if (isMultiSelectEnabled) {
         // Alternar selección si está libre y multi-select está habilitado
