@@ -124,7 +124,8 @@ export type AppAction =
   | { type: 'TOGGLE_SLOT_SELECTION'; payload: string }
   | { type: 'CLEAR_SLOT_SELECTION' }
   | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] }
-  | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } };
+  | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } }
+  | { type: 'AUTO_NO_ASISTIO'; payload: string[] };
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
@@ -336,6 +337,20 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     }
     
+    case 'AUTO_NO_ASISTIO': {
+      const aptIdsToUpdate = action.payload;
+      const updatedAppointments = state.appointments.map(apt =>
+        aptIdsToUpdate.includes(apt.id) ? { ...apt, status: 'cancelled' as const } : apt
+      );
+      const indexes = buildAppointmentIndexes(updatedAppointments);
+      return {
+        ...state,
+        appointments: updatedAppointments,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
+      };
+    }
+
     case 'DELETE_APPOINTMENTS_BULK': {
       const { patientId, fromDateTime, statuses } = action.payload;
       const filteredAppointments = state.appointments.filter(apt => {
@@ -662,4 +677,18 @@ export const clearDemo = (dispatch: React.Dispatch<AppAction>) => {
 // Helper function to update a single appointment immutably
 export const updateAppointment = (dispatch: React.Dispatch<AppAction>, appointment: Appointment) => {
   dispatch({ type: 'UPDATE_APPOINTMENT_DIRECT', payload: appointment });
+};
+
+// Auto No Asistió utilities
+const todayISO = () => format(new Date(), 'yyyy-MM-dd');
+const isPastDay = (dateISO: string) => dateISO < todayISO();
+
+export const runAutoNoAsistio = (dispatch: React.Dispatch<AppAction>, appointments: Appointment[]) => {
+  const today = todayISO();
+  const toUpdate = appointments.filter(a => a.status === 'scheduled' && a.date < today);
+  
+  if (toUpdate.length === 0) return 0;
+  
+  dispatch({ type: 'AUTO_NO_ASISTIO', payload: toUpdate.map(a => a.id) });
+  return toUpdate.length;
 };

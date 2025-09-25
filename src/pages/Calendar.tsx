@@ -34,6 +34,7 @@ import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KinesioCombobox } from '@/components/shared/KinesioCombobox';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
+import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
@@ -80,6 +81,10 @@ const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string;
 export const Calendar = () => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
+  
+  // Initialize auto no asistio hook
+  useAutoNoAsistio();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
