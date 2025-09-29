@@ -5,8 +5,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useApp, type UserRole } from '@/contexts/AppContext';
+import { useApp, type UserRole, runAutoNoAsistio } from '@/contexts/AppContext';
 import { useLocation } from 'react-router-dom';
+import { addDays, format } from 'date-fns';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
@@ -28,6 +29,11 @@ export const Topbar = () => {
 
   const handlePractitionerChange = (practitionerId: string) => {
     dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId || undefined });
+  };
+
+  const handleSimulateDayChange = () => {
+    const tomorrowISO = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+    runAutoNoAsistio(dispatch, state.appointments, tomorrowISO);
   };
 
   const getRoleDisplayName = (role: UserRole) => {
@@ -101,6 +107,18 @@ export const Topbar = () => {
             </Badge>
           )}
         </div>
+
+        {/* Dev Day Change Simulator - Only in development for admin */}
+        {import.meta.env.DEV && state.userRole === 'admin' && (
+          <Button
+            size="sm"
+            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            onClick={handleSimulateDayChange}
+            title="Ejecuta conversión Reservado → No Asistió como si fuera medianoche"
+          >
+            Simular cambio de día
+          </Button>
+        )}
 
         {/* Settings */}
         <Button variant="ghost" size="sm">

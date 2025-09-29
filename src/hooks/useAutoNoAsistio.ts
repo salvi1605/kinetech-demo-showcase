@@ -10,8 +10,8 @@ export const useAutoNoAsistio = () => {
   const { state, dispatch } = useApp();
   const lastCheckedDateRef = useRef<string>(todayISO());
 
-  const executeAutoNoAsistio = () => {
-    const count = runAutoNoAsistio(dispatch, state.appointments);
+  const executeAutoNoAsistio = (refISO?: string) => {
+    const count = runAutoNoAsistio(dispatch, state.appointments, refISO);
     if (count > 0) {
       toast({
         title: "Actualización automática",

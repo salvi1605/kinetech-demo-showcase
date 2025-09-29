@@ -683,9 +683,9 @@ export const updateAppointment = (dispatch: React.Dispatch<AppAction>, appointme
 const todayISO = () => format(new Date(), 'yyyy-MM-dd');
 const isPastDay = (dateISO: string) => dateISO < todayISO();
 
-export const runAutoNoAsistio = (dispatch: React.Dispatch<AppAction>, appointments: Appointment[]) => {
-  const today = todayISO();
-  const toUpdate = appointments.filter(a => a.status === 'scheduled' && a.date < today);
+export const runAutoNoAsistio = (dispatch: React.Dispatch<AppAction>, appointments: Appointment[], refISO?: string) => {
+  const referenceDate = refISO ?? todayISO();
+  const toUpdate = appointments.filter(a => a.status === 'scheduled' && a.date < referenceDate);
   
   if (toUpdate.length === 0) return 0;
   
