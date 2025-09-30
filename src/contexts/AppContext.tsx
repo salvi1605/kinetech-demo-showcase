@@ -82,7 +82,7 @@ export interface Appointment {
   type: 'consultation' | 'therapy' | 'follow-up';
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
-  slotIndex?: number;
+  subSlot: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface Schedule {
@@ -129,7 +129,7 @@ export type AppAction =
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
-  return `${appointment.date}:${appointment.startTime}:${appointment.practitionerId}`;
+  return `${appointment.date}:${appointment.startTime}:S${appointment.subSlot}`;
 };
 
 const buildAppointmentIndexes = (appointments: Appointment[]) => {
@@ -572,7 +572,7 @@ const getDemoAppointments = (): Appointment[] => {
       type: 'consultation',
       status: 'completed',
       notes: 'Seguimiento de lesión de rodilla',
-      slotIndex: 0,
+      subSlot: 1,
     },
     {
       id: '2',
@@ -584,7 +584,7 @@ const getDemoAppointments = (): Appointment[] => {
       type: 'therapy',
       status: 'cancelled',
       notes: 'No se presentó',
-      slotIndex: 1,
+      subSlot: 2,
     },
     
     // Semana actual
@@ -598,7 +598,7 @@ const getDemoAppointments = (): Appointment[] => {
       type: 'therapy',
       status: 'scheduled',
       notes: 'Fisioterapia respiratoria',
-      slotIndex: 0,
+      subSlot: 1,
     },
     {
       id: '4',
@@ -609,7 +609,7 @@ const getDemoAppointments = (): Appointment[] => {
       type: 'consultation',
       status: 'scheduled',
       notes: 'Evaluación inicial',
-      slotIndex: 2,
+      subSlot: 3,
     },
     
     // Próximas semanas
@@ -623,7 +623,7 @@ const getDemoAppointments = (): Appointment[] => {
       type: 'therapy',
       status: 'scheduled',
       notes: 'Sesión de kinesiología',
-      slotIndex: 0,
+      subSlot: 1,
     },
     {
       id: '6',
@@ -634,7 +634,7 @@ const getDemoAppointments = (): Appointment[] => {
       type: 'follow-up',
       status: 'scheduled',
       notes: 'Control post-tratamiento',
-      slotIndex: 1,
+      subSlot: 2,
     },
   ];
 };

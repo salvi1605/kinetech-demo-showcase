@@ -72,10 +72,8 @@ export const formatAppointmentDisplay = (appointment: Appointment, practitioners
   const dayName = format(appointmentDate, 'EEE', { locale: es });
   const dateStr = format(appointmentDate, 'dd/MM');
   
-  // Calcular slot basado en hora (simplificado)
-  const [hours, minutes] = appointment.startTime.split(':').map(Number);
-  const minutesFromStart = (hours - 8) * 60 + minutes;
-  const slotNumber = Math.floor(minutesFromStart / 30) + 1;
+  // Usar el subSlot real del appointment
+  const slotNumber = appointment.subSlot;
 
   // Estado en español
   const getStatusLabel = (status: string) => {

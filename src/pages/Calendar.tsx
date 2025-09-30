@@ -88,7 +88,7 @@ export const Calendar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; slotIndex?: number } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string; date: Date; subSlot?: number } | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
@@ -112,7 +112,7 @@ export const Calendar = () => {
     const dateISO = appointment.date.length === 10
       ? appointment.date
       : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot = appointment.slotIndex || 0;
+    const subSlot = appointment.subSlot;
     const key = getSlotKey({ dateISO, hour: appointment.startTime, subSlot });
     appointmentsBySlotKey.set(key, appointment);
   });
@@ -153,7 +153,7 @@ export const Calendar = () => {
         : format(parseISO(apt.date), 'yyyy-MM-dd');
       const matchesSlot = aptISO === targetDateISO && apt.startTime === time;
       if (subIndex !== undefined) {
-        return matchesSlot && apt.slotIndex === subIndex;
+        return matchesSlot && apt.subSlot === subIndex;
       }
       return matchesSlot;
     });
@@ -174,11 +174,11 @@ export const Calendar = () => {
   const getNextAvailableSubSlot = (dayIndex: number, time: string) => {
     const appointments = getAppointmentsForSlot(dayIndex, time);
     const capacity = getSlotCapacity(dayIndex, time);
-    const usedSlots = appointments.map(apt => apt.slotIndex || 0);
+    const usedSlots = appointments.map(apt => apt.subSlot);
     
-    for (let i = 0; i < capacity; i++) {
-      if (!usedSlots.includes(i)) {
-        return i;
+    for (let i = 1; i <= capacity; i++) {
+      if (!usedSlots.includes(i as 1 | 2 | 3 | 4 | 5)) {
+        return i as 1 | 2 | 3 | 4 | 5;
       }
     }
     return null; // No available slots
@@ -240,7 +240,7 @@ export const Calendar = () => {
     });
     
     // Actualizar el índice local
-    const subSlot = apt.slotIndex || 0;
+    const subSlot = apt.subSlot;
     const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot });
     const updatedApt = { ...apt, status: nextStatusValue };
     appointmentsBySlotKey.set(key, updatedApt);
@@ -283,7 +283,7 @@ export const Calendar = () => {
           day: meta.dayIndex, 
           time: meta.time, 
           date: weekDates[meta.dayIndex],
-          slotIndex: meta.subSlot
+          subSlot: meta.subSlot
         });
         setShowNewAppointmentModal(true);
       }

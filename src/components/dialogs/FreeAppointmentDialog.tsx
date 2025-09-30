@@ -103,7 +103,7 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
   const formatAppointmentDisplay = (apt: Appointment) => {
     const practitioner = state.practitioners.find(p => p.id === apt.practitionerId);
     const dateStr = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
-    const slotIndex = apt.slotIndex || 1;
+    const slotIndex = apt.subSlot;
     
     return {
       displayText: `${format(parseLocalDate(dateStr), 'EEE dd/MM', { locale: es })} • ${apt.startTime} • Slot ${slotIndex} • ${practitioner?.name || 'Sin asignar'}`,

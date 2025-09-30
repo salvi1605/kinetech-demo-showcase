@@ -35,7 +35,7 @@ type NewAppointmentForm = z.infer<typeof newAppointmentSchema>;
 interface NewAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedSlot: { day: number; time: string; date: Date; slotIndex?: number } | null;
+  selectedSlot: { day: number; time: string; date: Date; subSlot?: number } | null;
 }
 
 export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAppointmentDialogProps) => {
@@ -130,7 +130,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
   // Función para verificar choques en el mismo subSlot con misma hora de inicio
   const collidesSameSlotSameStart = (practitionerId: string, date: string, startTime: string, subSlot: number) => {
     return state.appointments.some(appointment => {
-      const appointmentSubSlot = appointment.slotIndex ?? 0; // Asumir subSlot=0 si no está definido
+      const appointmentSubSlot = appointment.subSlot;
       
       return (
         appointment.practitionerId === practitionerId &&
@@ -157,7 +157,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
     // Verificar conflictos en el mismo subSlot con misma hora de inicio
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
-    const subSlot = selectedSlot.slotIndex ?? 0;
+    const subSlot = selectedSlot.subSlot ?? 1;
     
     if (collidesSameSlotSameStart(data.practitionerId, appointmentDate, data.startTime, subSlot)) {
       toast({
@@ -177,8 +177,13 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       status: 'scheduled' as const,
       type: 'consultation' as const,
       notes: data.notes || '',
-      slotIndex: selectedSlot.slotIndex
+      subSlot: (selectedSlot.subSlot ?? 1) as 1 | 2 | 3 | 4 | 5
     };
+
+    // Validación en DEV
+    if (import.meta.env.DEV && (newAppointment.subSlot == null || newAppointment.subSlot < 1 || newAppointment.subSlot > 5)) {
+      console.warn('subSlot inválido en payload', newAppointment);
+    }
 
     dispatch({ type: 'ADD_APPOINTMENT', payload: newAppointment });
 

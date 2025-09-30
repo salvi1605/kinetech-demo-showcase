@@ -66,7 +66,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   // Función para verificar choques en el mismo subSlot
   const collidesSameSlot = (slot: SlotInfo, appointment: Appointment, practitionerId: string) => {
     const slotEnd = addMinutesStr(slot.hour, state.preferences.slotMinutes || 30);
-    const appointmentSubSlot = appointment.slotIndex ?? 0; // Asumir subSlot=0 si no está definido
+    const appointmentSubSlot = appointment.subSlot;
     
     return (
       appointment.practitionerId === practitionerId &&
@@ -148,8 +148,13 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           type: 'consultation',
           status: 'scheduled',
           notes: notes || undefined,
-          slotIndex: slot.subSlot,
+          subSlot: slot.subSlot as 1 | 2 | 3 | 4 | 5,
         };
+
+        // Validación en DEV
+        if (import.meta.env.DEV && (appointment.subSlot == null || appointment.subSlot < 1 || appointment.subSlot > 5)) {
+          console.warn('subSlot inválido en payload', appointment);
+        }
 
         successfulAppointments.push(appointment);
       }
