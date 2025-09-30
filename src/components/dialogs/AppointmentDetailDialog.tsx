@@ -267,10 +267,14 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     
     if (allAppointments.length === 0) return;
     
+    const { formatCopyLine } = await import('@/utils/copyFormat');
+    
     const items = allAppointments
-      .map(apt => ({ dateISO: apt.date, hour: apt.startTime }))
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.hour.localeCompare(b.hour))
-      .map(({ dateISO, hour }) => formatForClipboard(dateISO, hour));
+      .map(apt => {
+        const doctor = state.practitioners.find(p => p.id === apt.practitionerId);
+        return formatCopyLine(apt.date, apt.startTime, doctor, apt.treatmentType);
+      })
+      .sort();
     
     await copyToClipboard(items.join('\n'));
     

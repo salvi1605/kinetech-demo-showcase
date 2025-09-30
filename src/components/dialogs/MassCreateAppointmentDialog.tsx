@@ -242,9 +242,14 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   };
 
   const handleCopySelected = async () => {
-    const items = sortedSlots
-      .map(slot => formatForClipboard(slot.dateISO, slot.hour))
-      .sort();
+    const { formatCopyLine } = await import('@/utils/copyFormat');
+    
+    const items = sortedSlots.map(slot => {
+      const practitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+      const doctor = state.practitioners.find(p => p.id === practitionerId);
+      const treatmentType = perItemTreatment[slot.key] ?? slot.treatmentType ?? "";
+      return formatCopyLine(slot.dateISO, slot.hour, doctor, treatmentType);
+    });
     
     if (items.length === 0) return;
     
