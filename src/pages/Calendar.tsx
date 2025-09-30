@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
+import type { TreatmentType } from '@/types/appointments';
+import { treatmentLabel } from '@/utils/formatters';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
 import { statusLabel } from '@/utils/statusUtils';
@@ -292,14 +294,16 @@ export const Calendar = () => {
 
   // Función para confirmar selección múltiple
   const confirmSelection = () => {
-    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId) {
+    const treatmentType = state.selectedTreatmentType ?? "";
+    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId || treatmentType === "") {
       const missing = [];
       if (state.selectedSlots.size === 0) missing.push('horarios');
       if (!state.selectedPractitionerId) missing.push('kinesiólogo');
+      if (treatmentType === "") missing.push('tipo de tratamiento');
       
       toast({
         title: "Datos incompletos",
-        description: `Falta seleccionar: ${missing.join(' y ')}`,
+        description: `Falta seleccionar: ${missing.join(', ')}`,
         variant: "destructive",
       });
       return;
@@ -507,13 +511,32 @@ export const Calendar = () => {
                   {state.selectedSlots.size} horario{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
                 </span>
                 {state.selectedSlots.size > 0 && isMultiSelectEnabled && (
-                  <KinesioCombobox
-                    value={state.selectedPractitionerId}
-                    onChange={(practitionerId) => dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId })}
-                    options={state.practitioners.map(p => ({ value: p.id, label: p.name }))}
-                    placeholder="Selecciona Kinesiólogo"
-                    className="text-xs"
-                  />
+                  <>
+                    <KinesioCombobox
+                      value={state.selectedPractitionerId}
+                      onChange={(practitionerId) => dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId })}
+                      options={state.practitioners.map(p => ({ value: p.id, label: p.name }))}
+                      placeholder="Selecciona Kinesiólogo"
+                      className="text-xs"
+                    />
+                    <Select
+                      value={state.selectedTreatmentType ?? ""}
+                      onValueChange={(value) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPE', payload: value as TreatmentType | "" })}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-[200px]">
+                        <SelectValue placeholder="Tipo de Tratamiento *" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fkt">{treatmentLabel.fkt}</SelectItem>
+                        <SelectItem value="atm">{treatmentLabel.atm}</SelectItem>
+                        <SelectItem value="drenaje">{treatmentLabel.drenaje}</SelectItem>
+                        <SelectItem value="drenaje_ultra">{treatmentLabel.drenaje_ultra}</SelectItem>
+                        <SelectItem value="masaje">{treatmentLabel.masaje}</SelectItem>
+                        <SelectItem value="vestibular">{treatmentLabel.vestibular}</SelectItem>
+                        <SelectItem value="otro">{treatmentLabel.otro}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
                 )}
               </div>
               <Button
@@ -560,7 +583,7 @@ export const Calendar = () => {
                 size="sm" 
                 onClick={confirmSelection} 
                 className="flex-1"
-                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId}
+                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId || (state.selectedTreatmentType ?? "") === ""}
               >
                 Confirmar selección
               </Button>

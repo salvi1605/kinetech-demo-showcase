@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { addWeeks, subWeeks, format } from 'date-fns';
+import type { TreatmentType } from '@/types/appointments';
 
 // Types
 export type UserRole = 'admin' | 'recep' | 'kinesio';
@@ -50,6 +51,7 @@ export interface AppState {
   preferences: Preferences;
   selectedSlots: Set<string>;
   selectedPractitionerId?: string;
+  selectedTreatmentType?: TreatmentType | "";
 }
 
 export interface Patient {
@@ -83,6 +85,7 @@ export interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
   subSlot: 1 | 2 | 3 | 4 | 5;
+  treatmentType: TreatmentType | "";
 }
 
 export interface Schedule {
@@ -110,6 +113,7 @@ export type AppAction =
   | { type: 'SET_SELECTED_CLINIC'; payload: string }
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_SELECTED_PRACTITIONER'; payload: string | undefined }
+  | { type: 'SET_SELECTED_TREATMENT_TYPE'; payload: TreatmentType | "" | undefined }
   | { type: 'SEED_DEMO_DATA' }
   | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOGIN'; payload: User }
@@ -168,6 +172,7 @@ const initialState: AppState = {
     multiTenant: false,
   },
   selectedSlots: new Set<string>(),
+  selectedTreatmentType: "",
 };
 
 // Reducer
@@ -196,6 +201,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'SET_SELECTED_PRACTITIONER':
       return { ...state, selectedPractitionerId: action.payload };
+    
+    case 'SET_SELECTED_TREATMENT_TYPE':
+      return { ...state, selectedTreatmentType: action.payload };
     
     case 'SEED_DEMO_DATA': {
       const appointments = getDemoAppointments();
@@ -323,7 +331,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         selectedSlots: new Set<string>(),
-        selectedPractitionerId: undefined, // Reset practitioner selection when clearing slots
+        selectedPractitionerId: undefined,
+        selectedTreatmentType: undefined,
       };
     
     case 'ADD_MULTIPLE_APPOINTMENTS': {
@@ -573,6 +582,7 @@ const getDemoAppointments = (): Appointment[] => {
       status: 'completed',
       notes: 'Seguimiento de lesión de rodilla',
       subSlot: 1,
+      treatmentType: 'fkt',
     },
     {
       id: '2',
@@ -580,11 +590,11 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '2',
       date: format(prevWeek, 'yyyy-MM-dd'),
       startTime: '14:00',
-      
       type: 'therapy',
       status: 'cancelled',
       notes: 'No se presentó',
       subSlot: 2,
+      treatmentType: 'atm',
     },
     
     // Semana actual
@@ -594,11 +604,11 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '3',
       date: format(currentWeek, 'yyyy-MM-dd'),
       startTime: '11:00',
-      
       type: 'therapy',
       status: 'scheduled',
       notes: 'Fisioterapia respiratoria',
       subSlot: 1,
+      treatmentType: 'drenaje',
     },
     {
       id: '4',
@@ -610,6 +620,7 @@ const getDemoAppointments = (): Appointment[] => {
       status: 'scheduled',
       notes: 'Evaluación inicial',
       subSlot: 3,
+      treatmentType: 'masaje',
     },
     
     // Próximas semanas
@@ -619,11 +630,11 @@ const getDemoAppointments = (): Appointment[] => {
       practitionerId: '2',
       date: format(nextWeek, 'yyyy-MM-dd'),
       startTime: '10:00',
-      
       type: 'therapy',
       status: 'scheduled',
       notes: 'Sesión de kinesiología',
       subSlot: 1,
+      treatmentType: 'vestibular',
     },
     {
       id: '6',
@@ -635,6 +646,7 @@ const getDemoAppointments = (): Appointment[] => {
       status: 'scheduled',
       notes: 'Control post-tratamiento',
       subSlot: 2,
+      treatmentType: 'otro',
     },
   ];
 };

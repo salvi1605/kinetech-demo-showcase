@@ -177,7 +177,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       status: 'scheduled' as const,
       type: 'consultation' as const,
       notes: data.notes || '',
-      subSlot: (selectedSlot.subSlot ?? 1) as 1 | 2 | 3 | 4 | 5
+      subSlot: (selectedSlot.subSlot ?? 1) as 1 | 2 | 3 | 4 | 5,
+      treatmentType: "" as const,
     };
 
     // Validación en DEV

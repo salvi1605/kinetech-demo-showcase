@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
+import type { TreatmentType } from '@/types/appointments';
+import { treatmentLabel } from '@/utils/formatters';
 import { Search, User, Clock, AlertCircle, Copy } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
@@ -25,6 +27,7 @@ interface SlotInfo {
   hour: string;
   subSlot: number;
   displayText: string;
+  treatmentType?: TreatmentType | "";
 }
 
 
@@ -39,8 +42,9 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const [showFailureDialog, setShowFailureDialog] = useState(false);
   const [failedSlots, setFailedSlots] = useState<string[]>([]);
   const [perItemPractitioner, setPerItemPractitioner] = useState<Record<string, string>>({});
+  const [perItemTreatment, setPerItemTreatment] = useState<Record<string, TreatmentType | "">>({});
 
-  // Preparar slots ordenados
+  // Preparar slots ordenados con tratamiento prefijado
   const sortedSlots: SlotInfo[] = selectedSlotKeys
     .sort(byDateTime)
     .map(key => {
@@ -50,7 +54,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         dateISO,
         hour,
         subSlot,
-        displayText: displaySelectedLabel({ dateISO, hour, subSlot: (subSlot + 1) as 1 | 2 | 3 | 4 | 5 })
+        displayText: displaySelectedLabel({ dateISO, hour, subSlot: (subSlot + 1) as 1 | 2 | 3 | 4 | 5 }),
+        treatmentType: state.selectedTreatmentType || "",
       };
     });
 
@@ -91,6 +96,21 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   };
 
   const handleConfirm = async () => {
+    // Validación: todos los slots deben tener tratamiento
+    const slotsWithoutTreatment = sortedSlots.filter(slot => {
+      const treatment = perItemTreatment[slot.key] ?? slot.treatmentType ?? "";
+      return treatment === "";
+    });
+
+    if (slotsWithoutTreatment.length > 0) {
+      toast({
+        title: "Datos incompletos",
+        description: "Todos los turnos deben tener un tipo de tratamiento",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validación
     if (!patientId) {
       toast({
@@ -123,11 +143,17 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
       // Crear citas para cada slot válido
       for (const slot of allowedSlots) {
-        // Calcular practitionerId para este slot
+        // Calcular practitionerId y treatmentType para este slot
         const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+        const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType ?? "";
         
         if (!slotPractitionerId) {
           failed.push(`${slot.displayText} - Sin kinesiólogo asignado`);
+          continue;
+        }
+
+        if (slotTreatmentType === "") {
+          failed.push(`${slot.displayText} - Sin tratamiento asignado`);
           continue;
         }
 
@@ -144,11 +170,11 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           practitionerId: slotPractitionerId,
           date: slot.dateISO,
           startTime: slot.hour,
-          
           type: 'consultation',
           status: 'scheduled',
           notes: notes || undefined,
           subSlot: slot.subSlot as 1 | 2 | 3 | 4 | 5,
+          treatmentType: slotTreatmentType,
         };
 
         // Validación en DEV
@@ -206,6 +232,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     setNotes('');
     setPatientSearch('');
     setPerItemPractitioner({});
+    setPerItemTreatment({});
   };
 
   const handleFailureDialogClose = () => {
@@ -307,6 +334,32 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                                 {practitioner.name}
                               </SelectItem>
                             ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground min-w-[80px]">Tratamiento:</span>
+                        <Select 
+                          value={perItemTreatment[slot.key] ?? slot.treatmentType ?? ""} 
+                          onValueChange={(value) => {
+                            setPerItemTreatment(prev => ({
+                              ...prev,
+                              [slot.key]: value as TreatmentType | ""
+                            }));
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Seleccionar tratamiento *" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fkt">{treatmentLabel.fkt}</SelectItem>
+                            <SelectItem value="atm">{treatmentLabel.atm}</SelectItem>
+                            <SelectItem value="drenaje">{treatmentLabel.drenaje}</SelectItem>
+                            <SelectItem value="drenaje_ultra">{treatmentLabel.drenaje_ultra}</SelectItem>
+                            <SelectItem value="masaje">{treatmentLabel.masaje}</SelectItem>
+                            <SelectItem value="vestibular">{treatmentLabel.vestibular}</SelectItem>
+                            <SelectItem value="otro">{treatmentLabel.otro}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
