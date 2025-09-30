@@ -31,7 +31,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useApp, updateAppointment } from '@/contexts/AppContext';
 import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePatientAppointments';
-import { normalizeSubSlot } from '@/utils/slotUtils';
 import type { Appointment } from '@/contexts/AppContext';
 
 const editAppointmentSchema = z.object({
@@ -370,7 +369,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
-                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {normalizeSubSlot(apt?.subSlot)} • {display.practitionerName}
+                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {display.slotNumber} • {display.practitionerName}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
@@ -411,7 +410,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
-                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {normalizeSubSlot(apt?.subSlot)} • {display.practitionerName}
+                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {display.slotNumber} • {display.practitionerName}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
