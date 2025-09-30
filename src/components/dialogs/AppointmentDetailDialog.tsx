@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, updateAppointment } from '@/contexts/AppContext';
 import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePatientAppointments';
 import type { Appointment } from '@/contexts/AppContext';
+import { displaySubSlot } from '@/utils/slotUtils';
 
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -358,6 +359,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                       {futuras.map((apt) => {
                         const display = formatAppointmentDisplay(apt, state.practitioners);
                         const isCurrentAppointment = apt.id === appointment.id;
+                        const slotNumber = displaySubSlot(Number((apt as any).subSlot));
                         
                         return (
                           <div 
@@ -369,7 +371,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
-                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {display.slotNumber} • {display.practitionerName}
+                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {slotNumber} • {display.practitionerName}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
@@ -399,6 +401,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                       {pasadas.map((apt) => {
                         const display = formatAppointmentDisplay(apt, state.practitioners);
                         const isCurrentAppointment = apt.id === appointment.id;
+                        const slotNumber = displaySubSlot(Number((apt as any).subSlot));
                         
                         return (
                           <div 
@@ -410,7 +413,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
-                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {display.slotNumber} • {display.practitionerName}
+                                {display.dayName} {display.dateStr} • {display.timeRange} • Slot {slotNumber} • {display.practitionerName}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
