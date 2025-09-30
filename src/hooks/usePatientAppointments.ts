@@ -72,8 +72,15 @@ export const formatAppointmentDisplay = (appointment: Appointment, practitioners
   const dayName = format(appointmentDate, 'EEE', { locale: es });
   const dateStr = format(appointmentDate, 'dd/MM');
   
-  // Usar el subSlot real del appointment
-  const slotNumber = appointment.subSlot;
+  // Normaliza subSlot para UI: acepta datos 0–4 (legacy) y 1–5 (correcto)
+  const raw = (appointment as any).subSlot as number | undefined;
+  const slotNumber = typeof raw === 'number'
+    ? (raw >= 1 && raw <= 5
+        ? raw              // ya viene 1–5 → mostrar igual
+        : (raw >= 0 && raw <= 4
+            ? raw + 1      // legacy 0–4 → mostrar 1–5
+            : 1))          // fuera de rango → fallback seguro
+    : 1;
 
   // Estado en español
   const getStatusLabel = (status: string) => {
