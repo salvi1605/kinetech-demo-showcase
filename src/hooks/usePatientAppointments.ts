@@ -73,7 +73,7 @@ export const formatAppointmentDisplay = (appointment: Appointment, practitioners
   const dayName = format(appointmentDate, 'EEE', { locale: es });
   const dateStr = format(appointmentDate, 'dd/MM');
   
-  const slotNumber = displaySubSlot((appointment as any).subSlot);
+  const slotNumber = displaySubSlot(Number((appointment as any).subSlot));
 
   // Estado en español
   const getStatusLabel = (status: string) => {
