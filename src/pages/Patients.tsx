@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, MoreHorizontal } from 'lucide-react';
+import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { PatientWizardDialog } from '@/components/dialogs/PatientWizardDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ export const Patients = () => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCondition, setFilterCondition] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -158,7 +159,19 @@ export const Patients = () => {
                 </TableHeader>
                 <TableBody>
                   {paginatedPatients.map((patient) => (
-                    <TableRow key={patient.id}>
+                    <TableRow 
+                      key={patient.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/patients/${patient.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/patients/${patient.id}`);
+                        }
+                      }}
+                      className="hover:bg-muted cursor-pointer"
+                    >
                       <TableCell className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-primary text-primary-foreground">
@@ -174,11 +187,23 @@ export const Patients = () => {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm">
                             <Mail className="h-3 w-3" />
-                            <span className="truncate max-w-[150px]">{patient.email}</span>
+                            <a 
+                              href={`mailto:${patient.email}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="truncate max-w-[150px] hover:underline"
+                            >
+                              {patient.email}
+                            </a>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <Phone className="h-3 w-3" />
-                            <span>{patient.phone}</span>
+                            <a 
+                              href={`tel:${patient.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:underline"
+                            >
+                              {patient.phone}
+                            </a>
                           </div>
                         </div>
                       </TableCell>
@@ -206,33 +231,44 @@ export const Patients = () => {
                           <span className="text-sm text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-background z-50">
-                            <DropdownMenuItem asChild>
-                              <Link to={`/patients/${patient.id}`} className="flex items-center">
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(patient)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => setDeletePatient(patient)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <TooltipProvider>
+                          <div className="flex items-center justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-9 w-9"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(patient);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Editar</TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-9 w-9"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletePatient(patient);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Eliminar</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -282,7 +318,11 @@ export const Patients = () => {
             ))
           ) : (
             paginatedPatients.map((patient) => (
-              <Card key={patient.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={patient.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/patients/${patient.id}`)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -298,32 +338,24 @@ export const Patients = () => {
                         </CardDescription>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-background z-50">
-                        <DropdownMenuItem asChild>
-                          <Link to={`/patients/${patient.id}`} className="flex items-center">
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(patient)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setDeletePatient(patient)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handleEdit(patient)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => setDeletePatient(patient)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -332,11 +364,23 @@ export const Patients = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-4 w-4" />
-                      <span className="truncate">{patient.email}</span>
+                      <a 
+                        href={`mailto:${patient.email}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="truncate hover:underline"
+                      >
+                        {patient.email}
+                      </a>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="h-4 w-4" />
-                      <span>{patient.phone}</span>
+                      <a 
+                        href={`tel:${patient.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:underline"
+                      >
+                        {patient.phone}
+                      </a>
                     </div>
                   </div>
 
@@ -366,18 +410,6 @@ export const Patients = () => {
                         <span>Próxima cita: {new Date(patient.nextAppointment).toLocaleDateString('es-ES')}</span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Link to={`/patients/${patient.id}`} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full min-h-[44px]">
-                        Ver Detalles
-                      </Button>
-                    </Link>
-                    <Button variant="default" size="sm" className="flex-1 min-h-[44px]">
-                      Nueva Cita
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -495,13 +527,14 @@ export const Patients = () => {
         patient={editingPatient}
       />
 
-      <AlertDialog open={!!deletePatient} onOpenChange={() => setDeletePatient(null)}>
+      <AlertDialog open={!!deletePatient} onOpenChange={(open) => !open && setDeletePatient(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar paciente?</AlertDialogTitle>
+            <AlertDialogTitle>
+              ¿Eliminar paciente {deletePatient?.name}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente al paciente{' '}
-              <strong>{deletePatient?.name}</strong> del sistema.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
