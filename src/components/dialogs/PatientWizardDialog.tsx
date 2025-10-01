@@ -25,6 +25,9 @@ import { Patient } from '@/contexts/AppContext';
 import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
 import { toISODate, fromISODate } from '@/utils/dateUtils';
 
+export type ObraSocial = 'osde' | 'luis_pasteur' | 'particular';
+export type ReminderPref = '24h' | 'none';
+
 const patientSchema = z.object({
   // Identificación/Contacto
   fullName: z.string().min(1, "El nombre completo es requerido"),
@@ -54,7 +57,6 @@ const patientSchema = z.object({
   referringProvider: z.string().optional(),
   diagnosis: z.string().optional(),
   onsetDate: z.date().optional(),
-  bodyRegions: z.array(z.string()).optional(),
   laterality: z.string().optional(),
   painLevel: z.number().min(0).max(10).optional(),
   redFlags: z.array(z.string()).optional(),
@@ -66,8 +68,8 @@ const patientSchema = z.object({
   treatmentPlan: z.string().optional(),
   
   // Seguro/Consentimientos
-  insurance: z.string().optional(),
-  policyNumber: z.string().optional(),
+  obraSocial: z.enum(['osde', 'luis_pasteur', 'particular']).optional(),
+  numeroAfiliado: z.string().optional(),
   plan: z.string().optional(),
   authorizedSessions: z.number().optional(),
   usedSessions: z.number().optional(),
@@ -76,12 +78,22 @@ const patientSchema = z.object({
   billingName: z.string().optional(),
   billingTaxId: z.string().optional(),
   billingAddress: z.string().optional(),
-  smsAuthorization: z.boolean().optional(),
   whatsappAuthorization: z.boolean().optional(),
   emailAuthorization: z.boolean().optional(),
-  reminderPreference: z.string().optional(),
+  reminderPreference: z.enum(['24h', 'none']).optional(),
   privacyNotes: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.obraSocial && data.obraSocial !== 'particular') {
+      return !!data.numeroAfiliado && data.numeroAfiliado.trim().length > 0;
+    }
+    return true;
+  },
+  {
+    message: "Requerido para OSDE o Luis Pasteur",
+    path: ["numeroAfiliado"],
+  }
+);
 
 type PatientFormData = z.infer<typeof patientSchema>;
 
@@ -98,11 +110,6 @@ const steps = [
   { id: 4, title: 'Seguro', icon: CreditCard },
 ];
 
-const bodyRegionOptions = [
-  'Cervical', 'Torácico', 'Lumbar', 'Hombro', 'Codo', 'Muñeca/Mano', 
-  'Cadera', 'Rodilla', 'Tobillo/Pie', 'Cabeza', 'ATM', 'Drenaje'
-];
-
 const redFlagOptions = [
   'Pérdida de peso no explicada', 'Fiebre', 'Antecedente de cáncer',
   'Dolor nocturno intenso', 'Pérdida de control de esfínteres',
@@ -110,9 +117,14 @@ const redFlagOptions = [
   'Cáncer', 'Marcapaso', 'Embarazo'
 ];
 
+const obraSocialLabels: Record<ObraSocial, string> = {
+  osde: 'OSDE',
+  luis_pasteur: 'Luis Pasteur',
+  particular: 'Particular',
+};
+
 export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWizardDialogProps) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedBodyRegions, setSelectedBodyRegions] = useState<string[]>([]);
   const [selectedRedFlags, setSelectedRedFlags] = useState<string[]>([]);
   const [painLevel, setPainLevel] = useState([0]);
   const { dispatch } = useApp();
@@ -132,9 +144,10 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
       authorizedSessions: 0,
       usedSessions: 0,
       copay: 0,
-      smsAuthorization: false,
+      obraSocial: 'particular',
       whatsappAuthorization: false,
       emailAuthorization: false,
+      reminderPreference: 'none',
     }
   });
 
@@ -161,7 +174,7 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
       email: data.email || '',
       phone: data.phone,
       birthDate: data.birthDate,
-      conditions: selectedBodyRegions,
+      conditions: selectedRedFlags,
     };
 
     if (patient) {
@@ -383,28 +396,6 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
             </div>
 
             <div>
-              <Label className="text-sm font-medium">Regiones Corporales</Label>
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {bodyRegionOptions.map((region) => (
-                  <div key={region} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={region}
-                      checked={selectedBodyRegions.includes(region)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedBodyRegions([...selectedBodyRegions, region]);
-                        } else {
-                          setSelectedBodyRegions(selectedBodyRegions.filter(r => r !== region));
-                        }
-                      }}
-                    />
-                    <Label htmlFor={region} className="text-sm">{region}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
               <Label className="text-sm font-medium">Nivel de Dolor (0-10)</Label>
               <div className="px-4 py-6">
                 <Slider
@@ -453,13 +444,22 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="insurance"
+                name="obraSocial"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Obra Social/Seguro</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Nombre de la obra social" />
-                    </FormControl>
+                    <FormLabel>Obra Social</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar obra social" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="osde">OSDE</SelectItem>
+                        <SelectItem value="luis_pasteur">Luis Pasteur</SelectItem>
+                        <SelectItem value="particular">Particular</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -467,16 +467,22 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
 
               <FormField
                 control={form.control}
-                name="policyNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número de Póliza</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Número de afiliado" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="numeroAfiliado"
+                render={({ field }) => {
+                  const obraSocial = form.watch('obraSocial');
+                  const isRequired = obraSocial && obraSocial !== 'particular';
+                  return (
+                    <FormItem>
+                      <FormLabel>
+                        Número de afiliado {isRequired && <span className="text-destructive">*</span>}
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Número de afiliado" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
@@ -515,22 +521,6 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Autorizaciones de Contacto</Label>
                 
-                <FormField
-                  control={form.control}
-                  name="smsAuthorization"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal">SMS</FormLabel>
-                    </FormItem>
-                  )}
-                />
-
                 <FormField
                   control={form.control}
                   name="whatsappAuthorization"
@@ -578,9 +568,7 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="24h">24 horas antes</SelectItem>
-                        <SelectItem value="48h">48 horas antes</SelectItem>
-                        <SelectItem value="both">Ambos</SelectItem>
-                        <SelectItem value="none">Ninguno</SelectItem>
+                        <SelectItem value="none">Sin recordatorio</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
