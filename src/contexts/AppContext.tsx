@@ -268,6 +268,11 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     
     case 'ADD_APPOINTMENT': {
+      // Validación: rechazar inicio > 19:00
+      if (action.payload.startTime > '19:00') {
+        console.warn('Rechazado: inicio > 19:00', action.payload);
+        return state;
+      }
       const newAppointments = [...state.appointments, action.payload];
       const indexes = buildAppointmentIndexes(newAppointments);
       return {
@@ -336,7 +341,15 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     
     case 'ADD_MULTIPLE_APPOINTMENTS': {
-      const newAppointments = [...state.appointments, ...action.payload];
+      // Filtrar citas con inicio > 19:00
+      const validAppointments = action.payload.filter(apt => {
+        if (apt.startTime > '19:00') {
+          console.warn('Rechazado en masiva: inicio > 19:00', apt);
+          return false;
+        }
+        return true;
+      });
+      const newAppointments = [...state.appointments, ...validAppointments];
       const indexes = buildAppointmentIndexes(newAppointments);
       return {
         ...state,

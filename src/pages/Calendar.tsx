@@ -40,16 +40,17 @@ import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
-const WORK_END_HOUR = 19.5; // Permitir slots hasta 19:00 (19:30 exclusivo)
+const WORK_END_HOUR = 19; // Último inicio permitido: 19:00
 const SLOT_MINUTES = 30;
 
 // Generar slots de tiempo
 const generateTimeSlots = () => {
   const slots = [];
-  for (let hour = WORK_START_HOUR; hour < WORK_END_HOUR; hour++) {
+  for (let hour = WORK_START_HOUR; hour <= WORK_END_HOUR; hour++) {
     for (let minute = 0; minute < 60; minute += SLOT_MINUTES) {
       const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       slots.push(time);
+      if (hour === WORK_END_HOUR && minute === 0) break; // Solo 19:00, no 19:30
     }
   }
   return slots;
