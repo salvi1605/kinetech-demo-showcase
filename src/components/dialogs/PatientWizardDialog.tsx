@@ -22,14 +22,15 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { Patient } from '@/contexts/AppContext';
+import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
+import { toISODate, fromISODate } from '@/utils/dateUtils';
 
 const patientSchema = z.object({
   // Identificación/Contacto
   fullName: z.string().min(1, "El nombre completo es requerido"),
   preferredName: z.string().optional(),
   documentId: z.string().optional(),
-  birthDate: z.date({ required_error: "La fecha de nacimiento es requerida" }),
-  gender: z.string().optional(),
+  birthDate: z.string().min(1, "La fecha de nacimiento es requerida"),
   pronouns: z.string().optional(),
   phone: z.string().min(1, "El teléfono móvil es requerido"),
   alternatePhone: z.string().optional(),
@@ -123,9 +124,10 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
       fullName: patient.name,
       phone: patient.phone,
       email: patient.email,
-      birthDate: new Date(patient.birthDate),
+      birthDate: patient.birthDate,
       // ... resto de campos del paciente existente
     } : {
+      birthDate: "",
       painLevel: 0,
       authorizedSessions: 0,
       usedSessions: 0,
@@ -158,7 +160,7 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
       name: data.fullName,
       email: data.email || '',
       phone: data.phone,
-      birthDate: data.birthDate.toISOString(),
+      birthDate: data.birthDate,
       conditions: selectedBodyRegions,
     };
 
@@ -232,64 +234,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
               <FormField
                 control={form.control}
                 name="birthDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Fecha de Nacimiento *</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Seleccionar fecha</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Género</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="masculino">Masculino</SelectItem>
-                        <SelectItem value="femenino">Femenino</SelectItem>
-                        <SelectItem value="no-binario">No binario</SelectItem>
-                        <SelectItem value="prefiero-no-decir">Prefiero no decir</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                render={({ field, fieldState }) => (
+                  <FormItem className="col-span-2">
+                    <DateOfBirthInput
+                      valueISO={field.value}
+                      onChangeISO={field.onChange}
+                      required
+                      error={fieldState.error?.message}
+                    />
                   </FormItem>
                 )}
               />

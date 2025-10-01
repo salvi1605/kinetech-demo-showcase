@@ -1,4 +1,4 @@
-import { parse, format } from 'date-fns';
+import { parse, format, isAfter, isValid, subYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 /**
@@ -89,3 +89,36 @@ export const copyToClipboard = async (text: string) => {
     document.body.removeChild(ta);
   }
 };
+
+/**
+ * Convert Date to ISO date string (YYYY-MM-DD)
+ */
+export const toISODate = (d: Date) => format(d, 'yyyy-MM-dd');
+
+/**
+ * Parse ISO date string to Date object
+ */
+export const fromISODate = (s: string) => parse(s, 'yyyy-MM-dd', new Date());
+
+/**
+ * Format Date to display format (dd/MM/yyyy)
+ */
+export const formatDisplayDate = (d: Date) => format(d, 'dd/MM/yyyy', { locale: es });
+
+/**
+ * Parse display date string (dd/MM/yyyy) to Date object
+ */
+export const parseDisplayDate = (s: string) => {
+  const parsed = parse(s, 'dd/MM/yyyy', new Date());
+  return isValid(parsed) ? parsed : null;
+};
+
+/**
+ * Check if date is in the past (not after today)
+ */
+export const isPastDate = (d: Date) => !isAfter(d, new Date());
+
+/**
+ * Get valid year range for date of birth (120 years ago to today)
+ */
+export const yearRange = () => ({ from: subYears(new Date(), 120), to: new Date() });
