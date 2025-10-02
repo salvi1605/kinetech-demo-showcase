@@ -295,7 +295,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem className="col-span-2">
                     <FormLabel>Nombre Completo *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Nombre y apellido completo" />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Nombre y apellido completo" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -309,7 +316,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Nombre Preferido</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Como prefiere que lo llamen" />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Como prefiere que lo llamen" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -323,7 +337,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Documento/ID</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="DNI, Pasaporte, etc." />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="DNI, Pasaporte, etc." 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -352,7 +373,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Teléfono Móvil *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="+54 11 1234-5678" />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="+54 11 1234-5678" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -366,7 +394,15 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="email@ejemplo.com" />
+                      <Input 
+                        type="email"
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="email@ejemplo.com" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -387,7 +423,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Nombre de Contacto *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Nombre del contacto de emergencia" />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Nombre del contacto de emergencia" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -401,7 +444,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Relación</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Familiar, amigo, etc." />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Familiar, amigo, etc." 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -415,7 +465,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem className="col-span-2">
                     <FormLabel>Teléfono de Emergencia *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="+54 11 1234-5678" />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="+54 11 1234-5678" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -436,7 +493,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem className="col-span-2">
                     <FormLabel>Motivo Principal</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Descripción del problema principal" />
+                      <Textarea 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Descripción del problema principal" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -450,7 +514,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Diagnóstico</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Diagnóstico médico" />
+                      <Input 
+                        value={field.value || ""} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="Diagnóstico médico" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -563,7 +634,14 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                         Número de afiliado {isRequired && <span className="text-destructive">*</span>}
                       </FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Número de afiliado" />
+                        <Input 
+                          value={field.value || ""} 
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          placeholder="Número de afiliado" 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -578,7 +656,15 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Sesiones Autorizadas</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" placeholder="0" />
+                      <Input 
+                        type="number"
+                        value={field.value || 0} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="0" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -592,7 +678,15 @@ export const PatientWizardDialog = ({ open, onOpenChange, patient }: PatientWiza
                   <FormItem>
                     <FormLabel>Copago</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" placeholder="0.00" />
+                      <Input 
+                        type="number"
+                        value={field.value || 0} 
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        placeholder="0.00" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
