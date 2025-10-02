@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
-import { PatientWizardDialog } from '@/components/dialogs/PatientWizardDialog';
+import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
@@ -703,8 +703,8 @@ export const PatientDetailTabs = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Wizard Dialog */}
-      <PatientWizardDialog
+      {/* Wizard Dialog V2 */}
+      <EditPatientDialogV2
         open={showWizard}
         onOpenChange={setShowWizard}
         patient={patient}

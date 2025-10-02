@@ -11,7 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
-import { PatientWizardDialog } from '@/components/dialogs/PatientWizardDialog';
+import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
+import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -520,12 +521,19 @@ export const Patients = () => {
         </Button>
       )}
 
-      {/* Dialogs */}
-      <PatientWizardDialog
-        open={showWizard}
-        onOpenChange={setShowWizard}
-        patient={editingPatient}
-      />
+      {/* Dialogs V2 */}
+      {editingPatient ? (
+        <EditPatientDialogV2 
+          open={showWizard} 
+          onOpenChange={setShowWizard}
+          patient={editingPatient}
+        />
+      ) : (
+        <NewPatientDialogV2 
+          open={showWizard} 
+          onOpenChange={setShowWizard}
+        />
+      )}
 
       <AlertDialog open={!!deletePatient} onOpenChange={(open) => !open && setDeletePatient(null)}>
         <AlertDialogContent>
