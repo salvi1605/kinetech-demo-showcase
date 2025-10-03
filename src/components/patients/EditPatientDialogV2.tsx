@@ -37,7 +37,8 @@ type PatientForm = {
     diagnosis: string;
     laterality: Lateralidad;
     painLevel: number;
-    redFlags: { embarazo: boolean; cancer: boolean; };
+    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; };
+    restricciones: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
   };
   seguro: {
     obraSocial: ObraSocial;
@@ -86,7 +87,8 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       diagnosis: '',
       laterality: 'Bilateral',
       painLevel: 0,
-      redFlags: { embarazo: false, cancer: false },
+      redFlags: { embarazo: false, cancer: false, marcapasos: false },
+      restricciones: { noMagnetoterapia: false, noElectroterapia: false },
     },
     seguro: {
       obraSocial: 'particular',
@@ -125,6 +127,11 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
           redFlags: {
             embarazo: patient.conditions?.includes('Embarazo') || false,
             cancer: patient.conditions?.includes('Cáncer') || false,
+            marcapasos: patient.conditions?.includes('Marcapasos') || false,
+          },
+          restricciones: {
+            noMagnetoterapia: patient.conditions?.includes('No Magnetoterapia') || false,
+            noElectroterapia: patient.conditions?.includes('No Electroterapia') || false,
           },
         },
         seguro: {
@@ -227,6 +234,9 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       conditions: [
         ...(form.clinico.redFlags.embarazo ? ['Embarazo'] : []),
         ...(form.clinico.redFlags.cancer ? ['Cáncer'] : []),
+        ...(form.clinico.redFlags.marcapasos ? ['Marcapasos'] : []),
+        ...(form.clinico.restricciones.noMagnetoterapia ? ['No Magnetoterapia'] : []),
+        ...(form.clinico.restricciones.noElectroterapia ? ['No Electroterapia'] : []),
       ],
     };
 
@@ -417,34 +427,78 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
               </div>
             </div>
 
-            <div>
-              <Label className="text-sm font-medium mb-3 block">Banderas Rojas</Label>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="embarazo"
-                    checked={form.clinico.redFlags.embarazo}
-                    onCheckedChange={(checked) =>
-                      setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, embarazo: !!checked } } }))
-                    }
-                  />
-                  <label htmlFor="embarazo" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Embarazo
-                  </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <fieldset>
+                <legend className="text-sm font-medium mb-3">Banderas Rojas</legend>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="embarazo"
+                      checked={form.clinico.redFlags.embarazo}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, embarazo: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="embarazo" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Embarazo
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="cancer"
+                      checked={form.clinico.redFlags.cancer}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, cancer: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="cancer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Cáncer
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="marcapasos-edit"
+                      checked={form.clinico.redFlags.marcapasos}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, marcapasos: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="marcapasos-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Marcapasos
+                    </label>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="cancer"
-                    checked={form.clinico.redFlags.cancer}
-                    onCheckedChange={(checked) =>
-                      setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, cancer: !!checked } } }))
-                    }
-                  />
-                  <label htmlFor="cancer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Cáncer
-                  </label>
+              </fieldset>
+              
+              <fieldset>
+                <legend className="text-sm font-medium mb-3">Restricciones</legend>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="noMagnetoterapia-edit"
+                      checked={form.clinico.restricciones.noMagnetoterapia}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, restricciones: { ...f.clinico.restricciones, noMagnetoterapia: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="noMagnetoterapia-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      No Magnetoterapia
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="noElectroterapia-edit"
+                      checked={form.clinico.restricciones.noElectroterapia}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, restricciones: { ...f.clinico.restricciones, noElectroterapia: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="noElectroterapia-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      No Electroterapia
+                    </label>
+                  </div>
                 </div>
-              </div>
+              </fieldset>
             </div>
           </div>
         );
