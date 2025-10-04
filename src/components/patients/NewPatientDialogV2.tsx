@@ -14,9 +14,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
 import { isPastDate, fromISODate } from '@/utils/dateUtils';
+import { cn } from '@/lib/utils';
 
-type Lateralidad = 'Derecha' | 'Izquierda' | 'Bilateral';
-type ObraSocial = 'osde' | 'luis_pasteur' | 'particular';
+type Lateralidad = 'Derecha' | 'Izquierda' | 'Bilateral' | '';
+type ObraSocial = 'osde' | 'luis_pasteur' | 'particular' | '';
 type ReminderPref = '24h' | 'none';
 
 type PatientForm = {
@@ -63,7 +64,7 @@ const steps = [
   { id: 4, title: 'Seguro', icon: CreditCard },
 ];
 
-const obraSocialLabels: Record<ObraSocial, string> = {
+const obraSocialLabels: Record<Exclude<ObraSocial, ''>, string> = {
   osde: 'OSDE',
   luis_pasteur: 'Luis Pasteur',
   particular: 'Particular',
@@ -91,13 +92,13 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
     clinico: {
       mainReason: '',
       diagnosis: '',
-      laterality: 'Bilateral',
+      laterality: '',
       painLevel: 0,
       redFlags: { embarazo: false, cancer: false, marcapasos: false },
       restricciones: { noMagnetoterapia: false, noElectroterapia: false },
     },
     seguro: {
-      obraSocial: 'particular',
+      obraSocial: '',
       numeroAfiliado: '',
       sesionesAutorizadas: undefined,
       copago: undefined,
@@ -141,7 +142,10 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
     }
 
     if (step === 4) {
-      if (form.seguro.obraSocial !== 'particular') {
+      if (!form.seguro.obraSocial) {
+        newErrors.obraSocial = 'Campo obligatorio';
+      }
+      if (form.seguro.obraSocial !== 'particular' && form.seguro.obraSocial !== '') {
         if (!form.seguro.numeroAfiliado?.trim()) {
           newErrors.numeroAfiliado = 'Requerido para OSDE o Luis Pasteur';
         }
@@ -224,13 +228,13 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       clinico: {
         mainReason: '',
         diagnosis: '',
-        laterality: 'Bilateral',
+        laterality: '',
         painLevel: 0,
         redFlags: { embarazo: false, cancer: false, marcapasos: false },
         restricciones: { noMagnetoterapia: false, noElectroterapia: false },
       },
       seguro: {
-        obraSocial: 'particular',
+        obraSocial: '',
         numeroAfiliado: '',
         sesionesAutorizadas: undefined,
         copago: undefined,
@@ -388,8 +392,8 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
                   value={form.clinico.laterality}
                   onValueChange={(value) => setForm(f => ({ ...f, clinico: { ...f.clinico, laterality: value as Lateralidad } }))}
                 >
-                  <SelectTrigger id="laterality">
-                    <SelectValue />
+                  <SelectTrigger id="laterality" className={!form.clinico.laterality ? 'text-muted-foreground italic' : ''}>
+                    <SelectValue placeholder="Seleccione lateralidad" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Derecha">Derecha</SelectItem>
@@ -499,13 +503,13 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <Label htmlFor="obraSocial">Obra Social/Seguro</Label>
+                <Label htmlFor="obraSocial">Obra Social/Seguro *</Label>
                 <Select
                   value={form.seguro.obraSocial}
                   onValueChange={(value) => setForm(f => ({ ...f, seguro: { ...f.seguro, obraSocial: value as ObraSocial } }))}
                 >
-                  <SelectTrigger id="obraSocial">
-                    <SelectValue />
+                  <SelectTrigger id="obraSocial" className={cn(!form.seguro.obraSocial ? 'text-muted-foreground italic' : '', errors.obraSocial ? 'border-destructive' : '')}>
+                    <SelectValue placeholder="Seleccione Obra Social/Seguro" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="osde">OSDE</SelectItem>
@@ -513,6 +517,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
                     <SelectItem value="particular">Particular</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.obraSocial && <p className="text-sm text-destructive mt-1">{errors.obraSocial}</p>}
               </div>
 
               <div className="col-span-2">
