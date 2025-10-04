@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil } from 'lucide-react';
+import { fromISODate } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -83,7 +84,7 @@ export const Patients = () => {
 
   const calculateAge = (birthDate: string) => {
     const today = new Date();
-    const birth = new Date(birthDate);
+    const birth = fromISODate(birthDate);
     const age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     

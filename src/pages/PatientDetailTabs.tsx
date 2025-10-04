@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Clock, Heart, CreditCard, User, Stethoscope, FileCheck, Trash2, Eye, MoreHorizontal } from 'lucide-react';
+import { fromISODate, formatDisplayDate } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +59,7 @@ export const PatientDetailTabs = () => {
 
   const calculateAge = (birthDate: string) => {
     const today = new Date();
-    const birth = new Date(birthDate);
+    const birth = fromISODate(birthDate);
     const age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     
@@ -289,7 +290,7 @@ export const PatientDetailTabs = () => {
                 </div>
                 <div>
                   <Label>Fecha de Nacimiento</Label>
-                  <Input value={new Date(patient.birthDate).toLocaleDateString('es-ES')} disabled={!editingData} />
+                  <Input value={patient.birthDate ? formatDisplayDate(fromISODate(patient.birthDate)) : ''} disabled={!editingData} />
                 </div>
                 <div>
                   <Label>Documento/ID</Label>
