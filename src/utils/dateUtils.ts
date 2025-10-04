@@ -7,6 +7,21 @@ import { es } from 'date-fns/locale';
 export const parseLocalDate = (dateISO: string) => parse(dateISO, 'yyyy-MM-dd', new Date());
 
 /**
+ * Format Date to storage DOB format (DD-MM-YYYY)
+ */
+export const toStoreDOB = (d: Date) => format(d, 'dd-MM-yyyy');
+
+/**
+ * Parse storage DOB format (DD-MM-YYYY) to Date object
+ */
+export const fromStoreDOB = (s: string) => parse(s, 'dd-MM-yyyy', new Date());
+
+/**
+ * Check if date is valid
+ */
+export const isValidDate = (d: Date) => isValid(d);
+
+/**
  * Get today's date in ISO format using browser timezone
  */
 export const todayISO = () => format(new Date(), 'yyyy-MM-dd');

@@ -25,7 +25,7 @@ type PatientForm = {
     fullName: string;
     preferredName: string;
     documentId: string;
-    dateOfBirthISO: string;
+    dateOfBirth: string;
     mobilePhone: string;
     email: string;
   };
@@ -80,7 +80,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       fullName: '',
       preferredName: '',
       documentId: '',
-      dateOfBirthISO: '',
+      dateOfBirth: '',
       mobilePhone: '',
       email: '',
     },
@@ -116,13 +116,8 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       if (!form.identificacion.fullName.trim()) {
         newErrors.fullName = 'El nombre completo es requerido';
       }
-      if (!form.identificacion.dateOfBirthISO) {
-        newErrors.dateOfBirthISO = 'La fecha de nacimiento es requerida';
-      } else if (form.identificacion.dateOfBirthISO) {
-        const dob = fromISODate(form.identificacion.dateOfBirthISO);
-        if (dob && !isPastDate(dob)) {
-          newErrors.dateOfBirthISO = 'La fecha de nacimiento debe estar en el pasado';
-        }
+      if (!form.identificacion.dateOfBirth) {
+        newErrors.dateOfBirth = 'La fecha de nacimiento es requerida';
       }
       if (!form.identificacion.mobilePhone.trim()) {
         newErrors.mobilePhone = 'El teléfono móvil es requerido';
@@ -192,7 +187,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       name: form.identificacion.fullName,
       email: form.identificacion.email || '',
       phone: form.identificacion.mobilePhone,
-      birthDate: form.identificacion.dateOfBirthISO,
+      birthDate: form.identificacion.dateOfBirth,
       conditions: [
         ...(form.clinico.redFlags.embarazo ? ['Embarazo'] : []),
         ...(form.clinico.redFlags.cancer ? ['Cáncer'] : []),
@@ -216,7 +211,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
         fullName: '',
         preferredName: '',
         documentId: '',
-        dateOfBirthISO: '',
+        dateOfBirth: '',
         mobilePhone: '',
         email: '',
       },
@@ -285,10 +280,10 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
 
               <div className="col-span-2">
                 <DateOfBirthInput
-                  valueISO={form.identificacion.dateOfBirthISO}
-                  onChangeISO={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirthISO: value } }))}
+                  valueStoreDOB={form.identificacion.dateOfBirth}
+                  onChangeStoreDOB={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirth: value } }))}
                   required
-                  error={errors.dateOfBirthISO}
+                  error={errors.dateOfBirth}
                 />
               </div>
 
