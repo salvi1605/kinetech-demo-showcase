@@ -620,12 +620,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Editar Paciente</span>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>Editar Paciente</DialogTitle>
         </DialogHeader>
 
         {/* Progress Steps */}
