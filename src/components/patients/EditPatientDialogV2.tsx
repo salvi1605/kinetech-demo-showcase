@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
-import { isPastDate, fromISODate } from '@/utils/dateUtils';
+import { parseSmartDOB, toStoreDOB } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 
 type Lateralidad = 'Derecha' | 'Izquierda' | 'Bilateral' | '';
@@ -106,12 +106,23 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
   // Load patient data when dialog opens
   useEffect(() => {
     if (open && patient) {
+      // Convert birthDate to DD-MM-YYYY format for the form
+      let formattedBirthDate = '';
+      if (patient.birthDate) {
+        try {
+          const parsedDate = parseSmartDOB(patient.birthDate);
+          formattedBirthDate = toStoreDOB(parsedDate);
+        } catch {
+          formattedBirthDate = patient.birthDate;
+        }
+      }
+
       setForm({
         identificacion: {
           fullName: patient.name || '',
           preferredName: '',
           documentId: '',
-          dateOfBirth: patient.birthDate || '',
+          dateOfBirth: formattedBirthDate,
           mobilePhone: patient.phone || '',
           email: patient.email || '',
         },
