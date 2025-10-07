@@ -14,6 +14,7 @@ interface TreatmentMultiSelectProps {
   onChange: (value: TreatmentType[]) => void;
   placeholder?: string;
   className?: string;
+  maxVisible?: number; // Número máximo de chips visibles antes de mostrar "+N más"
 }
 
 const treatmentOptions: Array<{ value: TreatmentType; label: string }> = [
@@ -30,9 +31,11 @@ export const TreatmentMultiSelect = ({
   value, 
   onChange, 
   placeholder = "Selecciona tratamiento(s)",
-  className 
+  className,
+  maxVisible = 2
 }: TreatmentMultiSelectProps) => {
   const [open, setOpen] = useState(false);
+  const [showAllPopover, setShowAllPopover] = useState(false);
 
   const toggleTreatment = (treatment: TreatmentType) => {
     const newValue = value.includes(treatment)
@@ -45,6 +48,9 @@ export const TreatmentMultiSelect = ({
     onChange(value.filter(t => t !== treatment));
   };
 
+  const visibleTreatments = value.slice(0, maxVisible);
+  const remainingCount = value.length - maxVisible;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -54,24 +60,51 @@ export const TreatmentMultiSelect = ({
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
         >
-          <div className="flex flex-nowrap gap-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent py-0.5">
+          <div className="flex items-center gap-1 flex-1 overflow-hidden">
             {value.length === 0 ? (
               <span className="text-muted-foreground">{placeholder}</span>
             ) : (
-              value.map(treatment => (
-                <Badge
-                  key={treatment}
-                  variant="secondary"
-                  className="shrink-0 whitespace-nowrap"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeTreatment(treatment);
-                  }}
-                >
-                  {treatmentLabel[treatment]}
-                  <X className="ml-1 h-3 w-3 cursor-pointer" />
-                </Badge>
-              ))
+              <>
+                {visibleTreatments.map(treatment => (
+                  <Badge
+                    key={treatment}
+                    variant="secondary"
+                    className="shrink-0 whitespace-nowrap flex items-center gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeTreatment(treatment);
+                    }}
+                  >
+                    {treatmentLabel[treatment]}
+                    <X className="h-3 w-3 cursor-pointer" />
+                  </Badge>
+                ))}
+                {remainingCount > 0 && (
+                  <Popover open={showAllPopover} onOpenChange={setShowAllPopover}>
+                    <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer shrink-0 text-muted-foreground hover:bg-accent"
+                      >
+                        +{remainingCount} más ▾
+                      </Badge>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2 w-56 max-h-64 overflow-y-auto" align="start">
+                      <div className="space-y-1">
+                        {value.map(t => (
+                          <div key={t} className="flex justify-between items-center text-sm p-2 rounded hover:bg-accent">
+                            <span>{treatmentLabel[t]}</span>
+                            <X 
+                              onClick={() => removeTreatment(t)} 
+                              className="h-3 w-3 cursor-pointer text-muted-foreground hover:text-foreground" 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </>
             )}
           </div>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
