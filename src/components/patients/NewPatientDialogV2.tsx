@@ -13,44 +13,15 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
-import { isPastDate, fromISODate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
-
-type Lateralidad = 'Derecha' | 'Izquierda' | 'Bilateral' | '';
-type ObraSocial = 'osde' | 'luis_pasteur' | 'particular' | '';
-type ReminderPref = '24h' | 'none';
-
-type PatientForm = {
-  identificacion: {
-    fullName: string;
-    preferredName: string;
-    documentId: string;
-    dateOfBirth: string;
-    mobilePhone: string;
-    email: string;
-  };
-  emergencia: {
-    contactName: string;
-    relationship: string;
-    emergencyPhone: string;
-  };
-  clinico: {
-    mainReason: string;
-    diagnosis: string;
-    laterality: Lateralidad;
-    painLevel: number;
-    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; };
-    restricciones: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
-  };
-  seguro: {
-    obraSocial: ObraSocial;
-    numeroAfiliado?: string;
-    sesionesAutorizadas?: number;
-    copago?: number;
-    contactAuth: { whatsapp: boolean; email: boolean; };
-    reminderPref: ReminderPref;
-  };
-};
+import { 
+  PatientForm, 
+  Lateralidad, 
+  ObraSocial,
+  ReminderPref, 
+  normalizePatientForm, 
+  toPatientFromForm 
+} from '@/utils/patientForm.normalize';
 
 interface NewPatientDialogV2Props {
   open: boolean;
@@ -182,20 +153,8 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
 
     if (!allValid) return;
 
-    const newPatient = {
-      id: Date.now().toString(),
-      name: form.identificacion.fullName,
-      email: form.identificacion.email || '',
-      phone: form.identificacion.mobilePhone,
-      birthDate: form.identificacion.dateOfBirth,
-      conditions: [
-        ...(form.clinico.redFlags.embarazo ? ['Embarazo'] : []),
-        ...(form.clinico.redFlags.cancer ? ['Cáncer'] : []),
-        ...(form.clinico.redFlags.marcapasos ? ['Marcapasos'] : []),
-        ...(form.clinico.restricciones.noMagnetoterapia ? ['No Magnetoterapia'] : []),
-        ...(form.clinico.restricciones.noElectroterapia ? ['No Electroterapia'] : []),
-      ],
-    };
+    const normalizedForm = normalizePatientForm(form);
+    const newPatient = toPatientFromForm(Date.now().toString(), normalizedForm);
 
     dispatch({ type: 'ADD_PATIENT', payload: newPatient });
     toast({

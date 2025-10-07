@@ -14,42 +14,15 @@ import { useApp, Patient } from '@/contexts/AppContext';
 import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
 import { parseSmartDOB, toStoreDOB } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
-
-type Lateralidad = 'Derecha' | 'Izquierda' | 'Bilateral' | '';
-type ObraSocial = 'osde' | 'luis_pasteur' | 'particular' | '';
-type ReminderPref = '24h' | 'none';
-
-type PatientForm = {
-  identificacion: {
-    fullName: string;
-    preferredName: string;
-    documentId: string;
-    dateOfBirth: string;
-    mobilePhone: string;
-    email: string;
-  };
-  emergencia: {
-    contactName: string;
-    relationship: string;
-    emergencyPhone: string;
-  };
-  clinico: {
-    mainReason: string;
-    diagnosis: string;
-    laterality: Lateralidad;
-    painLevel: number;
-    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; };
-    restricciones: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
-  };
-  seguro: {
-    obraSocial: ObraSocial;
-    numeroAfiliado?: string;
-    sesionesAutorizadas?: number;
-    copago?: number;
-    contactAuth: { whatsapp: boolean; email: boolean; };
-    reminderPref: ReminderPref;
-  };
-};
+import { 
+  PatientForm, 
+  Lateralidad, 
+  ObraSocial,
+  ReminderPref, 
+  normalizePatientForm, 
+  toFormFromPatient, 
+  toPatientFromForm 
+} from '@/utils/patientForm.normalize';
 
 interface EditPatientDialogV2Props {
   open: boolean;
@@ -106,55 +79,19 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
   // Load patient data when dialog opens
   useEffect(() => {
     if (open && patient) {
-      // Convert birthDate to DD-MM-YYYY format for the form
-      let formattedBirthDate = '';
-      if (patient.birthDate) {
+      let loadedForm = toFormFromPatient(patient);
+      
+      // Convert birthDate to DD-MM-YYYY format if needed
+      if (loadedForm.identificacion.dateOfBirth) {
         try {
-          const parsedDate = parseSmartDOB(patient.birthDate);
-          formattedBirthDate = toStoreDOB(parsedDate);
+          const parsedDate = parseSmartDOB(loadedForm.identificacion.dateOfBirth);
+          loadedForm.identificacion.dateOfBirth = toStoreDOB(parsedDate);
         } catch {
-          formattedBirthDate = patient.birthDate;
+          // Keep as is if parsing fails
         }
       }
 
-      setForm({
-        identificacion: {
-          fullName: patient.name || '',
-          preferredName: '',
-          documentId: '',
-          dateOfBirth: formattedBirthDate,
-          mobilePhone: patient.phone || '',
-          email: patient.email || '',
-        },
-        emergencia: {
-          contactName: '',
-          relationship: '',
-          emergencyPhone: '',
-        },
-        clinico: {
-          mainReason: '',
-          diagnosis: '',
-          laterality: '',
-          painLevel: 0,
-          redFlags: {
-            embarazo: patient.conditions?.includes('Embarazo') || false,
-            cancer: patient.conditions?.includes('Cáncer') || false,
-            marcapasos: patient.conditions?.includes('Marcapasos') || false,
-          },
-          restricciones: {
-            noMagnetoterapia: patient.conditions?.includes('No Magnetoterapia') || false,
-            noElectroterapia: patient.conditions?.includes('No Electroterapia') || false,
-          },
-        },
-        seguro: {
-          obraSocial: '',
-          numeroAfiliado: '',
-          sesionesAutorizadas: undefined,
-          copago: undefined,
-          contactAuth: { whatsapp: false, email: false },
-          reminderPref: 'none',
-        },
-      });
+      setForm(loadedForm);
       setErrors({});
       setCurrentStep(1);
     }
@@ -235,20 +172,8 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
 
     if (!allValid) return;
 
-    const updatedPatient = {
-      id: patient.id,
-      name: form.identificacion.fullName,
-      email: form.identificacion.email || '',
-      phone: form.identificacion.mobilePhone,
-      birthDate: form.identificacion.dateOfBirth,
-      conditions: [
-        ...(form.clinico.redFlags.embarazo ? ['Embarazo'] : []),
-        ...(form.clinico.redFlags.cancer ? ['Cáncer'] : []),
-        ...(form.clinico.redFlags.marcapasos ? ['Marcapasos'] : []),
-        ...(form.clinico.restricciones.noMagnetoterapia ? ['No Magnetoterapia'] : []),
-        ...(form.clinico.restricciones.noElectroterapia ? ['No Electroterapia'] : []),
-      ],
-    };
+    const normalizedForm = normalizePatientForm(form);
+    const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
 
     dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
     toast({
