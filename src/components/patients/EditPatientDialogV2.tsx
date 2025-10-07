@@ -596,7 +596,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
 
         {/* Icon Navigation */}
         <TooltipProvider>
-          <nav role="tablist" aria-label="Secciones del paciente" className="flex gap-2 overflow-x-auto pb-4 border-b mb-6">
+          <nav role="tablist" aria-label="Secciones del paciente" className="flex justify-evenly pb-4 border-b mb-6">
             {sectionConfig.map(({ key, label, Icon }) => (
               <Tooltip key={key}>
                 <TooltipTrigger asChild>
