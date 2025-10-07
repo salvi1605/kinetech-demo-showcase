@@ -17,6 +17,19 @@ export const toStoreDOB = (d: Date) => format(d, 'dd-MM-yyyy');
 export const fromStoreDOB = (s: string) => parse(s, 'dd-MM-yyyy', new Date());
 
 /**
+ * Smart parser that handles both old (YYYY-MM-DD) and new (DD-MM-YYYY) DOB formats
+ * for backward compatibility with existing data
+ */
+export const parseSmartDOB = (s: string): Date => {
+  // Check if format is YYYY-MM-DD (old format)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return parse(s, 'yyyy-MM-dd', new Date());
+  }
+  // Otherwise assume DD-MM-YYYY (new format)
+  return fromStoreDOB(s);
+};
+
+/**
  * Check if date is valid
  */
 export const isValidDate = (d: Date) => isValid(d);
