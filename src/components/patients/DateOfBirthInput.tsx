@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -26,7 +26,19 @@ export function DateOfBirthInput({ valueStoreDOB, onChangeStoreDOB, required, er
   const [inputValue, setInputValue] = useState(
     valueStoreDOB ? formatDisplayDate(fromStoreDOB(valueStoreDOB)) : ""
   );
-  
+
+  // Sync internal state when external value changes (e.g., on Edit hydration)
+  useEffect(() => {
+    if (valueStoreDOB) {
+      const d = fromStoreDOB(valueStoreDOB);
+      setInputValue(formatDisplayDate(d));
+      setCursor(d);
+    } else {
+      setInputValue("");
+      setCursor(new Date());
+    }
+  }, [valueStoreDOB]);
+
   const selected = valueStoreDOB ? fromStoreDOB(valueStoreDOB) : undefined;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
