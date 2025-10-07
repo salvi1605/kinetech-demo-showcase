@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, User, Phone, Stethoscope, CreditCard } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, User, Phone, Stethoscope, CreditCard, LifeBuoy, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,15 +31,18 @@ interface EditPatientDialogV2Props {
   patient?: Patient | null;
 }
 
-const steps = [
-  { id: 1, title: 'Identificación', icon: User },
-  { id: 2, title: 'Emergencia', icon: Phone },
-  { id: 3, title: 'Clínico', icon: Stethoscope },
-  { id: 4, title: 'Seguro', icon: CreditCard },
+const sections = ['identificacion', 'emergencia', 'clinico', 'seguro'] as const;
+type Section = typeof sections[number];
+
+const sectionConfig = [
+  { key: 'identificacion' as Section, label: 'Identificación', Icon: User },
+  { key: 'emergencia' as Section, label: 'Emergencia', Icon: LifeBuoy },
+  { key: 'clinico' as Section, label: 'Clínico', Icon: Stethoscope },
+  { key: 'seguro' as Section, label: 'Seguro', Icon: ShieldCheck },
 ];
 
 export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatientDialogV2Props) => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [section, setSection] = useState<Section>('identificacion');
   const { dispatch } = useApp();
   const { toast } = useToast();
 
@@ -82,14 +86,14 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       const loadedForm = toFormFromPatient(patient);
       setForm(loadedForm);
       setErrors({});
-      setCurrentStep(1);
+      setSection('identificacion');
     }
   }, [open, patient]);
 
-  const validateStep = (step: number): boolean => {
+  const validateSection = (sec: Section): { ok: boolean; errors: Record<string, string> } => {
     const newErrors: { [key: string]: string } = {};
 
-    if (step === 1) {
+    if (sec === 'identificacion') {
       if (!form.identificacion.fullName.trim()) {
         newErrors.fullName = 'El nombre completo es requerido';
       }
@@ -104,7 +108,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       }
     }
 
-    if (step === 2) {
+    if (sec === 'emergencia') {
       if (!form.emergencia.contactName.trim()) {
         newErrors.contactName = 'El nombre de contacto es requerido';
       }
@@ -113,7 +117,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       }
     }
 
-    if (step === 4) {
+    if (sec === 'seguro') {
       if (!form.seguro.obraSocial) {
         newErrors.obraSocial = 'Campo obligatorio';
       }
@@ -124,42 +128,50 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       }
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { ok: Object.keys(newErrors).length === 0, errors: newErrors };
   };
 
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < 4) {
-        setCurrentStep(currentStep + 1);
-        setTimeout(() => {
-          const firstInput = document.querySelector('[data-step-content] input, [data-step-content] textarea, [data-step-content] button') as HTMLElement;
-          firstInput?.focus();
-        }, 100);
+  const validateExceptSeguro = (): { ok: boolean; errors: Record<string, string> } => {
+    let allErrors: Record<string, string> = {};
+    
+    for (const sec of ['identificacion', 'emergencia', 'clinico'] as Section[]) {
+      const { ok, errors } = validateSection(sec);
+      if (!ok) {
+        allErrors = { ...allErrors, ...errors };
       }
     }
+    
+    return { ok: Object.keys(allErrors).length === 0, errors: allErrors };
   };
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  const goPrev = () => {
+    const idx = sections.indexOf(section);
+    if (idx > 0) {
+      setSection(sections[idx - 1]);
     }
   };
 
-  const handleSubmit = () => {
+  const goNext = () => {
+    const idx = sections.indexOf(section);
+    if (idx < sections.length - 1) {
+      setSection(sections[idx + 1]);
+    }
+  };
+
+  const handleGlobalSave = () => {
     if (!patient) return;
 
-    // Validate all steps
-    let allValid = true;
-    for (let i = 1; i <= 4; i++) {
-      if (!validateStep(i)) {
-        allValid = false;
-        setCurrentStep(i);
-        break;
-      }
+    const { ok, errors: validationErrors } = validateExceptSeguro();
+    
+    if (!ok) {
+      setErrors(validationErrors);
+      toast({
+        title: "Error de validación",
+        description: "Por favor, corrige los campos requeridos.",
+        variant: "destructive",
+      });
+      return;
     }
-
-    if (!allValid) return;
 
     const normalizedForm = normalizePatientForm(form);
     const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
@@ -170,13 +182,47 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       description: "Los datos del paciente se han actualizado correctamente.",
     });
 
-    // Close dialog
+    onOpenChange(false);
+  };
+
+  const handleSubmit = () => {
+    if (!patient) return;
+
+    // Validate all sections
+    let allErrors: Record<string, string> = {};
+    let firstInvalidSection: Section | null = null;
+    
+    for (const sec of sections) {
+      const { ok, errors: secErrors } = validateSection(sec);
+      if (!ok) {
+        allErrors = { ...allErrors, ...secErrors };
+        if (!firstInvalidSection) {
+          firstInvalidSection = sec;
+        }
+      }
+    }
+
+    if (firstInvalidSection) {
+      setErrors(allErrors);
+      setSection(firstInvalidSection);
+      return;
+    }
+
+    const normalizedForm = normalizePatientForm(form);
+    const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
+
+    dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
+    toast({
+      title: "Paciente actualizado",
+      description: "Los datos del paciente se han actualizado correctamente.",
+    });
+
     onOpenChange(false);
   };
 
   const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
+    switch (section) {
+      case 'identificacion':
         return (
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
@@ -249,7 +295,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
           </div>
         );
 
-      case 2:
+      case 'emergencia':
         return (
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
@@ -290,7 +336,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
           </div>
         );
 
-      case 3:
+      case 'clinico':
         return (
           <div className="space-y-6" data-step-content>
             <div className="grid grid-cols-2 gap-4">
@@ -427,7 +473,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
           </div>
         );
 
-      case 4:
+      case 'seguro':
         return (
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
@@ -548,58 +594,83 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
           <DialogTitle>Editar Paciente</DialogTitle>
         </DialogHeader>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                    currentStep >= step.id
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-muted'
-                  }`}
-                >
-                  <step.icon className="h-5 w-5" />
-                </div>
-                <span className="text-xs mt-2 text-center hidden lg:block">{step.title}</span>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`h-[2px] flex-1 ${
-                    currentStep > step.id ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        {/* Icon Navigation */}
+        <TooltipProvider>
+          <nav role="tablist" aria-label="Secciones del paciente" className="flex gap-2 overflow-x-auto pb-4 border-b mb-6">
+            {sectionConfig.map(({ key, label, Icon }) => (
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  <button
+                    role="tab"
+                    aria-selected={section === key}
+                    aria-label={label}
+                    onClick={() => setSection(key)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSection(key);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md transition-colors min-h-[44px]",
+                      section === key
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline whitespace-nowrap">{label}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </nav>
+        </TooltipProvider>
 
-        {/* Step Content */}
+        {/* Section Content */}
         <div className="min-h-[300px]">{renderStepContent()}</div>
 
         {/* Navigation */}
         <div className="flex items-center justify-between pt-6 border-t">
           <Button
             variant="outline"
-            onClick={prevStep}
-            disabled={currentStep === 1}
+            onClick={goPrev}
+            disabled={sections.indexOf(section) === 0}
             className="min-h-[44px]"
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
             Anterior
           </Button>
 
-          {currentStep < 4 ? (
-            <Button onClick={nextStep} className="min-h-[44px]">
+          <div className="flex gap-2">
+            <Button 
+              onClick={goNext} 
+              disabled={sections.indexOf(section) === sections.length - 1}
+              className="min-h-[44px]"
+            >
               Siguiente
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
-          ) : (
-            <Button onClick={handleSubmit} className="min-h-[44px]">
-              Guardar cambios
-            </Button>
-          )}
+
+            {section !== 'seguro' && (
+              <Button
+                onClick={handleGlobalSave}
+                className="min-h-[44px]"
+                variant="default"
+              >
+                Guardar Cambios
+              </Button>
+            )}
+
+            {section === 'seguro' && (
+              <Button onClick={handleSubmit} className="min-h-[44px]">
+                Guardar cambios
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
