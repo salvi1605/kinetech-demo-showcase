@@ -79,18 +79,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
   // Load patient data when dialog opens
   useEffect(() => {
     if (open && patient) {
-      let loadedForm = toFormFromPatient(patient);
-      
-      // Convert birthDate to DD-MM-YYYY format if needed
-      if (loadedForm.identificacion.dateOfBirth) {
-        try {
-          const parsedDate = parseSmartDOB(loadedForm.identificacion.dateOfBirth);
-          loadedForm.identificacion.dateOfBirth = toStoreDOB(parsedDate);
-        } catch {
-          // Keep as is if parsing fails
-        }
-      }
-
+      const loadedForm = toFormFromPatient(patient);
       setForm(loadedForm);
       setErrors({});
       setCurrentStep(1);

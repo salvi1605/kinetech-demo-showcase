@@ -1,3 +1,5 @@
+import { parseSmartDOB, toStoreDOB } from './dateUtils';
+
 export type Lateralidad = 'Derecha' | 'Izquierda' | 'Bilateral' | '';
 export type ObraSocial = 'osde' | 'luis_pasteur' | 'particular' | '';
 export type ReminderPref = '24h' | 'none' | '';
@@ -78,15 +80,28 @@ export const normalizePatientForm = (f: PatientForm): PatientForm => ({
 });
 
 // Convertir desde el paciente persistido a PatientForm (para Editar)
-export const toFormFromPatient = (p: any): PatientForm => ({
-  identificacion: {
-    fullName: p?.identificacion?.fullName || p?.name || '',
-    preferredName: p?.identificacion?.preferredName ?? '',
-    documentId: p?.identificacion?.documentId ?? '',
-    dateOfBirth: p?.identificacion?.dateOfBirth || p?.birthDate || '',
-    mobilePhone: p?.identificacion?.mobilePhone || p?.phone || '',
-    email: p?.identificacion?.email || p?.email || '',
-  },
+export const toFormFromPatient = (p: any): PatientForm => {
+  // Obtener y convertir fecha de nacimiento a formato DD-MM-YYYY
+  let dateOfBirth = '';
+  const dobSource = p?.identificacion?.dateOfBirth || p?.birthDate;
+  if (dobSource) {
+    try {
+      const parsed = parseSmartDOB(dobSource);
+      dateOfBirth = toStoreDOB(parsed);
+    } catch {
+      dateOfBirth = dobSource; // fallback al valor original si falla el parsing
+    }
+  }
+
+  return {
+    identificacion: {
+      fullName: p?.identificacion?.fullName || p?.name || '',
+      preferredName: p?.identificacion?.preferredName ?? '',
+      documentId: p?.identificacion?.documentId ?? '',
+      dateOfBirth,
+      mobilePhone: p?.identificacion?.mobilePhone || p?.phone || '',
+      email: p?.identificacion?.email || p?.email || '',
+    },
   emergencia: {
     contactName: p?.emergencia?.contactName ?? '',
     relationship: p?.emergencia?.relationship ?? '',
@@ -118,7 +133,8 @@ export const toFormFromPatient = (p: any): PatientForm => ({
     },
     reminderPref: p?.seguro?.reminderPref ?? 'none',
   }
-});
+  };
+};
 
 // Convertir PatientForm a Patient para guardar
 export const toPatientFromForm = (id: string, form: PatientForm): any => ({
