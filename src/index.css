@@ -119,3 +119,15 @@ All colors MUST be HSL. Professional medical interface.
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar for treatment multi-select */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}

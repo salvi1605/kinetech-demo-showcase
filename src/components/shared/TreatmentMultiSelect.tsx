@@ -54,7 +54,7 @@ export const TreatmentMultiSelect = ({
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
         >
-          <div className="flex flex-wrap gap-1 flex-1">
+          <div className="flex flex-nowrap gap-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent py-0.5">
             {value.length === 0 ? (
               <span className="text-muted-foreground">{placeholder}</span>
             ) : (
@@ -62,14 +62,14 @@ export const TreatmentMultiSelect = ({
                 <Badge
                   key={treatment}
                   variant="secondary"
-                  className="mr-1"
+                  className="shrink-0 whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeTreatment(treatment);
                   }}
                 >
                   {treatmentLabel[treatment]}
-                  <X className="ml-1 h-3 w-3" />
+                  <X className="ml-1 h-3 w-3 cursor-pointer" />
                 </Badge>
               ))
             )}
