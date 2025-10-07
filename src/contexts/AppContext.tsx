@@ -51,7 +51,8 @@ export interface AppState {
   preferences: Preferences;
   selectedSlots: Set<string>;
   selectedPractitionerId?: string;
-  selectedTreatmentType?: TreatmentType | "";
+  selectedTreatmentType?: TreatmentType | ""; // Deprecated
+  selectedTreatmentTypes: TreatmentType[];
 }
 
 export interface Patient {
@@ -85,7 +86,8 @@ export interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
   subSlot: 1 | 2 | 3 | 4 | 5;
-  treatmentType: TreatmentType | "";
+  treatmentType?: TreatmentType | ""; // Deprecated, for migration
+  treatmentTypes: TreatmentType[];
 }
 
 export interface Schedule {
@@ -113,7 +115,8 @@ export type AppAction =
   | { type: 'SET_SELECTED_CLINIC'; payload: string }
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_SELECTED_PRACTITIONER'; payload: string | undefined }
-  | { type: 'SET_SELECTED_TREATMENT_TYPE'; payload: TreatmentType | "" | undefined }
+  | { type: 'SET_SELECTED_TREATMENT_TYPE'; payload: TreatmentType | "" | undefined } // Deprecated
+  | { type: 'SET_SELECTED_TREATMENT_TYPES'; payload: TreatmentType[] }
   | { type: 'SEED_DEMO_DATA' }
   | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOGIN'; payload: User }
@@ -173,6 +176,7 @@ const initialState: AppState = {
   },
   selectedSlots: new Set<string>(),
   selectedTreatmentType: "",
+  selectedTreatmentTypes: [],
 };
 
 // Reducer
@@ -205,8 +209,14 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_SELECTED_TREATMENT_TYPE':
       return { ...state, selectedTreatmentType: action.payload };
     
+    case 'SET_SELECTED_TREATMENT_TYPES':
+      return { ...state, selectedTreatmentTypes: action.payload };
+    
     case 'SEED_DEMO_DATA': {
-      const appointments = getDemoAppointments();
+      const appointments = getDemoAppointments().map(apt => ({
+        ...apt,
+        treatmentTypes: apt.treatmentType ? [apt.treatmentType] : []
+      }));
       const indexes = buildAppointmentIndexes(appointments);
       return {
         ...state,
@@ -273,7 +283,14 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         console.warn('Rechazado: inicio > 19:00', action.payload);
         return state;
       }
-      const newAppointments = [...state.appointments, action.payload];
+      // Migración: si viene treatmentType y no treatmentTypes, migrar
+      const migratedPayload = {
+        ...action.payload,
+        treatmentTypes: action.payload.treatmentTypes?.length 
+          ? action.payload.treatmentTypes 
+          : (action.payload.treatmentType ? [action.payload.treatmentType] : [])
+      };
+      const newAppointments = [...state.appointments, migratedPayload];
       const indexes = buildAppointmentIndexes(newAppointments);
       return {
         ...state,
@@ -338,6 +355,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         selectedSlots: new Set<string>(),
         selectedPractitionerId: undefined,
         selectedTreatmentType: undefined,
+        selectedTreatmentTypes: [],
       };
     
     case 'ADD_MULTIPLE_APPOINTMENTS': {
@@ -596,6 +614,7 @@ const getDemoAppointments = (): Appointment[] => {
       notes: 'Seguimiento de lesión de rodilla',
       subSlot: 1,
       treatmentType: 'fkt',
+      treatmentTypes: ['fkt'],
     },
     {
       id: '2',
@@ -608,6 +627,7 @@ const getDemoAppointments = (): Appointment[] => {
       notes: 'No se presentó',
       subSlot: 2,
       treatmentType: 'atm',
+      treatmentTypes: ['atm'],
     },
     
     // Semana actual
@@ -622,6 +642,7 @@ const getDemoAppointments = (): Appointment[] => {
       notes: 'Fisioterapia respiratoria',
       subSlot: 1,
       treatmentType: 'drenaje',
+      treatmentTypes: ['drenaje'],
     },
     {
       id: '4',
@@ -634,6 +655,7 @@ const getDemoAppointments = (): Appointment[] => {
       notes: 'Evaluación inicial',
       subSlot: 3,
       treatmentType: 'masaje',
+      treatmentTypes: ['masaje', 'atm'],
     },
     
     // Próximas semanas
@@ -648,6 +670,7 @@ const getDemoAppointments = (): Appointment[] => {
       notes: 'Sesión de kinesiología',
       subSlot: 1,
       treatmentType: 'vestibular',
+      treatmentTypes: ['vestibular', 'fkt'],
     },
     {
       id: '6',
@@ -660,6 +683,7 @@ const getDemoAppointments = (): Appointment[] => {
       notes: 'Control post-tratamiento',
       subSlot: 2,
       treatmentType: 'otro',
+      treatmentTypes: ['otro'],
     },
   ];
 };

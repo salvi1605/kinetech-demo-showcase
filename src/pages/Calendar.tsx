@@ -35,6 +35,7 @@ import { RoleGuard } from '@/components/shared/RoleGuard';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KinesioCombobox } from '@/components/shared/KinesioCombobox';
+import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
 import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 
@@ -295,12 +296,11 @@ export const Calendar = () => {
 
   // Función para confirmar selección múltiple
   const confirmSelection = () => {
-    const treatmentType = state.selectedTreatmentType ?? "";
-    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId || treatmentType === "") {
+    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId || state.selectedTreatmentTypes.length === 0) {
       const missing = [];
       if (state.selectedSlots.size === 0) missing.push('horarios');
       if (!state.selectedPractitionerId) missing.push('kinesiólogo');
-      if (treatmentType === "") missing.push('tipo de tratamiento');
+      if (state.selectedTreatmentTypes.length === 0) missing.push('tipo de tratamiento');
       
       toast({
         title: "Datos incompletos",
@@ -520,23 +520,12 @@ export const Calendar = () => {
                       placeholder="Selecciona Kinesiólogo"
                       className="text-xs"
                     />
-                    <Select
-                      value={state.selectedTreatmentType ?? ""}
-                      onValueChange={(value) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPE', payload: value as TreatmentType | "" })}
-                    >
-                      <SelectTrigger className="h-8 text-xs w-[200px]">
-                        <SelectValue placeholder="Tipo de Tratamiento *" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fkt">{treatmentLabel.fkt}</SelectItem>
-                        <SelectItem value="atm">{treatmentLabel.atm}</SelectItem>
-                        <SelectItem value="drenaje">{treatmentLabel.drenaje}</SelectItem>
-                        <SelectItem value="drenaje_ultra">{treatmentLabel.drenaje_ultra}</SelectItem>
-                        <SelectItem value="masaje">{treatmentLabel.masaje}</SelectItem>
-                        <SelectItem value="vestibular">{treatmentLabel.vestibular}</SelectItem>
-                        <SelectItem value="otro">{treatmentLabel.otro}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <TreatmentMultiSelect
+                      value={state.selectedTreatmentTypes}
+                      onChange={(treatments) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPES', payload: treatments })}
+                      placeholder="Selecciona tratamiento(s)"
+                      className="h-8 text-xs w-[250px]"
+                    />
                   </>
                 )}
               </div>
@@ -584,7 +573,7 @@ export const Calendar = () => {
                 size="sm" 
                 onClick={confirmSelection} 
                 className="flex-1"
-                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId || (state.selectedTreatmentType ?? "") === ""}
+                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId || state.selectedTreatmentTypes.length === 0}
               >
                 Confirmar selección
               </Button>

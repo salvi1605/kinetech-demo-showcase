@@ -6,3 +6,8 @@ export type TreatmentType =
   | "masaje" 
   | "vestibular" 
   | "otro";
+
+export interface TreatmentOption {
+  value: TreatmentType;
+  label: string;
+}

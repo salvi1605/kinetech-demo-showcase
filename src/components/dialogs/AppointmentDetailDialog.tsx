@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -45,7 +46,7 @@ const editAppointmentSchema = z.object({
   }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
   status: z.enum(['scheduled', 'completed', 'cancelled']),
-  treatmentType: z.string().min(1, 'Selecciona un tipo de tratamiento'),
+  treatmentTypes: z.array(z.string()).min(1, 'Selecciona al menos un tipo de tratamiento'),
   notes: z.string().optional(),
 });
 
@@ -77,7 +78,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       startTime: '',
       practitionerId: '',
       status: 'scheduled',
-      treatmentType: '',
+      treatmentTypes: [],
       notes: '',
     }
   });
@@ -107,7 +108,11 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       form.setValue('startTime', appointment.startTime);
       form.setValue('practitionerId', appointment.practitionerId);
       form.setValue('status', appointment.status);
-      form.setValue('treatmentType', appointment.treatmentType || '');
+      // Migración: si viene treatmentType y no treatmentTypes, usar treatmentType
+      const treatments = appointment.treatmentTypes?.length 
+        ? appointment.treatmentTypes 
+        : (appointment.treatmentType ? [appointment.treatmentType] : []);
+      form.setValue('treatmentTypes', treatments);
       form.setValue('notes', appointment.notes || '');
       setIsEditing(false);
     }
@@ -233,13 +238,15 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return; // Impedir persistencia
     }
     
+    const treatmentTypesArray = data.treatmentTypes as TreatmentType[];
     const updatedAppointment: Appointment = {
       ...appointment,
       date: data.date,
       startTime: data.startTime,
       practitionerId: data.practitionerId,
       status: data.status,
-      treatmentType: data.treatmentType as TreatmentType | "",
+      treatmentType: (treatmentTypesArray[0] || "") as TreatmentType | "",
+      treatmentTypes: treatmentTypesArray,
       notes: data.notes || ''
     };
 
@@ -272,7 +279,8 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     const items = allAppointments
       .map(apt => {
         const doctor = state.practitioners.find(p => p.id === apt.practitionerId);
-        return formatCopyLine(apt.date, apt.startTime, doctor, apt.treatmentType);
+        const treatments = apt.treatmentTypes?.length ? apt.treatmentTypes : (apt.treatmentType ? [apt.treatmentType] : []);
+        return formatCopyLine(apt.date, apt.startTime, doctor, treatments);
       })
       .sort();
     
@@ -346,10 +354,14 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             <div className="space-y-3">
               <Label className="flex items-center gap-2 text-base font-medium">
                 <NotebookPen className="h-4 w-4" />
-                Tipo de Tratamiento
+                Tratamientos
               </Label>
               <div className="bg-muted/30 p-4 rounded-lg">
-                <p className="font-medium">{treatmentLabel[appointment.treatmentType] || 'Sin especificar'}</p>
+                <p className="font-medium">
+                  {appointment.treatmentTypes?.length 
+                    ? appointment.treatmentTypes.map(t => treatmentLabel[t]).join(", ")
+                    : (appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : 'Sin especificar')}
+                </p>
               </div>
             </div>
 
@@ -393,11 +405,15 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                              <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
                                 {display.dayName} {display.dateStr} • {display.timeRange} • Slot {slotNumber} • {display.practitionerName}
-                                {apt.treatmentType && (
+                                {apt.treatmentTypes?.length ? (
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    • {apt.treatmentTypes.map(t => treatmentLabel[t]).join(", ")}
+                                  </span>
+                                ) : apt.treatmentType ? (
                                   <span className="text-xs text-muted-foreground ml-2">
                                     • {treatmentLabel[apt.treatmentType]}
                                   </span>
-                                )}
+                                ) : null}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
@@ -440,11 +456,15 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
                                 {display.dayName} {display.dateStr} • {display.timeRange} • Slot {slotNumber} • {display.practitionerName}
-                                {apt.treatmentType && (
+                                {apt.treatmentTypes?.length ? (
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    • {apt.treatmentTypes.map(t => treatmentLabel[t]).join(", ")}
+                                  </span>
+                                ) : apt.treatmentType ? (
                                   <span className="text-xs text-muted-foreground ml-2">
                                     • {treatmentLabel[apt.treatmentType]}
                                   </span>
-                                )}
+                                ) : null}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
@@ -641,28 +661,19 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 )}
               />
 
-              {/* Tipo de Tratamiento */}
+              {/* Tratamientos */}
               <FormField
                 control={form.control}
-                name="treatmentType"
+                name="treatmentTypes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de Tratamiento *</FormLabel>
+                    <FormLabel>Tratamientos *</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona tratamiento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fkt">{treatmentLabel.fkt}</SelectItem>
-                          <SelectItem value="atm">{treatmentLabel.atm}</SelectItem>
-                          <SelectItem value="drenaje">{treatmentLabel.drenaje}</SelectItem>
-                          <SelectItem value="drenaje_ultra">{treatmentLabel.drenaje_ultra}</SelectItem>
-                          <SelectItem value="masaje">{treatmentLabel.masaje}</SelectItem>
-                          <SelectItem value="vestibular">{treatmentLabel.vestibular}</SelectItem>
-                          <SelectItem value="otro">{treatmentLabel.otro}</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <TreatmentMultiSelect
+                        value={field.value as TreatmentType[]}
+                        onChange={field.onChange}
+                        placeholder="Selecciona tratamiento(s)"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
