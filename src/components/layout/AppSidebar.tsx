@@ -111,11 +111,20 @@ export function AppSidebar() {
     const linkContent = (
       <NavLink
         to={item.url}
-        className={getNavClasses}
+        className={collapsed 
+          ? [
+              "size-10 min-w-10 min-h-10 grid place-items-center rounded-md transition-colors duration-200",
+              "border-0 ring-0 outline-none focus:border-0 focus:ring-0 focus-visible:outline-none",
+              active
+                ? "bg-blue-900 text-white font-medium"
+                : "text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black",
+            ].join(" ")
+          : getNavClasses
+        }
         aria-current={active ? "page" : undefined}
       >
-        <item.icon className="h-4 w-4 shrink-0 text-current" />
-        <span className="truncate">{item.title}</span>
+        <item.icon className="h-5 w-5 shrink-0 text-current" />
+        {!collapsed && <span className="truncate">{item.title}</span>}
       </NavLink>
     );
 
