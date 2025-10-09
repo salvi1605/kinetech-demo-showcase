@@ -124,6 +124,8 @@ export type AppAction =
   | { type: 'ADD_PATIENT'; payload: Patient }
   | { type: 'UPDATE_PATIENT'; payload: { id: string; updates: Partial<Patient> } }
   | { type: 'DELETE_PATIENT'; payload: string }
+  | { type: 'ADD_PRACTITIONER'; payload: Practitioner }
+  | { type: 'UPDATE_PRACTITIONER'; payload: Practitioner }
   | { type: 'ADD_APPOINTMENT'; payload: Appointment }
   | { type: 'UPDATE_APPOINTMENT'; payload: { id: string; updates: Partial<Appointment> } }
   | { type: 'UPDATE_APPOINTMENT_DIRECT'; payload: Appointment }
@@ -275,6 +277,20 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         patients: state.patients.filter(p => p.id !== action.payload),
+      };
+    
+    case 'ADD_PRACTITIONER':
+      return {
+        ...state,
+        practitioners: [...state.practitioners, action.payload],
+      };
+    
+    case 'UPDATE_PRACTITIONER':
+      return {
+        ...state,
+        practitioners: state.practitioners.map(p =>
+          p.id === action.payload.id ? action.payload : p
+        ),
       };
     
     case 'ADD_APPOINTMENT': {

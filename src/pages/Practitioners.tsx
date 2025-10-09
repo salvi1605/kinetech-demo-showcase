@@ -6,10 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useApp } from '@/contexts/AppContext';
+import { NewProfessionalDialog } from '@/components/dialogs/NewProfessionalDialog';
+import { EditProfessionalDialog } from '@/components/dialogs/EditProfessionalDialog';
+import type { Practitioner } from '@/contexts/AppContext';
 
 export const Practitioners = () => {
   const { state } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showNewProfessional, setShowNewProfessional] = useState(false);
+  const [editingProfessional, setEditingProfessional] = useState<Practitioner | null>(null);
 
   const filteredPractitioners = state.practitioners.filter(practitioner => 
     practitioner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,7 +46,7 @@ export const Practitioners = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button>
+          <Button onClick={() => setShowNewProfessional(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Profesional
           </Button>
@@ -123,7 +128,7 @@ export const Practitioners = () => {
                   <Button variant="outline" size="sm">
                     Ver Agenda
                   </Button>
-                  <Button variant="default" size="sm">
+                  <Button variant="default" size="sm" onClick={() => setEditingProfessional(practitioner)}>
                     Editar
                   </Button>
                 </div>
@@ -155,13 +160,17 @@ export const Practitioners = () => {
             <CardDescription className="mb-4">
               Comienza agregando el primer profesional o activa el modo demo
             </CardDescription>
-            <Button>
+            <Button onClick={() => setShowNewProfessional(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Agregar Primer Profesional
             </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* Dialogs */}
+      {showNewProfessional && <NewProfessionalDialog onClose={() => setShowNewProfessional(false)} />}
+      {editingProfessional && <EditProfessionalDialog professional={editingProfessional} onClose={() => setEditingProfessional(null)} />}
     </div>
   );
 };
