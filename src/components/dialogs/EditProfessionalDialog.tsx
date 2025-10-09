@@ -15,7 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import type { Practitioner } from '@/contexts/AppContext';
 
 const professionalSchema = z.object({
-  prefix: z.enum(['Dr.', 'Lic.', '']),
+  prefix: z.enum(['Dr.', 'Lic.', 'none']),
   firstName: z.string().min(1, 'El nombre es requerido').max(100),
   lastName: z.string().min(1, 'El apellido es requerido').max(100),
   displayName: z.string().max(100).optional(),
@@ -51,8 +51,8 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
   
   // Parse existing data
   const nameParts = professional.name.split(' ');
-  const prefixMatch = nameParts[0] === 'Dr.' || nameParts[0] === 'Lic.' ? nameParts[0] : '';
-  const firstName = prefixMatch ? nameParts.slice(1, -1).join(' ') : nameParts.slice(0, -1).join(' ');
+  const prefixMatch = nameParts[0] === 'Dr.' || nameParts[0] === 'Lic.' ? nameParts[0] : 'none';
+  const firstName = prefixMatch !== 'none' ? nameParts.slice(1, -1).join(' ') : nameParts.slice(0, -1).join(' ');
   const lastName = nameParts[nameParts.length - 1];
 
   const dayMap: Record<number, string> = { 1: 'lun', 2: 'mar', 3: 'mié', 4: 'jue', 5: 'vie', 6: 'sáb' };
@@ -104,7 +104,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
 
     const updatedPractitioner = {
       ...professional,
-      name: `${data.prefix} ${data.firstName} ${data.lastName}`.trim(),
+      name: `${data.prefix === 'none' ? '' : data.prefix} ${data.firstName} ${data.lastName}`.trim(),
       specialty: data.specialty,
       email: data.email || '',
       phone: data.mobile || data.phone || '',
@@ -162,7 +162,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
                     <SelectValue placeholder="Seleccionar prefijo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin prefijo</SelectItem>
+                    <SelectItem value="none">Sin prefijo</SelectItem>
                     <SelectItem value="Dr.">Dr.</SelectItem>
                     <SelectItem value="Lic.">Lic.</SelectItem>
                   </SelectContent>
