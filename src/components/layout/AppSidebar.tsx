@@ -91,9 +91,9 @@ export function AppSidebar() {
   const getNavClasses = ({ isActive }: { isActive: boolean }) =>
     [
       "flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200",
-      "focus-visible:outline-none focus-visible:ring-0",
+      "border-0 ring-0 outline-none focus:border-0 focus:ring-0 focus-visible:outline-none",
       isActive
-        ? "bg-blue-900 text-white font-medium ring-2 ring-white/30" // ★ activo: contraste alto
+        ? "bg-blue-900 text-white font-medium" // ★ activo: contraste alto
         : "text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black",
     ].join(" ");
 
