@@ -90,11 +90,11 @@ export function AppSidebar() {
   // Classes de nav en esquema oscuro-azul
   const getNavClasses = ({ isActive }: { isActive: boolean }) =>
     [
-      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200",
+      "focus-visible:outline-none focus-visible:ring-0",
       isActive
         ? "bg-blue-900 text-white font-medium ring-2 ring-white/30" // ★ activo: contraste alto
-        : "text-white hover:bg-white hover:!text-black",
+        : "text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black",
     ].join(" ");
 
   const filterItemsByRole = (items: typeof navigationItems) =>
@@ -114,8 +114,8 @@ export function AppSidebar() {
         className={getNavClasses}
         aria-current={active ? "page" : undefined}
       >
-        <item.icon className="h-4 w-4 shrink-0 text-white group-hover:!text-black" /> {/* ★ icono blanco */}
-        <span className="text-white group-hover:!text-black">{item.title}</span> {/* ★ texto blanco */}
+        <item.icon className="h-4 w-4 shrink-0 text-current" />
+        <span className="truncate">{item.title}</span>
       </NavLink>
     );
 
@@ -152,7 +152,7 @@ export function AppSidebar() {
     <Sidebar
       className={[
         collapsed ? "w-16" : "w-64",
-        "bg-blue-700 text-white border-r border-blue-800", // ★ fondo azul + texto blanco
+        "bg-blue-700 text-white border-0 outline-none ring-0", // ★ fondo azul + texto blanco, sin bordes
       ].join(" ")}
     >
       {/* ★ A veces el content hereda bg; forzamos aquí también */}
