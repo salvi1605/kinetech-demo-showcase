@@ -108,8 +108,8 @@ export const Topbar = () => {
           )}
         </div>
 
-        {/* Dev Day Change Simulator - Only in development for admin */}
-        {import.meta.env.DEV && state.userRole === 'admin' && (
+        {/* Day Change Simulator */}
+        {state.userRole === 'admin' && (
           <Button
             size="sm"
             className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
