@@ -22,16 +22,18 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   const [year, setYear] = useState("");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
 
   const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
+  const lastEmittedRef = useRef<string>("");
 
   // Cargar valores iniciales desde valueDOB
   useEffect(() => {
-    // Solo sincronizar si NO estamos editando activamente
-    if (isEditing) return;
+    // Solo sincronizar si el cambio viene del PADRE (no de nosotros)
+    if (valueDOB === lastEmittedRef.current) {
+      return; // Es el valor que nosotros mismos emitimos, ignorar
+    }
     
     if (valueDOB && valueDOB.length === 10) {
       const [d, m, y] = valueDOB.split("-");
@@ -43,7 +45,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
       setMonth("");
       setYear("");
     }
-  }, [valueDOB, isEditing]);
+  }, [valueDOB]);
 
   // Validar y emitir cambios
   const validateAndEmit = (d: string, m: string, y: string) => {
@@ -52,6 +54,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     // Si está vacío
     if (!d && !m && !y) {
       onChangeDOB("");
+      lastEmittedRef.current = "";
       if (required) {
         setError("Fecha de nacimiento requerida");
       }
@@ -89,11 +92,11 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
 
     // Todo válido
     onChangeDOB(dateStr);
+    lastEmittedRef.current = dateStr;
     setError("");
   };
 
   const handleDayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsEditing(true);
     const value = e.target.value.replace(/\D/g, "").slice(0, 2);
     setDay(value);
     
@@ -104,7 +107,6 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleDayBlur = () => {
-    setIsEditing(false);
     if (day && day.length === 1 && parseInt(day) > 0) {
       const padded = day.padStart(2, "0");
       setDay(padded);
@@ -144,7 +146,6 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsEditing(true);
     const value = e.target.value.replace(/\D/g, "").slice(0, 2);
     setMonth(value);
     
@@ -155,7 +156,6 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleMonthBlur = () => {
-    setIsEditing(false);
     if (month && month.length === 1 && parseInt(month) > 0) {
       const padded = month.padStart(2, "0");
       setMonth(padded);
@@ -174,13 +174,11 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsEditing(true);
     const value = e.target.value.replace(/\D/g, "").slice(0, 4);
     setYear(value);
   };
 
   const handleYearBlur = () => {
-    setIsEditing(false);
     validateAndEmit(day, month, year);
   };
 
@@ -200,7 +198,11 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     setDay(d);
     setMonth(m);
     setYear(y);
-    validateAndEmit(d, m, y);
+    
+    const dateStr = `${d}-${m}-${y}`;
+    onChangeDOB(dateStr);
+    lastEmittedRef.current = dateStr;
+    setError("");
     setOpen(false);
   };
 
