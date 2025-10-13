@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Clock, Heart, CreditCard, User, Stethoscope, FileCheck, Trash2, Eye, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, Stethoscope, CreditCard, FileCheck } from 'lucide-react';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
@@ -296,41 +295,8 @@ export const PatientDetailTabs = () => {
                   <Label>Documento/ID</Label>
                   <Input placeholder="DNI, Pasaporte..." disabled={!editingData} />
                 </div>
-                <div>
-                  <Label>Género</Label>
-                  <Select disabled={!editingData}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="masculino">Masculino</SelectItem>
-                      <SelectItem value="femenino">Femenino</SelectItem>
-                      <SelectItem value="no-binario">No binario</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
               
-              <Separator />
-              
-              <div>
-                <h4 className="font-medium mb-3">Dirección</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Línea 1</Label>
-                    <Input placeholder="Calle y número" disabled={!editingData} />
-                  </div>
-                  <div>
-                    <Label>Ciudad</Label>
-                    <Input disabled={!editingData} />
-                  </div>
-                  <div>
-                    <Label>Código Postal</Label>
-                    <Input disabled={!editingData} />
-                  </div>
-                </div>
-              </div>
-
               <Separator />
 
               <div>
@@ -380,21 +346,6 @@ export const PatientDetailTabs = () => {
                   <Label>Diagnóstico</Label>
                   <Input placeholder="Diagnóstico médico" disabled={!editingClinical} />
                 </div>
-                <div>
-                  <Label>Médico Derivante</Label>
-                  <Input placeholder="Nombre del médico" disabled={!editingClinical} />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Regiones Corporales Afectadas</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {patient.conditions.map((condition, index) => (
-                    <Badge key={index} variant="secondary">
-                      {condition}
-                    </Badge>
-                  ))}
-                </div>
               </div>
 
               <div>
@@ -408,58 +359,6 @@ export const PatientDetailTabs = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Alergias</Label>
-                  <Textarea placeholder="Alergias conocidas..." disabled={!editingClinical} />
-                </div>
-                <div>
-                  <Label>Medicaciones</Label>
-                  <Textarea placeholder="Medicamentos actuales..." disabled={!editingClinical} />
-                </div>
-                <div>
-                  <Label>Comorbilidades</Label>
-                  <Textarea placeholder="Otras condiciones..." disabled={!editingClinical} />
-                </div>
-                <div>
-                  <Label>Objetivos de Tratamiento</Label>
-                  <Textarea placeholder="Objetivos del paciente..." disabled={!editingClinical} />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">ROM y Mediciones</Label>
-                <div className="mt-2 border rounded-lg p-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Articulación</TableHead>
-                        <TableHead>Movimiento</TableHead>
-                        <TableHead>Inicial</TableHead>
-                        <TableHead>Actual</TableHead>
-                        <TableHead>Objetivo</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Hombro</TableCell>
-                        <TableCell>Flexión</TableCell>
-                        <TableCell>120°</TableCell>
-                        <TableCell>150°</TableCell>
-                        <TableCell>180°</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Rodilla</TableCell>
-                        <TableCell>Extensión</TableCell>
-                        <TableCell>-10°</TableCell>
-                        <TableCell>-5°</TableCell>
-                        <TableCell>0°</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -469,7 +368,7 @@ export const PatientDetailTabs = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Seguro y Facturación</CardTitle>
+                <CardTitle>Información de Seguro</CardTitle>
                 {!isReadOnly('insurance') && (
                   <Button
                     variant={editingInsurance ? "default" : "outline"}
@@ -481,79 +380,30 @@ export const PatientDetailTabs = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <h4 className="font-medium mb-3">Cobertura</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Obra Social/Seguro</Label>
-                    <Input placeholder="Nombre de la obra social" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>Número de Póliza</Label>
-                    <Input placeholder="Número de afiliado" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>Plan</Label>
-                    <Input placeholder="Plan o tipo de cobertura" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>Copago</Label>
-                    <Input type="number" placeholder="0.00" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>Sesiones Autorizadas</Label>
-                    <Input type="number" placeholder="0" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>Sesiones Utilizadas</Label>
-                    <Input type="number" placeholder="0" disabled={!editingInsurance} />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Obra Social/Seguro</Label>
+                  <Input placeholder="Nombre de la obra social" disabled={!editingInsurance} />
+                </div>
+                <div>
+                  <Label>Número de Afiliado</Label>
+                  <Input placeholder="Número de afiliado" disabled={!editingInsurance} />
+                </div>
+                <div>
+                  <Label>Sesiones Autorizadas</Label>
+                  <Input type="number" placeholder="0" disabled={!editingInsurance} />
+                </div>
+                <div>
+                  <Label>Copago</Label>
+                  <Input type="number" placeholder="0.00" disabled={!editingInsurance} />
                 </div>
               </div>
 
               <Separator />
 
               <div>
-                <h4 className="font-medium mb-3">Facturación</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Nombre para Facturación</Label>
-                    <Input placeholder="Nombre o razón social" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>CUIT/ID Fiscal</Label>
-                    <Input placeholder="Número de identificación fiscal" disabled={!editingInsurance} />
-                  </div>
-                  <div>
-                    <Label>Condición IVA</Label>
-                    <Select disabled={!editingInsurance}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="responsable-inscripto">Responsable Inscripto</SelectItem>
-                        <SelectItem value="monotributo">Monotributo</SelectItem>
-                        <SelectItem value="exento">Exento</SelectItem>
-                        <SelectItem value="consumidor-final">Consumidor Final</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Dirección de Facturación</Label>
-                    <Textarea placeholder="Dirección completa..." disabled={!editingInsurance} />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="font-medium mb-3">Consentimientos</h4>
+                <h4 className="font-medium mb-3">Autorizaciones de Contacto</h4>
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox disabled={!editingInsurance} />
-                    <Label className="font-normal">Consentimiento informado</Label>
-                  </div>
                   <div className="flex items-center space-x-3">
                     <Checkbox disabled={!editingInsurance} />
                     <Label className="font-normal">Autorización SMS</Label>
@@ -567,6 +417,23 @@ export const PatientDetailTabs = () => {
                     <Label className="font-normal">Autorización Email</Label>
                   </div>
                 </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <Label>Preferencia de Recordatorio</Label>
+                <Select disabled={!editingInsurance}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sms">SMS</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="none">Sin recordatorios</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
