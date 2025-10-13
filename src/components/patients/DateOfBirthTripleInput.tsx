@@ -13,9 +13,10 @@ interface DateOfBirthTripleInputProps {
   valueDOB?: string; // formato DD-MM-YYYY
   onChangeDOB: (dob: string) => void;
   required?: boolean;
+  showErrors?: boolean;
 }
 
-export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required }: DateOfBirthTripleInputProps) {
+export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showErrors = false }: DateOfBirthTripleInputProps) {
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
@@ -102,9 +103,13 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required }: Date
   };
 
   const handleDayBlur = () => {
-    const padded = day.padStart(2, "0");
-    setDay(padded);
-    validateAndEmit(padded, month, year);
+    if (day) {
+      const padded = day.padStart(2, "0");
+      setDay(padded);
+      validateAndEmit(padded, month, year);
+    } else {
+      validateAndEmit("", month, year);
+    }
   };
 
   const handleDayPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -145,9 +150,13 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required }: Date
   };
 
   const handleMonthBlur = () => {
-    const padded = month.padStart(2, "0");
-    setMonth(padded);
-    validateAndEmit(day, padded, year);
+    if (month) {
+      const padded = month.padStart(2, "0");
+      setMonth(padded);
+      validateAndEmit(day, padded, year);
+    } else {
+      validateAndEmit(day, "", year);
+    }
   };
 
   const handleMonthKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -200,44 +209,42 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required }: Date
         Fecha de Nacimiento {required && <span className="text-destructive">*</span>}
       </Label>
       <div className="flex gap-2 items-start">
-        <div className="flex gap-2 flex-1">
-          <Input
-            ref={dayRef}
-            placeholder="DD"
-            value={day}
-            onChange={handleDayChange}
-            onBlur={handleDayBlur}
-            onPaste={handleDayPaste}
-            inputMode="numeric"
-            maxLength={2}
-            className={cn("w-16 text-center", error && "border-destructive")}
-            aria-label="Día"
-          />
-          <Input
-            ref={monthRef}
-            placeholder="MM"
-            value={month}
-            onChange={handleMonthChange}
-            onBlur={handleMonthBlur}
-            onKeyDown={handleMonthKeyDown}
-            inputMode="numeric"
-            maxLength={2}
-            className={cn("w-16 text-center", error && "border-destructive")}
-            aria-label="Mes"
-          />
-          <Input
-            ref={yearRef}
-            placeholder="AAAA"
-            value={year}
-            onChange={handleYearChange}
-            onBlur={handleYearBlur}
-            onKeyDown={handleYearKeyDown}
-            inputMode="numeric"
-            maxLength={4}
-            className={cn("w-20 text-center", error && "border-destructive")}
-            aria-label="Año"
-          />
-        </div>
+        <Input
+          ref={dayRef}
+          placeholder="DD"
+          value={day}
+          onChange={handleDayChange}
+          onBlur={handleDayBlur}
+          onPaste={handleDayPaste}
+          inputMode="numeric"
+          maxLength={2}
+          className={cn("w-16 text-center", showErrors && error && "border-destructive")}
+          aria-label="Día"
+        />
+        <Input
+          ref={monthRef}
+          placeholder="MM"
+          value={month}
+          onChange={handleMonthChange}
+          onBlur={handleMonthBlur}
+          onKeyDown={handleMonthKeyDown}
+          inputMode="numeric"
+          maxLength={2}
+          className={cn("w-16 text-center", showErrors && error && "border-destructive")}
+          aria-label="Mes"
+        />
+        <Input
+          ref={yearRef}
+          placeholder="AAAA"
+          value={year}
+          onChange={handleYearChange}
+          onBlur={handleYearBlur}
+          onKeyDown={handleYearKeyDown}
+          inputMode="numeric"
+          maxLength={4}
+          className={cn("w-20 text-center", showErrors && error && "border-destructive")}
+          aria-label="Año"
+        />
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" type="button" size="icon">
@@ -259,7 +266,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required }: Date
           </PopoverContent>
         </Popover>
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {showErrors && error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

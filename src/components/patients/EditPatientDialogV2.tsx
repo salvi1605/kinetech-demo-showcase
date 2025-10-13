@@ -262,6 +262,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
                   valueDOB={form.identificacion.dateOfBirth}
                   onChangeDOB={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirth: value } }))}
                   required
+                  showErrors={!!errors.dateOfBirth}
                 />
               </div>
 
