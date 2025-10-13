@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, Stethoscope, CreditCard, FileCheck } from 'lucide-react';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [showWizard, setShowWizard] = useState(false);
   const [editingData, setEditingData] = useState(false);
@@ -89,6 +90,18 @@ export const PatientDetailTabs = () => {
       case 'cancelled': return 'No Asistió';
       default: return status;
     }
+  };
+
+  const handleFieldUpdate = (field: string, value: any) => {
+    if (!patient) return;
+    
+    dispatch({
+      type: 'UPDATE_PATIENT',
+      payload: {
+        id: patient.id,
+        updates: { [field]: value }
+      }
+    });
   };
 
   const handleSave = (tabName: string) => {
@@ -277,26 +290,58 @@ export const PatientDetailTabs = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Nombre Completo</Label>
-                  <Input value={patient.name} disabled={!editingData} />
+                  <Input
+                    value={patient.identificacion?.fullName || patient.name}
+                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, fullName: e.target.value })}
+                    disabled={!editingData}
+                  />
                 </div>
                 <div>
-                  <Label>Email</Label>
-                  <Input value={patient.email} disabled={!editingData} />
-                </div>
-                <div>
-                  <Label>Teléfono</Label>
-                  <Input value={patient.phone} disabled={!editingData} />
-                </div>
-                <div>
-                  <Label>Fecha de Nacimiento</Label>
-                  <Input value={patient.birthDate ? formatDisplayDate(parseSmartDOB(patient.birthDate)) : ''} disabled={!editingData} />
+                  <Label>Nombre Preferido</Label>
+                  <Input
+                    value={patient.identificacion?.preferredName || ''}
+                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, preferredName: e.target.value })}
+                    placeholder="Como prefiere que lo llamen"
+                    disabled={!editingData}
+                  />
                 </div>
                 <div>
                   <Label>Documento/ID</Label>
-                  <Input placeholder="DNI, Pasaporte..." disabled={!editingData} />
+                  <Input
+                    value={patient.identificacion?.documentId || ''}
+                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, documentId: e.target.value })}
+                    placeholder="DNI, Pasaporte..."
+                    disabled={!editingData}
+                  />
+                </div>
+                <div>
+                  <Label>Fecha de Nacimiento</Label>
+                  <Input
+                    value={patient.identificacion?.dateOfBirth || patient.birthDate || ''}
+                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, dateOfBirth: e.target.value })}
+                    disabled={!editingData}
+                  />
+                </div>
+                <div>
+                  <Label>Teléfono Móvil</Label>
+                  <Input
+                    value={patient.identificacion?.mobilePhone || patient.phone}
+                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, mobilePhone: e.target.value })}
+                    disabled={!editingData}
+                  />
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input
+                    value={patient.identificacion?.email || patient.email}
+                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, email: e.target.value })}
+                    disabled={!editingData}
+                  />
                 </div>
               </div>
               
+              <Separator />
+
               <Separator />
 
               <div>
@@ -304,15 +349,30 @@ export const PatientDetailTabs = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Nombre</Label>
-                    <Input placeholder="Nombre del contacto" disabled={!editingData} />
+                    <Input
+                      value={patient.emergencia?.contactName || ''}
+                      onChange={(e) => handleFieldUpdate('emergencia', { ...patient.emergencia, contactName: e.target.value })}
+                      placeholder="Nombre del contacto"
+                      disabled={!editingData}
+                    />
                   </div>
                   <div>
                     <Label>Relación</Label>
-                    <Input placeholder="Familiar, amigo..." disabled={!editingData} />
+                    <Input
+                      value={patient.emergencia?.relationship || ''}
+                      onChange={(e) => handleFieldUpdate('emergencia', { ...patient.emergencia, relationship: e.target.value })}
+                      placeholder="Familiar, amigo..."
+                      disabled={!editingData}
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label>Teléfono</Label>
-                    <Input placeholder="+54 11 1234-5678" disabled={!editingData} />
+                    <Input
+                      value={patient.emergencia?.emergencyPhone || ''}
+                      onChange={(e) => handleFieldUpdate('emergencia', { ...patient.emergencia, emergencyPhone: e.target.value })}
+                      placeholder="+54 11 1234-5678"
+                      disabled={!editingData}
+                    />
                   </div>
                 </div>
               </div>
@@ -337,27 +397,157 @@ export const PatientDetailTabs = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div>
+                <Label>Motivo Principal</Label>
+                <Textarea
+                  value={patient.clinico?.mainReason || ''}
+                  onChange={(e) => handleFieldUpdate('clinico', { ...patient.clinico, mainReason: e.target.value })}
+                  placeholder="Descripción del problema..."
+                  disabled={!editingClinical}
+                  rows={3}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label>Motivo Principal</Label>
-                  <Textarea placeholder="Descripción del problema..." disabled={!editingClinical} />
-                </div>
                 <div>
                   <Label>Diagnóstico</Label>
-                  <Input placeholder="Diagnóstico médico" disabled={!editingClinical} />
+                  <Input
+                    value={patient.clinico?.diagnosis || ''}
+                    onChange={(e) => handleFieldUpdate('clinico', { ...patient.clinico, diagnosis: e.target.value })}
+                    placeholder="Diagnóstico médico"
+                    disabled={!editingClinical}
+                  />
+                </div>
+                <div>
+                  <Label>Lateralidad</Label>
+                  <Select
+                    value={patient.clinico?.laterality || ''}
+                    onValueChange={(value) => handleFieldUpdate('clinico', { ...patient.clinico, laterality: value })}
+                    disabled={!editingClinical}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione lateralidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Derecha">Derecha</SelectItem>
+                      <SelectItem value="Izquierda">Izquierda</SelectItem>
+                      <SelectItem value="Bilateral">Bilateral</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div>
                 <Label className="text-sm font-medium">Nivel de Dolor (0-10)</Label>
                 <div className="px-4 py-6">
-                  <Slider value={[5]} max={10} min={0} step={1} disabled={!editingClinical} />
+                  <Slider
+                    value={[patient.clinico?.painLevel || 0]}
+                    onValueChange={(value) => handleFieldUpdate('clinico', { ...patient.clinico, painLevel: value[0] })}
+                    max={10}
+                    min={0}
+                    step={1}
+                    disabled={!editingClinical}
+                  />
                   <div className="flex justify-between text-sm text-muted-foreground mt-2">
                     <span>0 (Sin dolor)</span>
-                    <span className="font-medium">5</span>
+                    <span className="font-medium">{patient.clinico?.painLevel || 0}</span>
                     <span>10 (Dolor máximo)</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <fieldset>
+                  <legend className="text-sm font-medium mb-3">Banderas Rojas</legend>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="embarazo-tabs"
+                        checked={patient.clinico?.redFlags?.embarazo || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            redFlags: { ...patient.clinico?.redFlags, embarazo: !!checked }
+                          })
+                        }
+                        disabled={!editingClinical}
+                      />
+                      <label htmlFor="embarazo-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Embarazo
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="cancer-tabs"
+                        checked={patient.clinico?.redFlags?.cancer || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            redFlags: { ...patient.clinico?.redFlags, cancer: !!checked }
+                          })
+                        }
+                        disabled={!editingClinical}
+                      />
+                      <label htmlFor="cancer-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Cáncer
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="marcapasos-tabs"
+                        checked={patient.clinico?.redFlags?.marcapasos || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            redFlags: { ...patient.clinico?.redFlags, marcapasos: !!checked }
+                          })
+                        }
+                        disabled={!editingClinical}
+                      />
+                      <label htmlFor="marcapasos-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Marcapasos
+                      </label>
+                    </div>
+                  </div>
+                </fieldset>
+                
+                <fieldset>
+                  <legend className="text-sm font-medium mb-3">Restricciones</legend>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="noMagnetoterapia-tabs"
+                        checked={patient.clinico?.restricciones?.noMagnetoterapia || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            restricciones: { ...patient.clinico?.restricciones, noMagnetoterapia: !!checked }
+                          })
+                        }
+                        disabled={!editingClinical}
+                      />
+                      <label htmlFor="noMagnetoterapia-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        No Magnetoterapia
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="noElectroterapia-tabs"
+                        checked={patient.clinico?.restricciones?.noElectroterapia || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            restricciones: { ...patient.clinico?.restricciones, noElectroterapia: !!checked }
+                          })
+                        }
+                        disabled={!editingClinical}
+                      />
+                      <label htmlFor="noElectroterapia-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        No Electroterapia
+                      </label>
+                    </div>
+                  </div>
+                </fieldset>
               </div>
             </CardContent>
           </Card>
@@ -383,19 +573,49 @@ export const PatientDetailTabs = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Obra Social/Seguro</Label>
-                  <Input placeholder="Nombre de la obra social" disabled={!editingInsurance} />
+                  <Select
+                    value={patient.seguro?.obraSocial || ''}
+                    onValueChange={(value) => handleFieldUpdate('seguro', { ...patient.seguro, obraSocial: value })}
+                    disabled={!editingInsurance}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar obra social" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="osde">OSDE</SelectItem>
+                      <SelectItem value="luis_pasteur">Luis Pasteur</SelectItem>
+                      <SelectItem value="particular">Particular</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Número de Afiliado</Label>
-                  <Input placeholder="Número de afiliado" disabled={!editingInsurance} />
+                  <Input
+                    value={patient.seguro?.numeroAfiliado || ''}
+                    onChange={(e) => handleFieldUpdate('seguro', { ...patient.seguro, numeroAfiliado: e.target.value })}
+                    placeholder="Número de afiliado"
+                    disabled={!editingInsurance}
+                  />
                 </div>
                 <div>
                   <Label>Sesiones Autorizadas</Label>
-                  <Input type="number" placeholder="0" disabled={!editingInsurance} />
+                  <Input
+                    type="number"
+                    value={patient.seguro?.sesionesAutorizadas || ''}
+                    onChange={(e) => handleFieldUpdate('seguro', { ...patient.seguro, sesionesAutorizadas: Number(e.target.value) })}
+                    placeholder="0"
+                    disabled={!editingInsurance}
+                  />
                 </div>
                 <div>
                   <Label>Copago</Label>
-                  <Input type="number" placeholder="0.00" disabled={!editingInsurance} />
+                  <Input
+                    type="number"
+                    value={patient.seguro?.copago || ''}
+                    onChange={(e) => handleFieldUpdate('seguro', { ...patient.seguro, copago: Number(e.target.value) })}
+                    placeholder="0.00"
+                    disabled={!editingInsurance}
+                  />
                 </div>
               </div>
 
@@ -405,16 +625,32 @@ export const PatientDetailTabs = () => {
                 <h4 className="font-medium mb-3">Autorizaciones de Contacto</h4>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <Checkbox disabled={!editingInsurance} />
-                    <Label className="font-normal">Autorización SMS</Label>
+                    <Checkbox
+                      id="auth-whatsapp-tabs"
+                      checked={patient.seguro?.contactAuth?.whatsapp || false}
+                      onCheckedChange={(checked) =>
+                        handleFieldUpdate('seguro', {
+                          ...patient.seguro,
+                          contactAuth: { ...patient.seguro?.contactAuth, whatsapp: !!checked }
+                        })
+                      }
+                      disabled={!editingInsurance}
+                    />
+                    <label htmlFor="auth-whatsapp-tabs" className="font-normal text-sm">WhatsApp</label>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Checkbox disabled={!editingInsurance} />
-                    <Label className="font-normal">Autorización WhatsApp</Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Checkbox disabled={!editingInsurance} />
-                    <Label className="font-normal">Autorización Email</Label>
+                    <Checkbox
+                      id="auth-email-tabs"
+                      checked={patient.seguro?.contactAuth?.email || false}
+                      onCheckedChange={(checked) =>
+                        handleFieldUpdate('seguro', {
+                          ...patient.seguro,
+                          contactAuth: { ...patient.seguro?.contactAuth, email: !!checked }
+                        })
+                      }
+                      disabled={!editingInsurance}
+                    />
+                    <label htmlFor="auth-email-tabs" className="font-normal text-sm">E-mail</label>
                   </div>
                 </div>
               </div>
@@ -423,14 +659,17 @@ export const PatientDetailTabs = () => {
 
               <div>
                 <Label>Preferencia de Recordatorio</Label>
-                <Select disabled={!editingInsurance}>
+                <Select
+                  value={patient.seguro?.reminderPref || 'none'}
+                  onValueChange={(value) => handleFieldUpdate('seguro', { ...patient.seguro, reminderPref: value })}
+                  disabled={!editingInsurance}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar método" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sms">SMS</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="none">Ninguno</SelectItem>
+                    <SelectItem value="24h">24 horas antes</SelectItem>
                     <SelectItem value="none">Sin recordatorios</SelectItem>
                   </SelectContent>
                 </Select>

@@ -64,6 +64,36 @@ export interface Patient {
   conditions: string[];
   lastVisit?: string;
   nextAppointment?: string;
+  // Extended fields from patient form
+  identificacion?: {
+    fullName: string;
+    preferredName?: string;
+    documentId?: string;
+    dateOfBirth?: string;
+    mobilePhone: string;
+    email: string;
+  };
+  emergencia?: {
+    contactName: string;
+    relationship?: string;
+    emergencyPhone: string;
+  };
+  clinico?: {
+    mainReason?: string;
+    diagnosis?: string;
+    laterality?: string;
+    painLevel?: number;
+    redFlags?: { embarazo: boolean; cancer: boolean; marcapasos: boolean; };
+    restricciones?: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
+  };
+  seguro?: {
+    obraSocial?: string;
+    numeroAfiliado?: string;
+    sesionesAutorizadas?: number;
+    copago?: number;
+    contactAuth?: { whatsapp: boolean; email: boolean; };
+    reminderPref?: string;
+  };
 }
 
 export interface Practitioner {
