@@ -103,12 +103,14 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleDayBlur = () => {
-    if (day) {
+    if (day && day.length === 1 && parseInt(day) > 0) {
       const padded = day.padStart(2, "0");
       setDay(padded);
       validateAndEmit(padded, month, year);
+    } else if (day && day.length === 2) {
+      validateAndEmit(day, month, year);
     } else {
-      validateAndEmit("", month, year);
+      validateAndEmit(day, month, year);
     }
   };
 
@@ -150,12 +152,14 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleMonthBlur = () => {
-    if (month) {
+    if (month && month.length === 1 && parseInt(month) > 0) {
       const padded = month.padStart(2, "0");
       setMonth(padded);
       validateAndEmit(day, padded, year);
+    } else if (month && month.length === 2) {
+      validateAndEmit(day, month, year);
     } else {
-      validateAndEmit(day, "", year);
+      validateAndEmit(day, month, year);
     }
   };
 
