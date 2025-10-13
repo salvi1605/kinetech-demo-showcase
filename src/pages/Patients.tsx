@@ -154,7 +154,6 @@ export const Patients = () => {
                     <TableHead>Paciente</TableHead>
                     <TableHead>Contacto</TableHead>
                     <TableHead>Edad</TableHead>
-                    <TableHead>Condiciones</TableHead>
                     <TableHead>Última Visita</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -210,20 +209,6 @@ export const Patients = () => {
                         </div>
                       </TableCell>
                       <TableCell>{calculateAge(patient.birthDate)} años</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {patient.conditions.slice(0, 2).map((condition, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {condition}
-                            </Badge>
-                          ))}
-                          {patient.conditions.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{patient.conditions.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
                       <TableCell>
                         {patient.lastVisit ? (
                           <span className="text-sm">
@@ -383,18 +368,6 @@ export const Patients = () => {
                       >
                         {patient.phone}
                       </a>
-                    </div>
-                  </div>
-
-                  {/* Conditions */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Condiciones:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {patient.conditions.map((condition, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {condition}
-                        </Badge>
-                      ))}
                     </div>
                   </div>
 
