@@ -22,6 +22,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   const [year, setYear] = useState("");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
@@ -29,6 +30,9 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
 
   // Cargar valores iniciales desde valueDOB
   useEffect(() => {
+    // Solo sincronizar si NO estamos editando activamente
+    if (isEditing) return;
+    
     if (valueDOB && valueDOB.length === 10) {
       const [d, m, y] = valueDOB.split("-");
       setDay(d || "");
@@ -39,7 +43,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
       setMonth("");
       setYear("");
     }
-  }, [valueDOB]);
+  }, [valueDOB, isEditing]);
 
   // Validar y emitir cambios
   const validateAndEmit = (d: string, m: string, y: string) => {
@@ -54,9 +58,8 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
       return;
     }
 
-    // Si está incompleto
+    // Si está incompleto → NO limpiar el valor previo
     if (!d || !m || !y || d.length !== 2 || m.length !== 2 || y.length !== 4) {
-      onChangeDOB("");
       setError("Fecha incompleta");
       return;
     }
@@ -66,7 +69,6 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     const parsedDate = parse(dateStr, "dd-MM-yyyy", new Date());
     
     if (!isValid(parsedDate)) {
-      onChangeDOB("");
       setError("Fecha inválida");
       return;
     }
@@ -74,7 +76,6 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     // Validar que sea en el pasado
     const today = startOfToday();
     if (!isBefore(parsedDate, today) && parsedDate.getTime() !== today.getTime()) {
-      onChangeDOB("");
       setError("La fecha debe ser en el pasado");
       return;
     }
@@ -82,7 +83,6 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     // Validar edad (0-120 años)
     const age = differenceInYears(today, parsedDate);
     if (age < 0 || age > 120) {
-      onChangeDOB("");
       setError("Edad fuera de rango (0-120 años)");
       return;
     }
@@ -93,6 +93,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleDayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsEditing(true);
     const value = e.target.value.replace(/\D/g, "").slice(0, 2);
     setDay(value);
     
@@ -103,6 +104,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleDayBlur = () => {
+    setIsEditing(false);
     if (day && day.length === 1 && parseInt(day) > 0) {
       const padded = day.padStart(2, "0");
       setDay(padded);
@@ -142,6 +144,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsEditing(true);
     const value = e.target.value.replace(/\D/g, "").slice(0, 2);
     setMonth(value);
     
@@ -152,6 +155,7 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleMonthBlur = () => {
+    setIsEditing(false);
     if (month && month.length === 1 && parseInt(month) > 0) {
       const padded = month.padStart(2, "0");
       setMonth(padded);
@@ -170,11 +174,13 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
   };
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsEditing(true);
     const value = e.target.value.replace(/\D/g, "").slice(0, 4);
     setYear(value);
   };
 
   const handleYearBlur = () => {
+    setIsEditing(false);
     validateAndEmit(day, month, year);
   };
 
