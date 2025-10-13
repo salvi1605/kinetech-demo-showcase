@@ -12,8 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Patient } from '@/contexts/AppContext';
-import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
-import { parseSmartDOB, toStoreDOB } from '@/utils/dateUtils';
+import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
 import { 
   PatientForm, 
@@ -259,11 +258,10 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
               </div>
 
               <div className="col-span-2">
-                <DateOfBirthInput
-                  valueStoreDOB={form.identificacion.dateOfBirth}
-                  onChangeStoreDOB={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirth: value } }))}
+                <DateOfBirthTripleInput
+                  valueDOB={form.identificacion.dateOfBirth}
+                  onChangeDOB={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirth: value } }))}
                   required
-                  error={errors.dateOfBirth}
                 />
               </div>
 

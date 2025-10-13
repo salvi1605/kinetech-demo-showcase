@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
-import { DateOfBirthInput } from '@/components/patients/DateOfBirthInput';
+import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
 import { 
   PatientForm, 
@@ -238,11 +238,10 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
               </div>
 
               <div className="col-span-2">
-                <DateOfBirthInput
-                  valueStoreDOB={form.identificacion.dateOfBirth}
-                  onChangeStoreDOB={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirth: value } }))}
+                <DateOfBirthTripleInput
+                  valueDOB={form.identificacion.dateOfBirth}
+                  onChangeDOB={(value) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, dateOfBirth: value } }))}
                   required
-                  error={errors.dateOfBirth}
                 />
               </div>
 
