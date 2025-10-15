@@ -64,7 +64,8 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       diagnosis: '',
       laterality: '',
       painLevel: 0,
-      redFlags: { embarazo: false, cancer: false, marcapasos: false },
+      redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
+      redFlagsDetail: { alergias: '' },
       restricciones: { noMagnetoterapia: false, noElectroterapia: false },
     },
     seguro: {
@@ -435,6 +436,27 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
                     <label htmlFor="marcapasos-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Marcapasos
                     </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="alergias-edit"
+                      checked={form.clinico.redFlags.alergias}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, alergias: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="alergias-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-shrink-0">
+                      Alergias
+                    </label>
+                    <Input
+                      id="alergias-detail-edit"
+                      value={form.clinico.redFlagsDetail.alergias}
+                      onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, redFlagsDetail: { ...f.clinico.redFlagsDetail, alergias: e.target.value.slice(0, 120) } } }))}
+                      placeholder="Tipo de alergia"
+                      disabled={!form.clinico.redFlags.alergias}
+                      maxLength={120}
+                      className="flex-1"
+                    />
                   </div>
                 </div>
               </fieldset>

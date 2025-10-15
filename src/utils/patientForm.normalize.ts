@@ -23,7 +23,8 @@ export type PatientForm = {
     diagnosis: string;
     laterality: Lateralidad;
     painLevel: number;
-    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; };
+    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean; };
+    redFlagsDetail: { alergias: string; };
     restricciones: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
   };
   seguro: {
@@ -60,6 +61,10 @@ export const normalizePatientForm = (f: PatientForm): PatientForm => ({
       embarazo: !!f.clinico?.redFlags?.embarazo,
       cancer: !!f.clinico?.redFlags?.cancer,
       marcapasos: !!f.clinico?.redFlags?.marcapasos,
+      alergias: !!f.clinico?.redFlags?.alergias,
+    },
+    redFlagsDetail: {
+      alergias: f.clinico?.redFlagsDetail?.alergias ?? '',
     },
     restricciones: {
       noMagnetoterapia: !!f.clinico?.restricciones?.noMagnetoterapia,
@@ -116,6 +121,10 @@ export const toFormFromPatient = (p: any): PatientForm => {
       embarazo: !!p?.clinico?.redFlags?.embarazo,
       cancer: !!p?.clinico?.redFlags?.cancer,
       marcapasos: !!p?.clinico?.redFlags?.marcapasos,
+      alergias: !!p?.clinico?.redFlags?.alergias,
+    },
+    redFlagsDetail: {
+      alergias: p?.clinico?.redFlagsDetail?.alergias ?? '',
     },
     restricciones: {
       noMagnetoterapia: !!p?.clinico?.restricciones?.noMagnetoterapia,
@@ -147,6 +156,7 @@ export const toPatientFromForm = (id: string, form: PatientForm): any => ({
     ...(form.clinico.redFlags?.embarazo ? ['Embarazo'] : []),
     ...(form.clinico.redFlags?.cancer ? ['Cáncer'] : []),
     ...(form.clinico.redFlags?.marcapasos ? ['Marcapasos'] : []),
+    ...(form.clinico.redFlags?.alergias && form.clinico.redFlagsDetail?.alergias ? [`Alergias: ${form.clinico.redFlagsDetail.alergias}`] : []),
     ...(form.clinico.restricciones?.noMagnetoterapia ? ['No Magnetoterapia'] : []),
     ...(form.clinico.restricciones?.noElectroterapia ? ['No Electroterapia'] : []),
   ],

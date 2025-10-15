@@ -83,7 +83,8 @@ export interface Patient {
     diagnosis?: string;
     laterality?: string;
     painLevel?: number;
-    redFlags?: { embarazo: boolean; cancer: boolean; marcapasos: boolean; };
+    redFlags?: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean; };
+    redFlagsDetail?: { alergias: string; };
     restricciones?: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
   };
   seguro?: {

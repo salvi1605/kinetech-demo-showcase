@@ -60,14 +60,15 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       relationship: '',
       emergencyPhone: '',
     },
-    clinico: {
-      mainReason: '',
-      diagnosis: '',
-      laterality: '',
-      painLevel: 0,
-      redFlags: { embarazo: false, cancer: false, marcapasos: false },
-      restricciones: { noMagnetoterapia: false, noElectroterapia: false },
-    },
+      clinico: {
+        mainReason: '',
+        diagnosis: '',
+        laterality: '',
+        painLevel: 0,
+        redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
+        redFlagsDetail: { alergias: '' },
+        restricciones: { noMagnetoterapia: false, noElectroterapia: false },
+      },
     seguro: {
       obraSocial: '',
       numeroAfiliado: '',
@@ -184,7 +185,8 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
         diagnosis: '',
         laterality: '',
         painLevel: 0,
-        redFlags: { embarazo: false, cancer: false, marcapasos: false },
+        redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
+        redFlagsDetail: { alergias: '' },
         restricciones: { noMagnetoterapia: false, noElectroterapia: false },
       },
       seguro: {
@@ -415,6 +417,27 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
                     <label htmlFor="marcapasos" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Marcapasos
                     </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="alergias"
+                      checked={form.clinico.redFlags.alergias}
+                      onCheckedChange={(checked) =>
+                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, alergias: !!checked } } }))
+                      }
+                    />
+                    <label htmlFor="alergias" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-shrink-0">
+                      Alergias
+                    </label>
+                    <Input
+                      id="alergias-detail"
+                      value={form.clinico.redFlagsDetail.alergias}
+                      onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, redFlagsDetail: { ...f.clinico.redFlagsDetail, alergias: e.target.value.slice(0, 120) } } }))}
+                      placeholder="Tipo de alergia"
+                      disabled={!form.clinico.redFlags.alergias}
+                      maxLength={120}
+                      className="flex-1"
+                    />
                   </div>
                 </div>
               </fieldset>

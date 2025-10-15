@@ -508,6 +508,36 @@ export const PatientDetailTabs = () => {
                         Marcapasos
                       </label>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="alergias-tabs"
+                        checked={patient.clinico?.redFlags?.alergias || false}
+                        onCheckedChange={(checked) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            redFlags: { ...patient.clinico?.redFlags, alergias: !!checked }
+                          })
+                        }
+                        disabled={!editingClinical}
+                      />
+                      <label htmlFor="alergias-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-shrink-0">
+                        Alergias
+                      </label>
+                      <Input
+                        id="alergias-detail-tabs"
+                        value={patient.clinico?.redFlagsDetail?.alergias || ''}
+                        onChange={(e) =>
+                          handleFieldUpdate('clinico', {
+                            ...patient.clinico,
+                            redFlagsDetail: { ...patient.clinico?.redFlagsDetail, alergias: e.target.value.slice(0, 120) }
+                          })
+                        }
+                        placeholder="Tipo de alergia"
+                        disabled={!editingClinical || !patient.clinico?.redFlags?.alergias}
+                        maxLength={120}
+                        className="flex-1"
+                      />
+                    </div>
                   </div>
                 </fieldset>
                 
