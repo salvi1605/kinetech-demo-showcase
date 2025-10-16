@@ -235,9 +235,6 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
                   >
                     Elegir color
                   </Button>
-                  <span className="text-xs text-muted-foreground">
-                    {currentColor}
-                  </span>
                 </div>
               </div>
             </TabsContent>

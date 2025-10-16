@@ -46,7 +46,6 @@ export function PractitionerColorPickerModal({
             style={{ backgroundColor: selected }} 
           />
           <span className="text-sm text-muted-foreground">Vista previa</span>
-          <span className="text-xs font-mono text-muted-foreground">{selected}</span>
         </div>
 
         <div className="grid grid-cols-5 gap-3">

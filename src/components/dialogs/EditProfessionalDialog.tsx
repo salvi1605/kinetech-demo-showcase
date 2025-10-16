@@ -251,9 +251,6 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
                   >
                     Elegir color
                   </Button>
-                  <span className="text-xs text-muted-foreground">
-                    {currentColor}
-                  </span>
                 </div>
               </div>
             </TabsContent>
