@@ -55,6 +55,15 @@ export interface AppState {
   selectedTreatmentTypes: TreatmentType[];
 }
 
+export type PatientDocument = {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  createdAt: string;
+};
+
 export interface Patient {
   id: string;
   name: string;
@@ -64,6 +73,7 @@ export interface Patient {
   conditions: string[];
   lastVisit?: string;
   nextAppointment?: string;
+  documents?: PatientDocument[];
   // Extended fields from patient form
   identificacion?: {
     fullName: string;

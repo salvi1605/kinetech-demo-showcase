@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, Stethoscope, CreditCard, FileCheck } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, Stethoscope, CreditCard, FileCheck, Download } from 'lucide-react';
+import { format } from 'date-fns';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
+import { PatientUploadDocumentDialog } from '@/components/patients/PatientUploadDocumentDialog';
+import type { PatientDocument } from '@/contexts/AppContext';
 
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,7 @@ export const PatientDetailTabs = () => {
   const [editingData, setEditingData] = useState(false);
   const [editingClinical, setEditingClinical] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState(false);
+  const [showUploadDocument, setShowUploadDocument] = useState(false);
 
   const patient = state.patients.find(p => p.id === id);
   const patientAppointments = state.appointments.filter(apt => apt.patientId === id);
@@ -765,76 +769,101 @@ export const PatientDetailTabs = () => {
                   <CardTitle>Documentos</CardTitle>
                   <CardDescription>Archivos y documentación del paciente</CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => setShowUploadDocument(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Subir Documento
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Tamaño</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Estudios_Radiograficos.pdf</TableCell>
-                    <TableCell>PDF</TableCell>
-                    <TableCell>2.3 MB</TableCell>
-                    <TableCell>15/08/2024</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-background z-50">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Orden_Medica.jpg</TableCell>
-                    <TableCell>Imagen</TableCell>
-                    <TableCell>1.1 MB</TableCell>
-                    <TableCell>10/08/2024</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-background z-50">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              {patient.documents && patient.documents.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Tamaño</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {patient.documents.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="truncate max-w-[300px]">{doc.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{doc.type || 'Archivo'}</TableCell>
+                        <TableCell>{(doc.size / 1024 / 1024).toFixed(2)} MB</TableCell>
+                        <TableCell>
+                          {format(new Date(doc.createdAt), 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(doc.url, '_blank')}
+                              aria-label="Ver documento"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = doc.url;
+                                link.download = doc.name;
+                                link.click();
+                              }}
+                              aria-label="Descargar documento"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`¿Eliminar "${doc.name}"?`)) {
+                                  const updatedDocs = patient.documents?.filter(d => d.id !== doc.id) || [];
+                                  dispatch({
+                                    type: 'UPDATE_PATIENT',
+                                    payload: {
+                                      id: patient.id,
+                                      updates: { documents: updatedDocs }
+                                    }
+                                  });
+                                  URL.revokeObjectURL(doc.url);
+                                  toast({
+                                    title: 'Documento eliminado',
+                                    description: `${doc.name} ha sido eliminado.`,
+                                  });
+                                }
+                              }}
+                              className="text-destructive hover:text-destructive"
+                              aria-label="Eliminar documento"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No hay documentos subidos</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Usa el botón "Subir Documento" para agregar archivos
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -845,6 +874,27 @@ export const PatientDetailTabs = () => {
         open={showWizard}
         onOpenChange={setShowWizard}
         patient={patient}
+      />
+
+      {/* Upload Document Dialog */}
+      <PatientUploadDocumentDialog
+        open={showUploadDocument}
+        onClose={() => setShowUploadDocument(false)}
+        onSave={(doc: PatientDocument) => {
+          dispatch({
+            type: 'UPDATE_PATIENT',
+            payload: {
+              id: patient.id,
+              updates: {
+                documents: [...(patient.documents || []), doc]
+              }
+            }
+          });
+          toast({
+            title: 'Documento subido',
+            description: `${doc.name} ha sido agregado correctamente.`,
+          });
+        }}
       />
     </div>
   );
