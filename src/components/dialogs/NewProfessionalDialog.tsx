@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
+import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
+import { PASTEL_COLORS } from '@/constants/pastelPalette';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -45,10 +47,14 @@ const WEEKDAYS = [
 ];
 
 export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) => {
-  const { dispatch } = useApp();
+  const { dispatch, state } = useApp();
   const [selectedDays, setSelectedDays] = useState<string[]>(['lun', 'mar', 'mié', 'jue', 'vie']);
   const [workFrom, setWorkFrom] = useState('08:00');
   const [workTo, setWorkTo] = useState('18:00');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // Obtener colores ya usados
+  const usedColors = state.practitioners.map(p => p.color).filter(Boolean) as string[];
 
   const {
     register,
@@ -68,7 +74,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
       phone: '',
       specialty: '',
       licenseId: '',
-      color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
+      color: PASTEL_COLORS[0],
       slotMinutes: 30,
       status: 'active',
       notes: '',
@@ -77,6 +83,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
   const prefix = watch('prefix');
   const status = watch('status');
+  const currentColor = watch('color');
 
   const onSubmit = (data: ProfessionalFormData) => {
     // Validar horario
@@ -215,16 +222,21 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="color">Color para agenda</Label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    id="color"
-                    type="color"
-                    {...register('color')}
-                    className="w-20 h-10"
+                <Label>Color para agenda</Label>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-5 h-5 rounded-full border" 
+                    style={{ backgroundColor: currentColor }} 
                   />
-                  <span className="text-sm text-muted-foreground">
-                    Este color se usará en la agenda para identificar al profesional
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={() => setShowColorPicker(true)}
+                  >
+                    Elegir color
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {currentColor}
                   </span>
                 </div>
               </div>
@@ -322,6 +334,17 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
             <Button type="submit">Guardar</Button>
           </DialogFooter>
         </form>
+
+        <PractitionerColorPickerModal
+          open={showColorPicker}
+          initialColor={currentColor}
+          usedColors={usedColors}
+          onClose={() => setShowColorPicker(false)}
+          onConfirm={(hex) => {
+            setValue('color', hex);
+            setShowColorPicker(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
