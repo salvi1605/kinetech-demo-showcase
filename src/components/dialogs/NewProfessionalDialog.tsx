@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
-import { PASTEL_COLORS } from '@/constants/pastelPalette';
+import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -74,7 +74,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
       phone: '',
       specialty: '',
       licenseId: '',
-      color: PASTEL_COLORS[0],
+      color: PROFESSIONAL_COLORS[0],
       slotMinutes: 30,
       status: 'active',
       notes: '',

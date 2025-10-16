@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { PASTEL_COLORS } from '@/constants/pastelPalette';
+import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { cn } from '@/lib/utils';
 
 interface PractitionerColorPickerModalProps {
@@ -19,7 +19,7 @@ export function PractitionerColorPickerModal({
   onConfirm, 
   usedColors = [] 
 }: PractitionerColorPickerModalProps) {
-  const [selected, setSelected] = useState<string>(initialColor || PASTEL_COLORS[0]);
+  const [selected, setSelected] = useState<string>(initialColor || PROFESSIONAL_COLORS[0]);
 
   const isUsed = (hex: string) => 
     usedColors.map(c => c.toLowerCase()).includes(hex.toLowerCase());
@@ -49,7 +49,7 @@ export function PractitionerColorPickerModal({
         </div>
 
         <div className="grid grid-cols-5 gap-3">
-          {PASTEL_COLORS.map(hex => {
+          {PROFESSIONAL_COLORS.map(hex => {
             const taken = isUsed(hex);
             const isSelected = selected === hex;
             
