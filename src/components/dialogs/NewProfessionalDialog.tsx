@@ -16,7 +16,7 @@ import { PractitionerColorPickerModal } from '@/components/practitioners/Practit
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 
 const professionalSchema = z.object({
-  prefix: z.enum(['Dr.', 'Lic.', '']),
+  prefix: z.enum(['Dr.', 'Lic.', 'none']),
   firstName: z.string().min(1, 'El nombre es requerido').max(100),
   lastName: z.string().min(1, 'El apellido es requerido').max(100),
   displayName: z.string().max(100).optional(),
@@ -64,7 +64,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
   } = useForm<ProfessionalFormData>({
     resolver: zodResolver(professionalSchema),
     defaultValues: {
-      prefix: '',
+      prefix: 'none',
       firstName: '',
       lastName: '',
       displayName: '',
@@ -96,7 +96,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
     const newPractitioner = {
       id: crypto.randomUUID(),
-      name: `${data.prefix ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim(),
+      name: `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim(),
       specialty: data.specialty,
       email: data.email || '',
       phone: data.mobile || '',
@@ -172,7 +172,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
                       <SelectValue placeholder="Prefijo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin prefijo</SelectItem>
+                      <SelectItem value="none">Sin prefijo</SelectItem>
                       <SelectItem value="Dr.">Dr.</SelectItem>
                       <SelectItem value="Lic.">Lic.</SelectItem>
                     </SelectContent>
