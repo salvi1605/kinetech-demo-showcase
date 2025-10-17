@@ -16,13 +16,12 @@ import { PractitionerColorPickerModal } from '@/components/practitioners/Practit
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 
 const professionalSchema = z.object({
-  prefix: z.enum(['Dr.', 'Lic.', 'none']),
+  prefix: z.enum(['Dr.', 'Lic.', '']),
   firstName: z.string().min(1, 'El nombre es requerido').max(100),
   lastName: z.string().min(1, 'El apellido es requerido').max(100),
   displayName: z.string().max(100).optional(),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
   mobile: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
   specialty: z.string().min(1, 'La especialidad es requerida'),
   licenseId: z.string().optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Color inválido').optional(),
@@ -65,13 +64,12 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
   } = useForm<ProfessionalFormData>({
     resolver: zodResolver(professionalSchema),
     defaultValues: {
-      prefix: 'none',
+      prefix: '',
       firstName: '',
       lastName: '',
       displayName: '',
-      email: '',
       mobile: '',
-      phone: '',
+      email: '',
       specialty: '',
       licenseId: '',
       color: PROFESSIONAL_COLORS[0],
@@ -98,10 +96,10 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
     const newPractitioner = {
       id: crypto.randomUUID(),
-      name: `${data.prefix === 'none' ? '' : data.prefix} ${data.firstName} ${data.lastName}`.trim(),
+      name: `${data.prefix ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim(),
       specialty: data.specialty,
       email: data.email || '',
-      phone: data.mobile || data.phone || '',
+      phone: data.mobile || '',
       schedule: selectedDays.map(day => {
         const dayMap: Record<string, number> = { lun: 1, mar: 2, mié: 3, jue: 4, vie: 5, sáb: 6 };
         return {
@@ -139,9 +137,8 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Tabs defaultValue="identificacion">
-            <TabsList className="grid grid-cols-5 mb-4">
+            <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="identificacion">Identificación</TabsTrigger>
-              <TabsTrigger value="contacto">Contacto</TabsTrigger>
               <TabsTrigger value="profesional">Profesional</TabsTrigger>
               <TabsTrigger value="disponibilidad">Disponibilidad</TabsTrigger>
               <TabsTrigger value="visibilidad">Visibilidad</TabsTrigger>
@@ -149,60 +146,58 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
             {/* Identificación */}
             <TabsContent value="identificacion" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="prefix">Prefijo</Label>
-                <Select value={prefix} onValueChange={(val) => setValue('prefix', val as any)}>
-                  <SelectTrigger id="prefix">
-                    <SelectValue placeholder="Seleccionar prefijo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin prefijo</SelectItem>
-                    <SelectItem value="Dr.">Dr.</SelectItem>
-                    <SelectItem value="Lic.">Lic.</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Nombre *</Label>
+                  <Input id="firstName" {...register('firstName')} />
+                  {errors.firstName && (
+                    <p className="text-sm text-destructive">{errors.firstName.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Apellido *</Label>
+                  <Input id="lastName" {...register('lastName')} />
+                  {errors.lastName && (
+                    <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Nombre *</Label>
-                <Input id="firstName" {...register('firstName')} />
-                {errors.firstName && (
-                  <p className="text-sm text-destructive">{errors.firstName.message}</p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="prefix">Prefijo</Label>
+                  <Select value={prefix} onValueChange={(val) => setValue('prefix', val as any)}>
+                    <SelectTrigger id="prefix">
+                      <SelectValue placeholder="Prefijo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin prefijo</SelectItem>
+                      <SelectItem value="Dr.">Dr.</SelectItem>
+                      <SelectItem value="Lic.">Lic.</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="displayName">Nombre para mostrar (opcional)</Label>
+                  <Input id="displayName" {...register('displayName')} placeholder="Ej: Dra. Ana" />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Apellido *</Label>
-                <Input id="lastName" {...register('lastName')} />
-                {errors.lastName && (
-                  <p className="text-sm text-destructive">{errors.lastName.message}</p>
-                )}
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mobile">Teléfono Móvil</Label>
+                  <Input id="mobile" type="tel" {...register('mobile')} />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Nombre para mostrar (opcional)</Label>
-                <Input id="displayName" {...register('displayName')} placeholder="Ej: Dra. Ana" />
-              </div>
-            </TabsContent>
-
-            {/* Contacto */}
-            <TabsContent value="contacto" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} />
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mobile">Teléfono móvil</Label>
-                <Input id="mobile" type="tel" {...register('mobile')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono fijo (opcional)</Label>
-                <Input id="phone" type="tel" {...register('phone')} />
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" type="email" {...register('email')} />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email.message}</p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
