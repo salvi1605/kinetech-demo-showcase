@@ -48,7 +48,7 @@ export function PractitionerColorPickerModal({
           <span className="text-sm text-muted-foreground">Vista previa</span>
         </div>
 
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {PROFESSIONAL_COLORS.map(hex => {
             const taken = isUsed(hex);
             const isSelected = selected === hex;
