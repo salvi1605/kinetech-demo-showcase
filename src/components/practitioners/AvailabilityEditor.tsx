@@ -36,6 +36,32 @@ const DAY_LABELS: Record<DayKey, string> = {
 export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps) {
   const dayOrder: DayKey[] = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
 
+  // Utilidades para formato 24H
+  const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  
+  const normalizeTime = (raw: string): string => {
+    const v = raw.trim().replace('.', ':');
+    // 3-4 dígitos: 800 -> 08:00, 930 -> 09:30
+    const d = v.replace(/\D/g, '');
+    if (d.length === 3 || d.length === 4) {
+      const h = d.slice(0, d.length - 2);
+      const m = d.slice(-2);
+      const hh = String(Math.min(23, parseInt(h || '0', 10))).padStart(2, '0');
+      const mm = String(Math.min(59, parseInt(m || '0', 10))).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+    // h:m, h:mm, hh:m
+    const m1 = v.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (m1) {
+      const hh = String(Math.min(23, parseInt(m1[1], 10))).padStart(2, '0');
+      const mm = String(Math.min(59, parseInt(m1[2], 10))).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+    return v;
+  };
+  
+  const isValidHHmm = (s: string) => TIME_RE.test(s);
+
   const setDay = (d: DayKey, patch: Partial<AvailabilityDay>) => {
     onChange(value.map(v => (v.day === d ? { ...v, ...patch } : v)));
   };
@@ -74,10 +100,12 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
 
   // Validación de solapamientos
   const hasOverlap = (slots: DaySlot[]): boolean => {
-    for (let i = 0; i < slots.length; i++) {
-      for (let j = i + 1; j < slots.length; j++) {
-        const a = slots[i];
-        const b = slots[j];
+    // Solo validar slots con formato válido
+    const validSlots = slots.filter(s => isValidHHmm(s.from) && isValidHHmm(s.to));
+    for (let i = 0; i < validSlots.length; i++) {
+      for (let j = i + 1; j < validSlots.length; j++) {
+        const a = validSlots[i];
+        const b = validSlots[j];
         if (
           (a.from < b.to && a.to > b.from) ||
           (b.from < a.to && b.to > a.from)
@@ -90,6 +118,9 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
   };
 
   const validateSlot = (slot: DaySlot): string | null => {
+    if (!isValidHHmm(slot.from) || !isValidHHmm(slot.to)) {
+      return "Formato HH:mm";
+    }
     if (slot.from >= slot.to) {
       return "'Hasta' debe ser mayor que 'Desde'";
     }
@@ -125,26 +156,26 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
                   return (
                     <div key={i} className="flex items-center gap-2">
                       <Input
-                        type="time"
-                        lang="es-AR"
-                        min="00:00"
-                        max="23:59"
-                        step="60"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                        placeholder="HH:mm"
                         aria-label="Hora desde (24h)"
                         value={s.from}
                         onChange={e => setSlot(d, i, { from: e.target.value })}
+                        onBlur={e => setSlot(d, i, { from: normalizeTime(e.target.value) })}
                         className="w-28 text-center"
                       />
                       <span className="text-muted-foreground">–</span>
                       <Input
-                        type="time"
-                        lang="es-AR"
-                        min="00:00"
-                        max="23:59"
-                        step="60"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                        placeholder="HH:mm"
                         aria-label="Hora hasta (24h)"
                         value={s.to}
                         onChange={e => setSlot(d, i, { to: e.target.value })}
+                        onBlur={e => setSlot(d, i, { to: normalizeTime(e.target.value) })}
                         className="w-28 text-center"
                       />
                       <Button
