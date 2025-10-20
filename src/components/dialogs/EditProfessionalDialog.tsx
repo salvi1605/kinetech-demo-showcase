@@ -15,6 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import type { Practitioner } from '@/contexts/AppContext';
 import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
+import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -26,7 +27,6 @@ const professionalSchema = z.object({
   specialty: z.string().min(1, 'La especialidad es requerida'),
   licenseId: z.string().optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Color inválido').optional(),
-  slotMinutes: z.number().min(15).max(120),
   status: z.enum(['active', 'inactive']),
   notes: z.string().optional(),
 });
@@ -38,14 +38,42 @@ interface EditProfessionalDialogProps {
   onClose: () => void;
 }
 
-const WEEKDAYS = [
-  { value: 'lun', label: 'Lunes' },
-  { value: 'mar', label: 'Martes' },
-  { value: 'mié', label: 'Miércoles' },
-  { value: 'jue', label: 'Jueves' },
-  { value: 'vie', label: 'Viernes' },
-  { value: 'sáb', label: 'Sábado' },
-];
+// Convertir schedule existente a AvailabilityDay[]
+const scheduleToAvailability = (schedule: { dayOfWeek: number; startTime: string; endTime: string; isAvailable: boolean }[]): AvailabilityDay[] => {
+  const numberToDayKey: Record<number, DayKey> = {
+    0: 'dom',
+    1: 'lun',
+    2: 'mar',
+    3: 'mié',
+    4: 'jue',
+    5: 'vie',
+    6: 'sáb',
+  };
+
+  const allDays: DayKey[] = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+  const daySlots: Record<DayKey, { from: string; to: string }[]> = {
+    lun: [],
+    mar: [],
+    mié: [],
+    jue: [],
+    vie: [],
+    sáb: [],
+    dom: [],
+  };
+
+  schedule.forEach(s => {
+    const dayKey = numberToDayKey[s.dayOfWeek];
+    if (dayKey && s.isAvailable) {
+      daySlots[dayKey].push({ from: s.startTime, to: s.endTime });
+    }
+  });
+
+  return allDays.map(day => ({
+    day,
+    active: daySlots[day].length > 0,
+    slots: daySlots[day],
+  }));
+};
 
 export const EditProfessionalDialog = ({ professional, onClose }: EditProfessionalDialogProps) => {
   const { dispatch, state } = useApp();
@@ -56,20 +84,16 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
     .filter(p => p.id !== professional.id)
     .map(p => p.color)
     .filter(Boolean) as string[];
-  
+
   // Parse existing data
   const nameParts = professional.name.split(' ');
   const prefixMatch = nameParts[0] === 'Dr.' || nameParts[0] === 'Lic.' ? nameParts[0] : 'none';
   const firstName = prefixMatch !== 'none' ? nameParts.slice(1, -1).join(' ') : nameParts.slice(0, -1).join(' ');
   const lastName = nameParts[nameParts.length - 1];
 
-  const dayMap: Record<number, string> = { 1: 'lun', 2: 'mar', 3: 'mié', 4: 'jue', 5: 'vie', 6: 'sáb' };
-  const initialDays = professional.schedule.map(s => dayMap[s.dayOfWeek]).filter(Boolean);
-  const initialTime = professional.schedule[0] || { startTime: '08:00', endTime: '18:00' };
-
-  const [selectedDays, setSelectedDays] = useState<string[]>(initialDays);
-  const [workFrom, setWorkFrom] = useState(initialTime.startTime);
-  const [workTo, setWorkTo] = useState(initialTime.endTime);
+  const [availability, setAvailability] = useState<AvailabilityDay[]>(
+    scheduleToAvailability(professional.schedule)
+  );
 
   const {
     register,
@@ -89,7 +113,6 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
       specialty: professional.specialty,
       licenseId: '',
       color: professional.color,
-      slotMinutes: 30,
       status: 'active',
       notes: '',
     },
@@ -100,15 +123,55 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
   const currentColor = watch('color');
 
   const onSubmit = (data: ProfessionalFormData) => {
-    // Validar horario
-    if (workFrom >= workTo) {
-      toast({
-        title: 'Error',
-        description: 'El horario de inicio debe ser menor al de fin',
-        variant: 'destructive',
-      });
-      return;
+    // Validar disponibilidad
+    const activeDays = availability.filter(d => d.active);
+    for (const day of activeDays) {
+      for (const slot of day.slots) {
+        if (slot.from >= slot.to) {
+          toast({
+            title: 'Error de validación',
+            description: "Revisa los horarios: 'Hasta' debe ser mayor que 'Desde'",
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+      // Verificar solapamientos
+      for (let i = 0; i < day.slots.length; i++) {
+        for (let j = i + 1; j < day.slots.length; j++) {
+          const a = day.slots[i];
+          const b = day.slots[j];
+          if ((a.from < b.to && a.to > b.from) || (b.from < a.to && b.to > a.from)) {
+            toast({
+              title: 'Error de validación',
+              description: 'Los horarios no deben superponerse',
+              variant: 'destructive',
+            });
+            return;
+          }
+        }
+      }
     }
+
+    // Convertir availability al formato schedule existente
+    const dayKeyToNumber: Record<DayKey, number> = {
+      lun: 1,
+      mar: 2,
+      mié: 3,
+      jue: 4,
+      vie: 5,
+      sáb: 6,
+      dom: 0,
+    };
+
+    const schedule = activeDays.flatMap(day =>
+      day.slots.map(slot => ({
+        dayOfWeek: dayKeyToNumber[day.day],
+        startTime: slot.from,
+        endTime: slot.to,
+        isAvailable: true,
+      }))
+    );
 
     const updatedPractitioner = {
       ...professional,
@@ -116,15 +179,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
       specialty: data.specialty,
       email: data.email || '',
       phone: data.mobile || '',
-      schedule: selectedDays.map(day => {
-        const reverseDayMap: Record<string, number> = { lun: 1, mar: 2, mié: 3, jue: 4, vie: 5, sáb: 6 };
-        return {
-          dayOfWeek: reverseDayMap[day],
-          startTime: workFrom,
-          endTime: workTo,
-          isAvailable: true,
-        };
-      }),
+      schedule,
       color: data.color || '#3b82f6',
     };
 
@@ -136,12 +191,6 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
     });
 
     onClose();
-  };
-
-  const toggleDay = (day: string) => {
-    setSelectedDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
   };
 
   return (
@@ -252,60 +301,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
 
             {/* Disponibilidad */}
             <TabsContent value="disponibilidad" className="space-y-4">
-              <div className="space-y-2">
-                <Label>Días laborables</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {WEEKDAYS.map(({ value, label }) => (
-                    <div key={value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={value}
-                        checked={selectedDays.includes(value)}
-                        onCheckedChange={() => toggleDay(value)}
-                      />
-                      <Label htmlFor={value} className="font-normal cursor-pointer">
-                        {label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="workFrom">Horario desde</Label>
-                  <Input
-                    id="workFrom"
-                    type="time"
-                    value={workFrom}
-                    onChange={(e) => setWorkFrom(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="workTo">Horario hasta</Label>
-                  <Input
-                    id="workTo"
-                    type="time"
-                    value={workTo}
-                    onChange={(e) => setWorkTo(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="slotMinutes">Duración de slot (minutos)</Label>
-                <Input
-                  id="slotMinutes"
-                  type="number"
-                  {...register('slotMinutes', { valueAsNumber: true })}
-                  min={15}
-                  max={120}
-                  step={15}
-                />
-                {errors.slotMinutes && (
-                  <p className="text-sm text-destructive">{errors.slotMinutes.message}</p>
-                )}
-              </div>
+              <AvailabilityEditor value={availability} onChange={setAvailability} />
             </TabsContent>
 
             {/* Visibilidad */}
