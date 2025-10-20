@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserCheck, Plus, Search, Phone, Mail, Calendar, Clock } from 'lucide-react';
+import { UserCheck, Plus, Search, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,11 +24,6 @@ export const Practitioners = () => {
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
-  const getWorkingDays = (schedule: any[]) => {
-    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    return schedule.map(s => days[s.dayOfWeek]).join(', ');
   };
 
   return (
@@ -99,39 +94,14 @@ export const Practitioners = () => {
                 </div>
               </div>
 
-              {/* Schedule */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Horarios de trabajo:
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  {getWorkingDays(practitioner.schedule)}
-                </Badge>
-                
-                <div className="space-y-1">
-                  {practitioner.schedule.map((sched, index) => (
-                    <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>{sched.startTime} - {sched.endTime}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="flex items-center justify-between pt-2">
-                <Badge variant="secondary">
-                  Activo
-                </Badge>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Ver Agenda
-                  </Button>
-                  <Button variant="default" size="sm" onClick={() => setEditingProfessional(practitioner)}>
-                    Editar
-                  </Button>
-                </div>
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" size="sm" className="flex-1">
+                  Ver Agenda
+                </Button>
+                <Button variant="default" size="sm" className="flex-1" onClick={() => setEditingProfessional(practitioner)}>
+                  Editar
+                </Button>
               </div>
             </CardContent>
           </Card>
