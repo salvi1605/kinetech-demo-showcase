@@ -126,18 +126,26 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
                     <div key={i} className="flex items-center gap-2">
                       <Input
                         type="time"
+                        lang="es-AR"
+                        min="00:00"
+                        max="23:59"
+                        step="60"
+                        aria-label="Hora desde (24h)"
                         value={s.from}
                         onChange={e => setSlot(d, i, { from: e.target.value })}
                         className="w-28 text-center"
-                        step="60"
                       />
                       <span className="text-muted-foreground">–</span>
                       <Input
                         type="time"
+                        lang="es-AR"
+                        min="00:00"
+                        max="23:59"
+                        step="60"
+                        aria-label="Hora hasta (24h)"
                         value={s.to}
                         onChange={e => setSlot(d, i, { to: e.target.value })}
                         className="w-28 text-center"
-                        step="60"
                       />
                       <Button
                         type="button"
