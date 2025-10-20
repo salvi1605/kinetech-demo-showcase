@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Trash2 } from 'lucide-react';
+import { TimePicker } from '@/components/shared/TimePicker';
 
 export type DayKey = 'lun' | 'mar' | 'mié' | 'jue' | 'vie' | 'sáb' | 'dom';
 
@@ -155,28 +155,18 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
                   const error = validateSlot(s);
                   return (
                     <div key={i} className="flex items-center gap-2">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="^([01]\d|2[0-3]):([0-5]\d)$"
-                        placeholder="HH:mm"
-                        aria-label="Hora desde (24h)"
+                      <TimePicker
                         value={s.from}
-                        onChange={e => setSlot(d, i, { from: e.target.value })}
-                        onBlur={e => setSlot(d, i, { from: normalizeTime(e.target.value) })}
-                        className="w-28 text-center"
+                        onChange={(time) => setSlot(d, i, { from: time })}
+                        placeholder="08:00"
+                        className="w-28"
                       />
                       <span className="text-muted-foreground">–</span>
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="^([01]\d|2[0-3]):([0-5]\d)$"
-                        placeholder="HH:mm"
-                        aria-label="Hora hasta (24h)"
+                      <TimePicker
                         value={s.to}
-                        onChange={e => setSlot(d, i, { to: e.target.value })}
-                        onBlur={e => setSlot(d, i, { to: normalizeTime(e.target.value) })}
-                        className="w-28 text-center"
+                        onChange={(time) => setSlot(d, i, { to: time })}
+                        placeholder="12:00"
+                        className="w-28"
                       />
                       <Button
                         type="button"
