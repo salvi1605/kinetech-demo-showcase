@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Trash2 } from 'lucide-react';
 import { TimePicker } from '@/components/shared/TimePicker';
 
@@ -128,24 +129,36 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
   };
 
   return (
-    <div className="space-y-4">
-      {dayOrder.map(d => {
-        const day = value.find(v => v.day === d)!;
-        const hasErrors = day.slots.some(s => validateSlot(s)) || hasOverlap(day.slots);
+    <TooltipProvider>
+      <div className="space-y-4">
+        {dayOrder.map(d => {
+          const day = value.find(v => v.day === d)!;
+          const hasErrors = day.slots.some(s => validateSlot(s)) || hasOverlap(day.slots);
 
-        return (
-          <div key={d} className="border rounded-lg p-4 space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-[120px]">
-                <Checkbox
-                  id={`day-${d}`}
-                  checked={day.active}
-                  onCheckedChange={ck => setDay(d, { active: !!ck })}
-                />
-                <Label htmlFor={`day-${d}`} className="font-medium cursor-pointer">
-                  {DAY_LABELS[d]}
-                </Label>
-              </div>
+          return (
+            <div 
+              key={d} 
+              className={`border rounded-lg p-4 space-y-3 transition-colors ${
+                !day.active ? 'cursor-pointer hover:bg-accent/50' : ''
+              }`}
+              onClick={(e) => {
+                // Solo activar si el día está inactivo y el click no fue en un control interactivo
+                if (!day.active && e.target === e.currentTarget) {
+                  setDay(d, { active: true });
+                }
+              }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-[120px]">
+                  <Checkbox
+                    id={`day-${d}`}
+                    checked={day.active}
+                    onCheckedChange={ck => setDay(d, { active: !!ck })}
+                  />
+                  <Label htmlFor={`day-${d}`} className="font-medium cursor-pointer">
+                    {DAY_LABELS[d]}
+                  </Label>
+                </div>
 
               <div className="flex-1 space-y-2">
                 {day.slots.length === 0 && (
@@ -191,14 +204,26 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addSlot(d)}
-                >
-                  + Añadir horario
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addSlot(d)}
+                        disabled={!day.active}
+                      >
+                        + Añadir horario
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {!day.active && (
+                    <TooltipContent>
+                      <p>Marca el día primero para añadir horarios</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
                 <Button
                   type="button"
                   variant="ghost"
@@ -242,8 +267,9 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
               </div>
             </div>
           </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
