@@ -129,6 +129,7 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
                         value={s.from}
                         onChange={e => setSlot(d, i, { from: e.target.value })}
                         className="w-28 text-center"
+                        step="60"
                       />
                       <span className="text-muted-foreground">–</span>
                       <Input
@@ -136,6 +137,7 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
                         value={s.to}
                         onChange={e => setSlot(d, i, { to: e.target.value })}
                         className="w-28 text-center"
+                        step="60"
                       />
                       <Button
                         type="button"
