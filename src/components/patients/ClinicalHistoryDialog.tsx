@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ClinicalHistoryBlock, PatientHistoryEntry } from './ClinicalHistoryBlock';
@@ -19,6 +19,10 @@ export const ClinicalHistoryDialog = ({
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [pendingHistory, setPendingHistory] = useState<PatientHistoryEntry[]>([]);
+
+  const handleHistoryChange = useCallback((entries: PatientHistoryEntry[]) => {
+    setPendingHistory(entries);
+  }, []);
 
   const handleSave = () => {
     dispatch({
@@ -53,7 +57,7 @@ export const ClinicalHistoryDialog = ({
           currentUserId={state.currentUserId}
           currentUserName={state.currentUserName}
           currentUserRole={state.userRole || 'kinesio'}
-          onHistoryChange={setPendingHistory}
+          onHistoryChange={handleHistoryChange}
         />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

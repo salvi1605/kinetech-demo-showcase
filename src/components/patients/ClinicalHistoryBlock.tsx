@@ -60,7 +60,7 @@ export const ClinicalHistoryBlock = ({
 
     setEntries(purged);
     setDraftsByDate(drafts);
-  }, [history, currentUserId, currentUserName]);
+  }, [history]);
 
   const canEdit = (entry: PatientHistoryEntry): boolean => {
     if (currentUserRole === 'admin') return true;
@@ -97,7 +97,7 @@ export const ClinicalHistoryBlock = ({
       .sort((a, b) => a.date.localeCompare(b.date));
 
     onHistoryChange(finalEntries);
-  }, [entries, onHistoryChange]);
+  }, [entries]);
 
   // Sort for display: most recent first (desc)
   const sortedForDisplay = [...entries].sort((a, b) =>
