@@ -16,21 +16,14 @@ export const formatCopyLine = (
   dateISO: string, 
   hhmm: string, 
   doctor?: DoctorLike | null, 
-  treatmentType?: string | string[]
+  treatmentType?: string
 ) => {
   const base = format(parseLocalDate(dateISO), "EEE dd/MM/yyyy", { locale: es });
   const cap = base.charAt(0).toUpperCase() + base.slice(1);
   const formattedBase = `${cap} • ${hhmm}`;
   const doc = fmtDoctorFull(doctor);
   
-  let tt = "—";
-  if (Array.isArray(treatmentType)) {
-    tt = treatmentType.length > 0 
-      ? treatmentType.map(t => treatmentLabel[t] ?? t).join(", ") 
-      : "—";
-  } else if (treatmentType) {
-    tt = treatmentLabel[treatmentType] ?? treatmentType;
-  }
+  const tt = treatmentType ? (treatmentLabel[treatmentType] ?? treatmentType) : "—";
   
   return `${formattedBase} • ${doc} • ${tt}`;
 };

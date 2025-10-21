@@ -28,7 +28,7 @@ interface SlotInfo {
   hour: string;
   subSlot: number;
   displayText: string;
-  treatmentTypes: TreatmentType[];
+  treatmentType?: TreatmentType;
 }
 
 
@@ -43,9 +43,9 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const [showFailureDialog, setShowFailureDialog] = useState(false);
   const [failedSlots, setFailedSlots] = useState<string[]>([]);
   const [perItemPractitioner, setPerItemPractitioner] = useState<Record<string, string>>({});
-  const [perItemTreatments, setPerItemTreatments] = useState<Record<string, TreatmentType[]>>({});
+  const [perItemTreatment, setPerItemTreatment] = useState<Record<string, TreatmentType>>({});
 
-  // Preparar slots ordenados con tratamientos prefijados
+  // Preparar slots ordenados con tratamiento prefijado
   const sortedSlots: SlotInfo[] = selectedSlotKeys
     .sort(byDateTime)
     .map(key => {
@@ -56,7 +56,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         hour,
         subSlot,
         displayText: displaySelectedLabel({ dateISO, hour, subSlot: (subSlot + 1) as 1 | 2 | 3 | 4 | 5 }),
-        treatmentTypes: state.selectedTreatmentTypes || [],
+        treatmentType: state.selectedTreatmentType,
       };
     });
 
@@ -97,16 +97,16 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   };
 
   const handleConfirm = async () => {
-    // Validación: todos los slots deben tener al menos un tratamiento
+    // Validación: todos los slots deben tener tratamiento
     const slotsWithoutTreatment = sortedSlots.filter(slot => {
-      const treatments = perItemTreatments[slot.key] ?? slot.treatmentTypes ?? [];
-      return treatments.length === 0;
+      const treatment = perItemTreatment[slot.key] ?? slot.treatmentType;
+      return !treatment;
     });
 
     if (slotsWithoutTreatment.length > 0) {
       toast({
         title: "Datos incompletos",
-        description: "Todos los turnos deben tener al menos un tipo de tratamiento",
+        description: "Todos los turnos deben tener un tipo de tratamiento",
         variant: "destructive",
       });
       return;
@@ -144,16 +144,16 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
       // Crear citas para cada slot válido
       for (const slot of allowedSlots) {
-        // Calcular practitionerId y treatmentTypes para este slot
+        // Calcular practitionerId y treatmentType para este slot
         const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-        const slotTreatmentTypes = perItemTreatments[slot.key] ?? slot.treatmentTypes ?? [];
+        const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
         
         if (!slotPractitionerId) {
           failed.push(`${slot.displayText} - Sin kinesiólogo asignado`);
           continue;
         }
 
-        if (slotTreatmentTypes.length === 0) {
+        if (!slotTreatmentType) {
           failed.push(`${slot.displayText} - Sin tratamiento asignado`);
           continue;
         }
@@ -175,8 +175,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           status: 'scheduled',
           notes: notes || undefined,
           subSlot: slot.subSlot as 1 | 2 | 3 | 4 | 5,
-          treatmentType: slotTreatmentTypes[0] || "", // Mantener compatibilidad
-          treatmentTypes: slotTreatmentTypes,
+          treatmentType: slotTreatmentType,
         };
 
         // Validación en DEV
@@ -234,7 +233,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     setNotes('');
     setPatientSearch('');
     setPerItemPractitioner({});
-    setPerItemTreatments({});
+    setPerItemTreatment({});
   };
 
   const handleFailureDialogClose = () => {
@@ -249,8 +248,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     const items = sortedSlots.map(slot => {
       const practitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
       const doctor = state.practitioners.find(p => p.id === practitionerId);
-      const treatmentTypes = perItemTreatments[slot.key] ?? slot.treatmentTypes ?? [];
-      return formatCopyLine(slot.dateISO, slot.hour, doctor, treatmentTypes);
+      const treatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
+      return formatCopyLine(slot.dateISO, slot.hour, doctor, treatmentType);
     });
     
     if (items.length === 0) return;
@@ -347,17 +346,35 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground min-w-[80px]">Tratamiento:</span>
-                        <TreatmentMultiSelect
-                          value={perItemTreatments[slot.key] ?? slot.treatmentTypes ?? []}
-                          onChange={(treatments) => {
-                            setPerItemTreatments(prev => ({
-                              ...prev,
-                              [slot.key]: treatments
-                            }));
+                        <Select
+                          value={perItemTreatment[slot.key] ?? slot.treatmentType ?? ''}
+                          onValueChange={(value) => {
+                            if (value) {
+                              setPerItemTreatment(prev => ({
+                                ...prev,
+                                [slot.key]: value as TreatmentType
+                              }));
+                            } else {
+                              setPerItemTreatment(prev => {
+                                const newState = { ...prev };
+                                delete newState[slot.key];
+                                return newState;
+                              });
+                            }
                           }}
-                          placeholder="Seleccionar tratamiento(s) *"
-                          className="h-auto text-xs flex-1"
-                        />
+                        >
+                          <SelectTrigger className="h-8 text-xs flex-1">
+                            <SelectValue placeholder="Seleccionar tratamiento *" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fkt">FKT</SelectItem>
+                            <SelectItem value="atm">ATM</SelectItem>
+                            <SelectItem value="drenaje">Drenaje</SelectItem>
+                            <SelectItem value="masaje">Masaje</SelectItem>
+                            <SelectItem value="vestibular">Vestibular</SelectItem>
+                            <SelectItem value="otro">Otro</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   );

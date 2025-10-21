@@ -54,9 +54,9 @@ export const usePatientAppointments = (patientId: string) => {
         const bDateStr = b.date.length === 10 ? b.date : format(new Date(b.date), 'yyyy-MM-dd');
         
         if (aDateStr !== bDateStr) {
-          return bDateStr.localeCompare(aDateStr); // Descendente para pasadas
+          return aDateStr.localeCompare(bDateStr); // Ascendente: más antiguo primero
         }
-        return b.startTime.localeCompare(a.startTime); // Descendente para pasadas
+        return a.startTime.localeCompare(b.startTime); // Ascendente por hora
       });
 
     return { futuras, pasadas };

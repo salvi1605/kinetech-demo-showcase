@@ -46,7 +46,7 @@ const editAppointmentSchema = z.object({
   }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
   status: z.enum(['scheduled', 'completed', 'cancelled']),
-  treatmentTypes: z.array(z.string()).min(1, 'Selecciona al menos un tipo de tratamiento'),
+  treatmentType: z.string().min(1, 'Selecciona un tipo de tratamiento'),
   notes: z.string().optional(),
 });
 
@@ -78,7 +78,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       startTime: '',
       practitionerId: '',
       status: 'scheduled',
-      treatmentTypes: [],
+      treatmentType: 'fkt',
       notes: '',
     }
   });
@@ -108,11 +108,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       form.setValue('startTime', appointment.startTime);
       form.setValue('practitionerId', appointment.practitionerId);
       form.setValue('status', appointment.status);
-      // Migración: si viene treatmentType y no treatmentTypes, usar treatmentType
-      const treatments = appointment.treatmentTypes?.length 
-        ? appointment.treatmentTypes 
-        : (appointment.treatmentType ? [appointment.treatmentType] : []);
-      form.setValue('treatmentTypes', treatments);
+      form.setValue('treatmentType', appointment.treatmentType || 'fkt');
       form.setValue('notes', appointment.notes || '');
       setIsEditing(false);
     }
@@ -238,15 +234,13 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return; // Impedir persistencia
     }
     
-    const treatmentTypesArray = data.treatmentTypes as TreatmentType[];
     const updatedAppointment: Appointment = {
       ...appointment,
       date: data.date,
       startTime: data.startTime,
       practitionerId: data.practitionerId,
       status: data.status,
-      treatmentType: (treatmentTypesArray[0] || "") as TreatmentType | "",
-      treatmentTypes: treatmentTypesArray,
+      treatmentType: data.treatmentType as TreatmentType,
       notes: data.notes || ''
     };
 
@@ -279,8 +273,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     const items = allAppointments
       .map(apt => {
         const doctor = state.practitioners.find(p => p.id === apt.practitionerId);
-        const treatments = apt.treatmentTypes?.length ? apt.treatmentTypes : (apt.treatmentType ? [apt.treatmentType] : []);
-        return formatCopyLine(apt.date, apt.startTime, doctor, treatments);
+        return formatCopyLine(apt.date, apt.startTime, doctor, apt.treatmentType);
       })
       .sort();
     
@@ -354,13 +347,11 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             <div className="space-y-3">
               <Label className="flex items-center gap-2 text-base font-medium">
                 <NotebookPen className="h-4 w-4" />
-                Tratamientos
+                Tratamiento
               </Label>
               <div className="bg-muted/30 p-4 rounded-lg">
                 <p className="font-medium">
-                  {appointment.treatmentTypes?.length 
-                    ? appointment.treatmentTypes.map(t => treatmentLabel[t]).join(", ")
-                    : (appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : 'Sin especificar')}
+                  {appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : 'Sin especificar'}
                 </p>
               </div>
             </div>
@@ -403,17 +394,13 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                             onClick={() => onAppointmentChange?.(apt.id)}
                           >
                              <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm">
+                               <p className="text-sm">
                                 {display.dayName} {display.dateStr} • {display.timeRange} • Slot {slotNumber} • {display.practitionerName}
-                                {apt.treatmentTypes?.length ? (
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    • {apt.treatmentTypes.map(t => treatmentLabel[t]).join(", ")}
-                                  </span>
-                                ) : apt.treatmentType ? (
+                                {apt.treatmentType && (
                                   <span className="text-xs text-muted-foreground ml-2">
                                     • {treatmentLabel[apt.treatmentType]}
                                   </span>
-                                ) : null}
+                                )}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
@@ -456,15 +443,11 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm">
                                 {display.dayName} {display.dateStr} • {display.timeRange} • Slot {slotNumber} • {display.practitionerName}
-                                {apt.treatmentTypes?.length ? (
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    • {apt.treatmentTypes.map(t => treatmentLabel[t]).join(", ")}
-                                  </span>
-                                ) : apt.treatmentType ? (
+                                {apt.treatmentType && (
                                   <span className="text-xs text-muted-foreground ml-2">
                                     • {treatmentLabel[apt.treatmentType]}
                                   </span>
-                                ) : null}
+                                )}
                               </p>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
@@ -661,19 +644,27 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 )}
               />
 
-              {/* Tratamientos */}
+              {/* Tratamiento */}
               <FormField
                 control={form.control}
-                name="treatmentTypes"
+                name="treatmentType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tratamientos *</FormLabel>
+                    <FormLabel>Tratamiento *</FormLabel>
                     <FormControl>
-                      <TreatmentMultiSelect
-                        value={field.value as TreatmentType[]}
-                        onChange={field.onChange}
-                        placeholder="Selecciona tratamiento(s)"
-                      />
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona tratamiento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fkt">FKT</SelectItem>
+                          <SelectItem value="atm">ATM</SelectItem>
+                          <SelectItem value="drenaje">Drenaje</SelectItem>
+                          <SelectItem value="masaje">Masaje</SelectItem>
+                          <SelectItem value="vestibular">Vestibular</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

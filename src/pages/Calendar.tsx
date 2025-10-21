@@ -296,11 +296,11 @@ export const Calendar = () => {
 
   // Función para confirmar selección múltiple
   const confirmSelection = () => {
-    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId || state.selectedTreatmentTypes.length === 0) {
+    if (state.selectedSlots.size === 0 || !state.selectedPractitionerId || !state.selectedTreatmentType) {
       const missing = [];
       if (state.selectedSlots.size === 0) missing.push('horarios');
       if (!state.selectedPractitionerId) missing.push('kinesiólogo');
-      if (state.selectedTreatmentTypes.length === 0) missing.push('tipo de tratamiento');
+      if (!state.selectedTreatmentType) missing.push('tipo de tratamiento');
       
       toast({
         title: "Datos incompletos",
@@ -520,12 +520,22 @@ export const Calendar = () => {
                       placeholder="Selecciona Kinesiólogo"
                       className="text-xs"
                     />
-                    <TreatmentMultiSelect
-                      value={state.selectedTreatmentTypes}
-                      onChange={(treatments) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPES', payload: treatments })}
-                      placeholder="Selecciona tratamiento(s)"
-                      className="h-8 text-xs w-[250px]"
-                    />
+                    <Select
+                      value={state.selectedTreatmentType ?? ''}
+                      onValueChange={(value) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPE', payload: value as TreatmentType })}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-[200px]">
+                        <SelectValue placeholder="Selecciona tratamiento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fkt">FKT</SelectItem>
+                        <SelectItem value="atm">ATM</SelectItem>
+                        <SelectItem value="drenaje">Drenaje</SelectItem>
+                        <SelectItem value="masaje">Masaje</SelectItem>
+                        <SelectItem value="vestibular">Vestibular</SelectItem>
+                        <SelectItem value="otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </>
                 )}
               </div>
@@ -573,7 +583,7 @@ export const Calendar = () => {
                 size="sm" 
                 onClick={confirmSelection} 
                 className="flex-1"
-                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId || state.selectedTreatmentTypes.length === 0}
+                disabled={state.selectedSlots.size === 0 || !state.selectedPractitionerId || !state.selectedTreatmentType}
               >
                 Confirmar selección
               </Button>
