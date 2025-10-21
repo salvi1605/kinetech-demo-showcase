@@ -52,6 +52,8 @@ export interface AppState {
   selectedSlots: Set<string>;
   selectedPractitionerId?: string;
   selectedTreatmentType?: TreatmentType;
+  currentUserId: string;
+  currentUserName: string;
 }
 
 export type PatientDocument = {
@@ -61,6 +63,15 @@ export type PatientDocument = {
   type: string;
   url: string;
   createdAt: string;
+};
+
+export type PatientHistoryEntry = {
+  date: string; // 'YYYY-MM-DD'
+  text: string;
+  authorId: string;
+  authorName?: string;
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
 };
 
 export interface Patient {
@@ -95,6 +106,7 @@ export interface Patient {
     redFlags?: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean; };
     redFlagsDetail?: { alergias: string; };
     restricciones?: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
+    history?: PatientHistoryEntry[];
   };
   seguro?: {
     obraSocial?: string;
@@ -215,6 +227,8 @@ const initialState: AppState = {
     multiTenant: false,
   },
   selectedSlots: new Set<string>(),
+  currentUserId: 'demo-user-1',
+  currentUserName: 'Usuario Demo',
 };
 
 // Reducer

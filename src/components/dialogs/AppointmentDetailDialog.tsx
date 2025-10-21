@@ -17,7 +17,8 @@ import {
   CalendarClock,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  History
 } from 'lucide-react';
 import { FreeAppointmentDialog } from './FreeAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +38,7 @@ import { useApp, updateAppointment } from '@/contexts/AppContext';
 import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePatientAppointments';
 import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
+import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -64,6 +67,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [showFreeDialog, setShowFreeDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   
   // Get appointment from store by ID
   const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
@@ -710,14 +714,29 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
         {/* Footer para vista de solo lectura */}
         {!isEditing && (
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cerrar
-            </Button>
-          </DialogFooter>
+          <div className="space-y-3">
+            {patient && (
+              <>
+                <Separator />
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHistoryDialog(true)}
+                  className="w-full"
+                >
+                  <History className="h-4 w-4 mr-2" />
+                  Historial del Paciente
+                </Button>
+              </>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </div>
         )}
 
         {/* Diálogo Liberar Cita */}
@@ -726,6 +745,15 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             open={showFreeDialog}
             onOpenChange={setShowFreeDialog}
             appointment={appointment}
+          />
+        )}
+
+        {/* Diálogo Historial Clínico */}
+        {patient && (
+          <ClinicalHistoryDialog
+            open={showHistoryDialog}
+            onOpenChange={setShowHistoryDialog}
+            patient={patient}
           />
         )}
       </DialogContent>
