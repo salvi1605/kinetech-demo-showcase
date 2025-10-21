@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, User, Phone, Stethoscope, CreditCard, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -339,6 +340,12 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       case 'clinico':
         return (
           <div className="space-y-6" data-step-content>
+            {/* Header con botón Historial */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Información Clínica</h3>
+              <PatientHistoryButton patient={patient} />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Label htmlFor="mainReason">Motivo Principal</Label>

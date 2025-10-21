@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, ChevronLeft, ChevronRight, User, Phone, Stethoscope, CreditCard } from 'lucide-react';
+import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -320,6 +321,12 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       case 3:
         return (
           <div className="space-y-6" data-step-content>
+            {/* Header con botón Historial */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Información Clínica</h3>
+              <PatientHistoryButton patient={undefined} disabled />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Label htmlFor="mainReason">Motivo Principal</Label>
