@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { todayYMD, isSameYMD, formatYMD_ddMMyyyy, isToday, isBefore } from '@/lib/clinicTime';
+
+const EMPTY_HISTORY: PatientHistoryEntry[] = [];
 
 export type PatientHistoryEntry = {
   date: string; // 'YYYY-MM-DD'
@@ -22,7 +24,7 @@ interface ClinicalHistoryBlockProps {
 }
 
 export const ClinicalHistoryBlock = ({
-  history = [],
+  history,
   currentUserId,
   currentUserName,
   currentUserRole,
@@ -30,11 +32,24 @@ export const ClinicalHistoryBlock = ({
 }: ClinicalHistoryBlockProps) => {
   const [draftsByDate, setDraftsByDate] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<PatientHistoryEntry[]>([]);
+  
+  const stableHistory = history ?? EMPTY_HISTORY;
+  const initializedRef = useRef(false);
+  const prevSigRef = useRef<string | undefined>(undefined);
+  const histSig = useMemo(() => JSON.stringify(stableHistory), [stableHistory]);
 
   useEffect(() => {
+    // Only re-initialize if the history signature changed or first mount
+    if (initializedRef.current && prevSigRef.current === histSig) {
+      return;
+    }
+    
+    prevSigRef.current = histSig;
+    initializedRef.current = true;
+
     // Purge empty entries with date < today
     const today = todayYMD();
-    const purged = history.filter(
+    const purged = stableHistory.filter(
       (e) => e.text.trim() !== '' || isSameYMD(e.date, today)
     );
 
@@ -60,7 +75,7 @@ export const ClinicalHistoryBlock = ({
 
     setEntries(purged);
     setDraftsByDate(drafts);
-  }, [history]);
+  }, [histSig, currentUserId, currentUserName]);
 
   const canEdit = (entry: PatientHistoryEntry): boolean => {
     if (currentUserRole === 'admin') return true;

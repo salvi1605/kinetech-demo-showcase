@@ -5,6 +5,8 @@ import { ClinicalHistoryBlock, PatientHistoryEntry } from './ClinicalHistoryBloc
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 
+const EMPTY_HISTORY: PatientHistoryEntry[] = [];
+
 interface ClinicalHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,7 +55,7 @@ export const ClinicalHistoryDialog = ({
           <DialogTitle>Historial del Paciente - {patient.name}</DialogTitle>
         </DialogHeader>
         <ClinicalHistoryBlock
-          history={patient.clinico?.history || []}
+          history={patient.clinico?.history ?? EMPTY_HISTORY}
           currentUserId={state.currentUserId}
           currentUserName={state.currentUserName}
           currentUserRole={state.userRole || 'kinesio'}
