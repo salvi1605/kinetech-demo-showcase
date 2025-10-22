@@ -66,6 +66,11 @@ export const Topbar = () => {
     }
   };
 
+  const parseLocalDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4 shadow-sm">
       {/* Left Section */}
@@ -87,9 +92,8 @@ export const Topbar = () => {
 
       {/* Right Section */}
       <div className="flex items-center gap-4">
-        {/* Time Travel Control (Admin only) */}
-        {state.userRole === 'admin' && (
-          <div className="flex items-center gap-2">
+        {/* Time Travel Control */}
+        <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button 
@@ -99,7 +103,7 @@ export const Topbar = () => {
                 >
                   <CalendarIcon className="h-4 w-4" />
                   {state.testCurrentDate 
-                    ? format(new Date(state.testCurrentDate), 'dd/MM/yyyy', { locale: es })
+                    ? format(parseLocalDate(state.testCurrentDate), 'dd/MM/yyyy', { locale: es })
                     : 'Test: Fecha'
                   }
                 </Button>
@@ -107,7 +111,7 @@ export const Topbar = () => {
               <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
                   mode="single"
-                  selected={state.testCurrentDate ? new Date(state.testCurrentDate) : undefined}
+                  selected={state.testCurrentDate ? parseLocalDate(state.testCurrentDate) : undefined}
                   onSelect={handleTestDateChange}
                   locale={es}
                   initialFocus
@@ -129,8 +133,7 @@ export const Topbar = () => {
                 🕐 Time Travel
               </Badge>
             )}
-          </div>
-        )}
+        </div>
 
         {/* Role Emulator */}
         <div className="flex items-center gap-2">
