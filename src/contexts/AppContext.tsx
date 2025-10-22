@@ -494,9 +494,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         }
         
         // OPCIÓN 4: Validación de seguridad en reducer
-        // Rechazar si ya existe una cita en el mismo slot
+        // Rechazar si ya existe una cita en el mismo slot (cualquier doctor)
         const hasConflict = state.appointments.some(existingApt =>
-          existingApt.practitionerId === apt.practitionerId &&
           existingApt.date === apt.date &&
           existingApt.startTime === apt.startTime &&
           existingApt.subSlot === apt.subSlot

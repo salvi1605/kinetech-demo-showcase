@@ -71,27 +71,16 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const overlap = (a: {start: string, end: string}, b: {start: string, end: string}) => 
     a.start < b.end && b.start < a.end;
 
-  // Función para verificar choques en el mismo subSlot
-  const collidesSameSlot = (slot: SlotInfo, appointment: Appointment, practitionerId: string) => {
-    const slotEnd = addMinutesStr(slot.hour, state.preferences.slotMinutes || 30);
-    const appointmentSubSlot = appointment.subSlot;
-    
-    return (
-      appointment.practitionerId === practitionerId &&
-      appointmentSubSlot === (slot.subSlot + 1) &&
-      appointment.date === slot.dateISO &&
-      overlap(
-        { start: slot.hour, end: slotEnd },
-        { start: appointment.startTime, end: addMinutesStr(appointment.startTime, 30) }
-      )
-    );
+  // Verificar si un slot ya tiene cita (cualquier doctor) usando el índice del estado
+  const collidesSameSlot = (slot: SlotInfo): boolean => {
+    // Construir clave usando formato del estado: date:time:S{subSlot}
+    const key = `${slot.dateISO}:${slot.hour}:S${slot.subSlot + 1}`;
+    return state.appointmentsBySlotKey.has(key);
   };
 
-  // Función para verificar conflictos de citas
-  const hasAppointmentConflict = (slot: SlotInfo, practitionerId: string): boolean => {
-    if (!practitionerId) return false;
-    
-    return state.appointments.some(apt => collidesSameSlot(slot, apt, practitionerId));
+  // Función para verificar conflictos de citas (cualquier doctor)
+  const hasAppointmentConflict = (slot: SlotInfo): boolean => {
+    return collidesSameSlot(slot);
   };
 
   // Función para obtener el siguiente slot (para citas de 60 min)
@@ -111,14 +100,15 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   };
 
   // Verificar si se puede crear cita de 60 min
-  const canExtendTo60Min = (slot: SlotInfo, practitionerId: string): { canExtend: boolean; reason?: string } => {
+  const canExtendTo60Min = (slot: SlotInfo): { canExtend: boolean; reason?: string } => {
     const nextSlot = getNextSlot(slot);
     
     if (!nextSlot) {
       return { canExtend: false, reason: 'Límite de día alcanzado' };
     }
     
-    if (hasAppointmentConflict(nextSlot, practitionerId)) {
+    // Verificar si hay cita en el siguiente bloque (cualquier doctor)
+    if (hasAppointmentConflict(nextSlot)) {
       return { canExtend: false, reason: `El slot de ${nextSlot.hour} no está disponible` };
     }
     
@@ -193,14 +183,14 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         }
 
         // Verificar conflictos solo en el mismo subSlot con solapamiento
-        if (hasAppointmentConflict(slot, slotPractitionerId)) {
+        if (hasAppointmentConflict(slot)) {
           failed.push(slot.displayText);
           continue;
         }
 
         // Si se marca 1 Hora, validar disponibilidad del siguiente slot
         if (extend60min) {
-          const { canExtend, reason } = canExtendTo60Min(slot, slotPractitionerId);
+          const { canExtend, reason } = canExtendTo60Min(slot);
           if (!canExtend) {
             failed.push(`${slot.displayText} - ${reason}`);
             // Desmarcar 1 Hora automáticamente
@@ -263,9 +253,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       const finalValidAppointments: Appointment[] = [];
       
       for (const apt of successfulAppointments) {
-        // Verificar si este slot ya está ocupado en state.appointments
+        // Verificar si este slot ya está ocupado en state.appointments (cualquier doctor)
         const hasConflictInState = state.appointments.some(existingApt => 
-          existingApt.practitionerId === apt.practitionerId &&
           existingApt.date === apt.date &&
           existingApt.startTime === apt.startTime &&
           existingApt.subSlot === apt.subSlot
@@ -400,8 +389,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                   const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
                   const extend60min = perItemExtend60[slot.key] || false;
                   const nextSlot = getNextSlot(slot);
-                  const canExtend = nextSlot && currentPractitionerId 
-                    ? canExtendTo60Min(slot, currentPractitionerId).canExtend 
+                  const canExtend = nextSlot 
+                    ? canExtendTo60Min(slot).canExtend 
                     : false;
                   
                   return (

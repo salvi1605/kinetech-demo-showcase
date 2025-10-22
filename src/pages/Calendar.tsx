@@ -111,13 +111,13 @@ export const Calendar = () => {
   // Índice de citas por clave de sub-slot
   const appointmentsBySlotKey = new Map<string, Appointment>();
 
-  // Construir índice de citas
+  // Construir índice de citas (convertir subSlot 1-5 a índice 0-4 para el Map)
   state.appointments.forEach(appointment => {
     const dateISO = appointment.date.length === 10
       ? appointment.date
       : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot = appointment.subSlot;
-    const key = getSlotKey({ dateISO, hour: appointment.startTime, subSlot });
+    const subSlot0 = ((appointment.subSlot ?? 1) - 1); // Convertir 1-5 a 0-4
+    const key = getSlotKey({ dateISO, hour: appointment.startTime, subSlot: subSlot0 });
     appointmentsBySlotKey.set(key, appointment);
   });
 
@@ -157,7 +157,8 @@ export const Calendar = () => {
         : format(parseISO(apt.date), 'yyyy-MM-dd');
       const matchesSlot = aptISO === targetDateISO && apt.startTime === time;
       if (subIndex !== undefined) {
-        return matchesSlot && apt.subSlot === subIndex;
+        // Comparar subSlot (1-5) con subIndex + 1
+        return matchesSlot && apt.subSlot === (subIndex + 1);
       }
       return matchesSlot;
     });
@@ -243,9 +244,9 @@ export const Calendar = () => {
       } 
     });
     
-    // Actualizar el índice local
-    const subSlot = apt.subSlot;
-    const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot });
+    // Actualizar el índice local (convertir subSlot 1-5 a 0-4)
+    const subSlot0 = ((apt.subSlot ?? 1) - 1);
+    const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot: subSlot0 });
     const updatedApt = { ...apt, status: nextStatusValue };
     appointmentsBySlotKey.set(key, updatedApt);
     
