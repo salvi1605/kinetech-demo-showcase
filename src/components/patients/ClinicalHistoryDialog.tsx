@@ -1,14 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ClinicalHistoryBlock, PatientHistoryEntry } from './ClinicalHistoryBlock';
+import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { ensureTodayStubs } from '@/lib/historyStubs';
+import type { EvolutionEntry } from '@/types/patient';
 import dayjs from 'dayjs';
-
-const EMPTY_HISTORY: PatientHistoryEntry[] = [];
 
 const calcularEdad = (fechaNac: string): number => {
   const hoy = dayjs();
@@ -33,9 +33,30 @@ export const ClinicalHistoryDialog = ({
 }: ClinicalHistoryDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
-  const [pendingHistory, setPendingHistory] = useState<PatientHistoryEntry[]>([]);
+  const [pendingHistory, setPendingHistory] = useState<EvolutionEntry[]>([]);
 
-  const handleHistoryChange = useCallback((entries: PatientHistoryEntry[]) => {
+  // Ensure stubs for today's appointments when dialog opens
+  useEffect(() => {
+    if (open && patient.id) {
+      const patientCopy = { ...patient };
+      ensureTodayStubs(patientCopy, state.appointments, state.currentUserId);
+      
+      // If stubs were added, update immediately
+      if (patientCopy.clinico?.historyByAppointment?.length !== patient.clinico?.historyByAppointment?.length) {
+        dispatch({
+          type: 'UPDATE_PATIENT',
+          payload: {
+            id: patient.id,
+            updates: {
+              clinico: patientCopy.clinico,
+            },
+          },
+        });
+      }
+    }
+  }, [open, patient, state.appointments, state.currentUserId, dispatch]);
+
+  const handleHistoryChange = useCallback((entries: EvolutionEntry[]) => {
     setPendingHistory(entries);
   }, []);
 
@@ -47,7 +68,7 @@ export const ClinicalHistoryDialog = ({
         updates: {
           clinico: {
             ...patient.clinico,
-            history: pendingHistory,
+            historyByAppointment: pendingHistory,
           },
         },
       },
@@ -138,7 +159,7 @@ export const ClinicalHistoryDialog = ({
         </div>
 
         <ClinicalHistoryBlock
-          history={patient.clinico?.history ?? EMPTY_HISTORY}
+          historyByAppointment={patient.clinico?.historyByAppointment ?? []}
           currentUserId={state.currentUserId}
           currentUserName={state.currentUserName}
           currentUserRole={state.userRole || 'kinesio'}

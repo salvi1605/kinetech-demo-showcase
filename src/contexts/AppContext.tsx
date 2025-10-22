@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { addWeeks, subWeeks, format } from 'date-fns';
 import type { TreatmentType } from '@/types/appointments';
+import type { EvolutionEntry } from '@/types/patient';
 
 // Types
 export type UserRole = 'admin' | 'recep' | 'kinesio';
@@ -106,7 +107,8 @@ export interface Patient {
     redFlags?: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean; };
     redFlagsDetail?: { alergias: string; };
     restricciones?: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
-    history?: PatientHistoryEntry[];
+    history?: PatientHistoryEntry[]; // Legacy: conservar sin borrar
+    historyByAppointment?: EvolutionEntry[]; // Nuevo: por cita
   };
   seguro?: {
     obraSocial?: string;

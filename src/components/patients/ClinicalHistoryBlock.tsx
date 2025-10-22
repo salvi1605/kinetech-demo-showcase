@@ -1,164 +1,151 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { todayYMD, isSameYMD, formatYMD_ddMMyyyy, isToday, isBefore } from '@/lib/clinicTime';
-
-const EMPTY_HISTORY: PatientHistoryEntry[] = [];
-
-export type PatientHistoryEntry = {
-  date: string; // 'YYYY-MM-DD'
-  text: string; // max 3000 chars
-  authorId: string;
-  authorName?: string;
-  createdAt: string; // ISO
-  updatedAt: string; // ISO
-};
+import { Badge } from '@/components/ui/badge';
+import { todayYMD } from '@/lib/historyStubs';
+import type { EvolutionEntry } from '@/types/patient';
+import { treatmentLabel } from '@/utils/formatters';
 
 interface ClinicalHistoryBlockProps {
-  history?: PatientHistoryEntry[];
+  historyByAppointment?: EvolutionEntry[];
   currentUserId: string;
   currentUserName: string;
   currentUserRole: 'admin' | 'recep' | 'kinesio';
-  onHistoryChange: (entries: PatientHistoryEntry[]) => void;
+  onHistoryChange: (entries: EvolutionEntry[]) => void;
 }
 
 export const ClinicalHistoryBlock = ({
-  history,
+  historyByAppointment = [],
   currentUserId,
   currentUserName,
   currentUserRole,
   onHistoryChange,
 }: ClinicalHistoryBlockProps) => {
-  const [draftsByDate, setDraftsByDate] = useState<Record<string, string>>({});
-  const [entries, setEntries] = useState<PatientHistoryEntry[]>([]);
-  
-  const stableHistory = history ?? EMPTY_HISTORY;
-  const initializedRef = useRef(false);
-  const prevSigRef = useRef<string | undefined>(undefined);
-  const histSig = useMemo(() => JSON.stringify(stableHistory), [stableHistory]);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<EvolutionEntry[]>([]);
 
   useEffect(() => {
-    // Only re-initialize if the history signature changed or first mount
-    if (initializedRef.current && prevSigRef.current === histSig) {
-      return;
-    }
-    
-    prevSigRef.current = histSig;
-    initializedRef.current = true;
-
-    // Purge empty entries with date < today
+    // Initialize local state from props
     const today = todayYMD();
-    const purged = stableHistory.filter(
-      (e) => e.text.trim() !== '' || isSameYMD(e.date, today)
-    );
-
+    
+    // Only show entries up to today (no future)
+    const visibleEntries = historyByAppointment.filter((e) => e.date <= today);
+    
     // Initialize drafts
-    const drafts: Record<string, string> = {};
-    purged.forEach((e) => {
-      drafts[e.date] = e.text;
+    const initialDrafts: Record<string, string> = {};
+    visibleEntries.forEach((e) => {
+      initialDrafts[e.appointmentId] = e.text;
     });
 
-    // If no entry for today, initialize one
-    const hasToday = purged.some((e) => isSameYMD(e.date, today));
-    if (!hasToday) {
-      drafts[today] = '';
-      purged.push({
-        date: today,
-        text: '',
-        authorId: currentUserId,
-        authorName: currentUserName,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
+    setEntries(visibleEntries);
+    setDrafts(initialDrafts);
+  }, [historyByAppointment]);
 
-    setEntries(purged);
-    setDraftsByDate(drafts);
-  }, [histSig, currentUserId, currentUserName]);
-
-  const canEdit = (entry: PatientHistoryEntry): boolean => {
+  const canEdit = (entry: EvolutionEntry): boolean => {
+    const today = todayYMD();
     if (currentUserRole === 'admin') return true;
-    return isToday(entry.date);
+    return entry.date === today;
   };
 
-  const handleTextChange = (date: string, value: string) => {
+  const handleTextChange = (appointmentId: string, value: string) => {
     const limited = value.slice(0, 3000);
-    setDraftsByDate((prev) => ({ ...prev, [date]: limited }));
+    setDrafts((prev) => ({ ...prev, [appointmentId]: limited }));
 
     // Update entries
     setEntries((prev) =>
       prev.map((e) =>
-        isSameYMD(e.date, date)
-          ? { ...e, text: limited, updatedAt: new Date().toISOString() }
+        e.appointmentId === appointmentId
+          ? {
+              ...e,
+              text: limited,
+              completed: limited.trim() !== '',
+              updatedAt: new Date().toISOString(),
+            }
           : e
       )
     );
   };
 
-  const handleRemove = (date: string) => {
-    setEntries((prev) => prev.filter((e) => !isSameYMD(e.date, date)));
-    setDraftsByDate((prev) => {
+  const handleRemove = (appointmentId: string) => {
+    if (currentUserRole !== 'admin') return;
+    
+    setEntries((prev) => prev.filter((e) => e.appointmentId !== appointmentId));
+    setDrafts((prev) => {
       const copy = { ...prev };
-      delete copy[date];
+      delete copy[appointmentId];
       return copy;
     });
   };
 
   useEffect(() => {
-    // Collect and filter entries, sort ascending
-    const finalEntries = entries
-      .filter((e) => e.text.trim() !== '')
-      .sort((a, b) => a.date.localeCompare(b.date));
+    // Notify parent of changes
+    onHistoryChange(entries);
+  }, [entries, onHistoryChange]);
 
-    onHistoryChange(finalEntries);
-  }, [entries]);
+  // Sort for display: ascending (oldest first, today last)
+  const sortedForDisplay = [...entries].sort((a, b) => {
+    const dateCompare = a.date.localeCompare(b.date);
+    if (dateCompare !== 0) return dateCompare;
+    return a.time.localeCompare(b.time);
+  });
 
-  // Sort for display: most recent first (desc)
-  const sortedForDisplay = [...entries].sort((a, b) =>
-    b.date.localeCompare(a.date)
-  );
+  const formatHeader = (entry: EvolutionEntry): string => {
+    const [year, month, day] = entry.date.split('-');
+    const dateStr = `${day}/${month}/${year}`;
+    const treatment = treatmentLabel[entry.treatmentType] || entry.treatmentType;
+    return `${dateStr} • ${entry.time} • ${treatment}`;
+  };
+
+  const today = todayYMD();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Historial del Paciente</CardTitle>
+        <CardTitle>Evolución por Cita</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {sortedForDisplay.map((entry) => (
-          <div key={entry.date} className="space-y-2">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span className="font-medium">
-                {formatYMD_ddMMyyyy(entry.date)}
-              </span>
-              {canEdit(entry) && currentUserRole === 'admin' && !isToday(entry.date) && (
+          <div key={entry.appointmentId} className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">
+                  {formatHeader(entry)}
+                </span>
+                {entry.status === 'canceled' && (
+                  <Badge variant="outline" className="text-xs">
+                    Cancelada
+                  </Badge>
+                )}
+              </div>
+              {canEdit(entry) && currentUserRole === 'admin' && entry.date < today && (
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => handleRemove(entry.date)}
+                  onClick={() => handleRemove(entry.appointmentId)}
                 >
                   Borrar
                 </Button>
               )}
             </div>
             <Textarea
-              value={draftsByDate[entry.date] || ''}
-              onChange={(e) => handleTextChange(entry.date, e.target.value)}
+              value={drafts[entry.appointmentId] || ''}
+              onChange={(e) => handleTextChange(entry.appointmentId, e.target.value)}
               maxLength={3000}
               readOnly={!canEdit(entry)}
               placeholder={
-                isToday(entry.date) ? 'Escribe la evolución de hoy…' : undefined
+                entry.date === today && !entry.text ? 'Escribe la evolución de hoy…' : undefined
               }
-              className="min-h-[100px]"
+              className="min-h-[96px]"
             />
-            <div className="text-xs text-muted-foreground">
-              {(draftsByDate[entry.date] || '').length}/3000
+            <div className="text-xs text-muted-foreground text-right">
+              {(drafts[entry.appointmentId] || '').length}/3000
             </div>
           </div>
         ))}
         {sortedForDisplay.length === 0 && (
           <p className="text-muted-foreground text-center py-4">
-            No hay entradas en el historial
+            No hay citas registradas aún
           </p>
         )}
       </CardContent>
