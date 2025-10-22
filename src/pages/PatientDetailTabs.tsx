@@ -37,7 +37,8 @@ export const PatientDetailTabs = () => {
   const [showUploadDocument, setShowUploadDocument] = useState(false);
 
   const patient = state.patients.find(p => p.id === id);
-  const patientAppointments = state.appointments.filter(apt => apt.patientId === id);
+  // Filtrar citas del paciente, excluyendo continuaciones
+  const patientAppointments = state.appointments.filter(apt => apt.patientId === id && !apt.isContinuation);
 
   if (!patient) {
     return (
@@ -258,7 +259,7 @@ export const PatientDetailTabs = () => {
               <CardContent>
                 <div className="space-y-3">
                   {patientAppointments
-                    .filter(apt => apt.status === 'scheduled')
+                    .filter(apt => apt.status === 'scheduled' && !apt.isContinuation)
                     .slice(0, 3)
                     .map(apt => (
                       <div key={apt.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">

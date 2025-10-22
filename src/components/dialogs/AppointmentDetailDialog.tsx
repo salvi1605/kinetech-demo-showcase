@@ -129,6 +129,26 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const isPast = isPastDay(appointmentDateISO);
   const canEdit = state.userRole === 'admin' || !isPast;
 
+  // Verificar si tiene continuación (para mostrar badge "1 hora")
+  const hasContinuation = !appointment.isContinuation && state.appointments.some(
+    a => a.primaryAppointmentId === appointment.id
+  );
+  
+  // Calcular duración
+  const duration60 = hasContinuation || appointment.isContinuation;
+  const durationLabel = duration60 ? '60 min' : '30 min';
+  
+  // Obtener hora de fin
+  const getEndTime = (start: string, is60min: boolean) => {
+    const [hours, minutes] = start.split(':').map(Number);
+    const totalMinutes = minutes + (is60min ? 60 : 30);
+    const endHours = Math.floor((hours * 60 + totalMinutes) / 60);
+    const endMinutes = totalMinutes % 60;
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  };
+  
+  const endTime = getEndTime(appointment.startTime, duration60);
+
   // Obtener estado y color
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -265,9 +285,9 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
   const handleCopyAllPatientAppointments = async () => {
     if (!appointment) return;
     
-    // Get all appointments for this patient from the store
+    // Get all appointments for this patient from the store, excluding continuations
     const allAppointments = state.appointments.filter(apt => 
-      apt.patientId === appointment.patientId
+      apt.patientId === appointment.patientId && !apt.isContinuation
     );
     
     if (allAppointments.length === 0) return;
@@ -305,11 +325,18 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
           <div className="space-y-6">
             {/* Estado del turno */}
             <div className={`p-4 rounded-lg border ${statusInfo.bgColor} ${statusInfo.borderColor}`}>
-              <div className="flex items-center gap-2">
-                <StatusIcon className={`h-5 w-5 ${statusInfo.color}`} />
-                <span className={`font-medium ${statusInfo.color}`}>
-                  {statusInfo.label}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <StatusIcon className={`h-5 w-5 ${statusInfo.color}`} />
+                  <span className={`font-medium ${statusInfo.color}`}>
+                    {statusInfo.label}
+                  </span>
+                </div>
+                {duration60 && !appointment.isContinuation && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    1 hora
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -344,6 +371,22 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 {practitioner && (
                   <p className="text-sm text-muted-foreground mt-1">{practitioner.specialty}</p>
                 )}
+              </div>
+            </div>
+
+            {/* Fecha y Hora */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2 text-base font-medium">
+                <Clock className="h-4 w-4" />
+                Fecha y Horario
+              </Label>
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <p className="font-medium">
+                  {format(appointmentDate, 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {appointment.startTime} - {endTime} ({durationLabel})
+                </p>
               </div>
             </div>
 

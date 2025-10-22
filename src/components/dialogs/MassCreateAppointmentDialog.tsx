@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const [failedSlots, setFailedSlots] = useState<string[]>([]);
   const [perItemPractitioner, setPerItemPractitioner] = useState<Record<string, string>>({});
   const [perItemTreatment, setPerItemTreatment] = useState<Record<string, TreatmentType>>({});
+  const [perItemExtend60, setPerItemExtend60] = useState<Record<string, boolean>>({});
 
   // Preparar slots ordenados con tratamiento prefijado
   const sortedSlots: SlotInfo[] = selectedSlotKeys
@@ -90,6 +92,37 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     if (!practitionerId) return false;
     
     return state.appointments.some(apt => collidesSameSlot(slot, apt, practitionerId));
+  };
+
+  // Función para obtener el siguiente slot (para citas de 60 min)
+  const getNextSlot = (slot: SlotInfo): SlotInfo | null => {
+    const nextHour = addMinutesStr(slot.hour, 30);
+    
+    // Validar que no supere 19:30 (límite real)
+    if (nextHour > '19:30') return null;
+    
+    return {
+      key: `${slot.dateISO}:${nextHour}:S${slot.subSlot}`,
+      dateISO: slot.dateISO,
+      hour: nextHour,
+      subSlot: slot.subSlot,
+      displayText: displaySelectedLabel({ dateISO: slot.dateISO, hour: nextHour, subSlot: (slot.subSlot + 1) as 1 | 2 | 3 | 4 | 5 }),
+    };
+  };
+
+  // Verificar si se puede crear cita de 60 min
+  const canExtendTo60Min = (slot: SlotInfo, practitionerId: string): { canExtend: boolean; reason?: string } => {
+    const nextSlot = getNextSlot(slot);
+    
+    if (!nextSlot) {
+      return { canExtend: false, reason: 'Límite de día alcanzado' };
+    }
+    
+    if (hasAppointmentConflict(nextSlot, practitionerId)) {
+      return { canExtend: false, reason: `El slot de ${nextSlot.hour} no está disponible` };
+    }
+    
+    return { canExtend: true };
   };
 
   const removeSlot = (keyToRemove: string) => {
@@ -147,6 +180,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         // Calcular practitionerId y treatmentType para este slot
         const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
         const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
+        const extend60min = perItemExtend60[slot.key] || false;
         
         if (!slotPractitionerId) {
           failed.push(`${slot.displayText} - Sin kinesiólogo asignado`);
@@ -164,9 +198,25 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           continue;
         }
 
-        // Crear la cita
+        // Si se marca 1 Hora, validar disponibilidad del siguiente slot
+        if (extend60min) {
+          const { canExtend, reason } = canExtendTo60Min(slot, slotPractitionerId);
+          if (!canExtend) {
+            failed.push(`${slot.displayText} - ${reason}`);
+            // Desmarcar 1 Hora automáticamente
+            setPerItemExtend60(prev => {
+              const newState = { ...prev };
+              delete newState[slot.key];
+              return newState;
+            });
+            continue;
+          }
+        }
+
+        // Crear la cita primaria
+        const primaryId = `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const appointment: Appointment = {
-          id: `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: primaryId,
           patientId,
           practitionerId: slotPractitionerId,
           date: slot.dateISO,
@@ -184,6 +234,29 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         }
 
         successfulAppointments.push(appointment);
+
+        // Si está marcado 1 Hora, crear la cita de continuación
+        if (extend60min) {
+          const nextSlot = getNextSlot(slot);
+          if (nextSlot) {
+            const continuationId = `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-cont`;
+            const continuation: Appointment = {
+              id: continuationId,
+              patientId,
+              practitionerId: slotPractitionerId,
+              date: slot.dateISO,
+              startTime: nextSlot.hour,
+              type: 'consultation',
+              status: 'scheduled',
+              notes: notes || undefined,
+              subSlot: slot.subSlot as 1 | 2 | 3 | 4 | 5,
+              treatmentType: slotTreatmentType,
+              isContinuation: true,
+              primaryAppointmentId: primaryId,
+            };
+            successfulAppointments.push(continuation);
+          }
+        }
       }
 
       // Agregar las citas exitosas
@@ -234,6 +307,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     setPatientSearch('');
     setPerItemPractitioner({});
     setPerItemTreatment({});
+    setPerItemExtend60({});
   };
 
   const handleFailureDialogClose = () => {
@@ -293,6 +367,11 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
               <div className="mt-2 max-h-80 overflow-y-auto border rounded-md p-3 space-y-3">
                 {sortedSlots.map((slot) => {
                   const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+                  const extend60min = perItemExtend60[slot.key] || false;
+                  const nextSlot = getNextSlot(slot);
+                  const canExtend = nextSlot && currentPractitionerId 
+                    ? canExtendTo60Min(slot, currentPractitionerId).canExtend 
+                    : false;
                   
                   return (
                     <div key={slot.key} className="bg-muted/50 p-3 rounded space-y-2">
@@ -375,6 +454,34 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                             <SelectItem value="otro">Otro</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`extend-${slot.key}`}
+                          checked={extend60min}
+                          disabled={!canExtend}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setPerItemExtend60(prev => ({
+                                ...prev,
+                                [slot.key]: true
+                              }));
+                            } else {
+                              setPerItemExtend60(prev => {
+                                const newState = { ...prev };
+                                delete newState[slot.key];
+                                return newState;
+                              });
+                            }
+                          }}
+                        />
+                        <Label 
+                          htmlFor={`extend-${slot.key}`} 
+                          className={`text-xs cursor-pointer ${!canExtend ? 'text-muted-foreground' : ''}`}
+                        >
+                          1 Hora {!canExtend && '(no disponible)'}
+                        </Label>
                       </div>
                     </div>
                   );

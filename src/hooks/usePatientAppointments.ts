@@ -36,6 +36,7 @@ export const usePatientAppointments = (patientId: string) => {
 
     // Separar en futuras y pasadas
     const futuras = patientAppointments
+      .filter(apt => !apt.isContinuation) // Excluir continuaciones
       .filter(isFuture)
       .sort((a, b) => {
         const aDateStr = a.date.length === 10 ? a.date : format(new Date(a.date), 'yyyy-MM-dd');
@@ -48,6 +49,7 @@ export const usePatientAppointments = (patientId: string) => {
       });
 
     const pasadas = patientAppointments
+      .filter(apt => !apt.isContinuation) // Excluir continuaciones
       .filter(apt => !isFuture(apt))
       .sort((a, b) => {
         const aDateStr = a.date.length === 10 ? a.date : format(new Date(a.date), 'yyyy-MM-dd');

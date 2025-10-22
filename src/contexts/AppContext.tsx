@@ -142,6 +142,8 @@ export interface Appointment {
   notes?: string;
   subSlot: 1 | 2 | 3 | 4 | 5;
   treatmentType: TreatmentType;
+  isContinuation?: boolean;          // true si es la segunda media hora
+  primaryAppointmentId?: string;     // id de la primaria (si continuation)
 }
 
 export interface Schedule {
@@ -362,9 +364,59 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     }
     
     case 'UPDATE_APPOINTMENT': {
-      const updatedAppointments = state.appointments.map(a =>
-        a.id === action.payload.id ? { ...a, ...action.payload.updates } : a
-      );
+      const appointment = state.appointmentsById[action.payload.id];
+      let appointmentsToUpdate = [action.payload.id];
+      const updates = action.payload.updates;
+      
+      // Si es primaria y cambia status a cancelado, cancelar también la continuación
+      if (appointment && !appointment.isContinuation && updates.status === 'cancelled') {
+        const continuation = state.appointments.find(
+          a => a.primaryAppointmentId === action.payload.id
+        );
+        if (continuation) {
+          appointmentsToUpdate.push(continuation.id);
+        }
+      }
+      
+      // Si cambia fecha/hora de primaria, mover también la continuación
+      if (appointment && !appointment.isContinuation && (updates.date || updates.startTime)) {
+        const continuation = state.appointments.find(
+          a => a.primaryAppointmentId === action.payload.id
+        );
+        if (continuation) {
+          // Calcular nueva hora para continuación
+          const newDate = updates.date || appointment.date;
+          const newTime = updates.startTime || appointment.startTime;
+          const [hours, minutes] = newTime.split(':').map(Number);
+          const newMinutes = minutes + 30;
+          const continuationTime = `${hours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+          
+          appointmentsToUpdate.push(continuation.id);
+        }
+      }
+      
+      const updatedAppointments = state.appointments.map(a => {
+        if (a.id === action.payload.id) {
+          return { ...a, ...updates };
+        }
+        // Actualizar continuación si es necesario
+        if (appointment && !appointment.isContinuation && a.primaryAppointmentId === action.payload.id) {
+          const continuationUpdates: Partial<Appointment> = {};
+          if (updates.date) continuationUpdates.date = updates.date;
+          if (updates.startTime) {
+            const [hours, minutes] = updates.startTime.split(':').map(Number);
+            const newMinutes = minutes + 30;
+            continuationUpdates.startTime = `${hours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+          }
+          if (updates.status === 'cancelled') continuationUpdates.status = 'cancelled';
+          if (updates.practitionerId) continuationUpdates.practitionerId = updates.practitionerId;
+          if (updates.treatmentType) continuationUpdates.treatmentType = updates.treatmentType;
+          
+          return { ...a, ...continuationUpdates };
+        }
+        return a;
+      });
+      
       const indexes = buildAppointmentIndexes(updatedAppointments);
       return {
         ...state,
@@ -388,7 +440,22 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     }
     
     case 'DELETE_APPOINTMENT': {
-      const filteredAppointments = state.appointments.filter(a => a.id !== action.payload);
+      const appointmentToDelete = state.appointmentsById[action.payload];
+      let idsToDelete = [action.payload];
+      
+      // Si es primaria, eliminar también la continuación
+      if (appointmentToDelete && !appointmentToDelete.isContinuation) {
+        const continuation = state.appointments.find(
+          a => a.primaryAppointmentId === action.payload
+        );
+        if (continuation) {
+          idsToDelete.push(continuation.id);
+        }
+      }
+      
+      // Si es continuación, permitir eliminarla sola (la primaria queda como 30m)
+      
+      const filteredAppointments = state.appointments.filter(a => !idsToDelete.includes(a.id));
       const indexes = buildAppointmentIndexes(filteredAppointments);
       return {
         ...state,

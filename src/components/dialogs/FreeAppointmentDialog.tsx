@@ -34,8 +34,8 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
     const currentTimeStr = format(now, 'HH:mm');
 
     return state.appointments.filter(apt => {
-      // Solo turnos del mismo paciente
-      if (apt.patientId !== appointment.patientId) return false;
+      // Solo turnos del mismo paciente, excluir continuaciones
+      if (apt.patientId !== appointment.patientId || apt.isContinuation) return false;
       
       // Solo estado scheduled
       if (apt.status !== 'scheduled') return false;
