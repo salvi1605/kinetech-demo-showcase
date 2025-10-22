@@ -78,7 +78,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     
     return (
       appointment.practitionerId === practitionerId &&
-      appointmentSubSlot === slot.subSlot &&
+      appointmentSubSlot === (slot.subSlot + 1) &&
       appointment.date === slot.dateISO &&
       overlap(
         { start: slot.hour, end: slotEnd },
@@ -224,7 +224,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           type: 'consultation',
           status: 'scheduled',
           notes: notes || undefined,
-          subSlot: slot.subSlot as 1 | 2 | 3 | 4 | 5,
+          subSlot: (slot.subSlot + 1) as 1 | 2 | 3 | 4 | 5,
           treatmentType: slotTreatmentType,
         };
 
@@ -249,7 +249,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
               type: 'consultation',
               status: 'scheduled',
               notes: notes || undefined,
-              subSlot: slot.subSlot as 1 | 2 | 3 | 4 | 5,
+              subSlot: (slot.subSlot + 1) as 1 | 2 | 3 | 4 | 5,
               treatmentType: slotTreatmentType,
               isContinuation: true,
               primaryAppointmentId: primaryId,
@@ -278,7 +278,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           
           // Si es una cita primaria con 1 Hora marcado, también desmarcar
           if (!apt.isContinuation) {
-            const slotKey = `${apt.date}:${apt.startTime}:S${apt.subSlot - 1}`;
+            const slotKey = `${apt.date}_${apt.startTime}_${(apt.subSlot as number) - 1}`;
             setPerItemExtend60(prev => {
               const newState = { ...prev };
               delete newState[slotKey];
