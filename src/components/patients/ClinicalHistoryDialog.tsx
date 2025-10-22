@@ -35,55 +35,71 @@ export const ClinicalHistoryDialog = ({
   const { toast } = useToast();
   const [pendingHistory, setPendingHistory] = useState<EvolutionEntry[]>([]);
 
-  // Ensure stubs for today's appointments when dialog opens
-  useEffect(() => {
-    if (open && patient.id) {
-      console.log('[ClinicalHistoryDialog] Modal abierto para paciente:', patient.id);
-      console.log('[ClinicalHistoryDialog] Appointments en estado:', state.appointments.length);
-      console.log('[ClinicalHistoryDialog] Historia actual:', patient.clinico?.historyByAppointment?.length || 0, 'entradas');
+  // Process patient history: cleanup orphans + create stubs for current day
+  const processPatientHistory = useCallback(() => {
+    if (!patient.id) return;
+    
+    console.log('[ClinicalHistoryDialog] Procesando historia para fecha:', state.testCurrentDate || 'HOY');
+    console.log('[ClinicalHistoryDialog] Appointments en estado:', state.appointments.length);
+    console.log('[ClinicalHistoryDialog] Historia actual:', patient.clinico?.historyByAppointment?.length || 0, 'entradas');
+    
+    const patientCopy = { ...patient };
+    
+    // 1️⃣ LIMPIAR entries huérfanos (citas eliminadas)
+    if (patientCopy.clinico?.historyByAppointment) {
+      const validAppointmentIds = new Set(state.appointments.map(a => a.id));
+      const beforeCleanup = patientCopy.clinico.historyByAppointment.length;
       
-      const patientCopy = { ...patient };
+      patientCopy.clinico.historyByAppointment = 
+        patientCopy.clinico.historyByAppointment.filter(
+          entry => validAppointmentIds.has(entry.appointmentId)
+        );
       
-      // 1️⃣ LIMPIAR entries huérfanos (citas eliminadas)
-      if (patientCopy.clinico?.historyByAppointment) {
-        const validAppointmentIds = new Set(state.appointments.map(a => a.id));
-        const beforeCleanup = patientCopy.clinico.historyByAppointment.length;
-        
-        patientCopy.clinico.historyByAppointment = 
-          patientCopy.clinico.historyByAppointment.filter(
-            entry => validAppointmentIds.has(entry.appointmentId)
-          );
-        
-        const afterCleanup = patientCopy.clinico.historyByAppointment.length;
-        const removed = beforeCleanup - afterCleanup;
-        if (removed > 0) {
-          console.log('[ClinicalHistoryDialog] Limpieza de huérfanos - eliminados:', removed);
-        }
-      }
-      
-      // 2️⃣ AGREGAR stubs para citas nuevas de hoy
-      ensureTodayStubs(patientCopy, state.appointments, state.currentUserId, state.testCurrentDate);
-      
-      // If anything changed (cleanup or new stubs), update
-      const oldLength = patient.clinico?.historyByAppointment?.length || 0;
-      const newLength = patientCopy.clinico?.historyByAppointment?.length || 0;
-      
-      console.log('[ClinicalHistoryDialog] Después de procesamiento - oldLength:', oldLength, 'newLength:', newLength);
-      
-      if (newLength !== oldLength) {
-        console.log('[ClinicalHistoryDialog] Actualizando paciente con cambios');
-        dispatch({
-          type: 'UPDATE_PATIENT',
-          payload: {
-            id: patient.id,
-            updates: {
-              clinico: patientCopy.clinico,
-            },
-          },
-        });
+      const afterCleanup = patientCopy.clinico.historyByAppointment.length;
+      const removed = beforeCleanup - afterCleanup;
+      if (removed > 0) {
+        console.log('[ClinicalHistoryDialog] Limpieza de huérfanos - eliminados:', removed);
       }
     }
-  }, [open, patient, state.appointments, state.currentUserId, state.testCurrentDate, dispatch]);
+    
+    // 2️⃣ AGREGAR stubs para citas del día (según Time Travel)
+    ensureTodayStubs(patientCopy, state.appointments, state.currentUserId, state.testCurrentDate);
+    
+    // Si hubo cambios, actualizar
+    const oldLength = patient.clinico?.historyByAppointment?.length || 0;
+    const newLength = patientCopy.clinico?.historyByAppointment?.length || 0;
+    
+    console.log('[ClinicalHistoryDialog] Después de procesamiento - oldLength:', oldLength, 'newLength:', newLength);
+    
+    if (newLength !== oldLength) {
+      console.log('[ClinicalHistoryDialog] Actualizando paciente con cambios');
+      dispatch({
+        type: 'UPDATE_PATIENT',
+        payload: {
+          id: patient.id,
+          updates: {
+            clinico: patientCopy.clinico,
+          },
+        },
+      });
+    }
+  }, [patient, state.appointments, state.currentUserId, state.testCurrentDate, dispatch]);
+
+  // Process history when modal opens
+  useEffect(() => {
+    if (open) {
+      console.log('[ClinicalHistoryDialog] Modal abierto para paciente:', patient.id);
+      processPatientHistory();
+    }
+  }, [open, patient.id, processPatientHistory]);
+
+  // Re-process history when Time Travel date changes (only if modal is open)
+  useEffect(() => {
+    if (open) {
+      console.log('[ClinicalHistoryDialog] Time Travel cambió, reprocesando historia');
+      processPatientHistory();
+    }
+  }, [state.testCurrentDate, open, processPatientHistory]);
 
   const handleHistoryChange = useCallback((entries: EvolutionEntry[]) => {
     setPendingHistory(entries);
