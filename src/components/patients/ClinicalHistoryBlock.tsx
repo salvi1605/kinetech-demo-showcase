@@ -59,8 +59,18 @@ export const ClinicalHistoryBlock = ({
 
   const canEdit = (entry: EvolutionEntry): boolean => {
     const today = todayYMD(testCurrentDate);
-    if (currentUserRole === 'admin') return true;
-    return entry.date === today;
+    
+    // Solo admin puede editar días pasados
+    if (currentUserRole === 'admin') {
+      return true;
+    }
+    
+    // Recepcionista y Kinesiólogo solo pueden editar el día actual
+    if (currentUserRole === 'recep' || currentUserRole === 'kinesio') {
+      return entry.date === today;
+    }
+    
+    return false;
   };
 
   const handleTextChange = (appointmentId: string, value: string) => {
