@@ -43,16 +43,35 @@ export const ClinicalHistoryDialog = ({
       console.log('[ClinicalHistoryDialog] Historia actual:', patient.clinico?.historyByAppointment?.length || 0, 'entradas');
       
       const patientCopy = { ...patient };
+      
+      // 1️⃣ LIMPIAR entries huérfanos (citas eliminadas)
+      if (patientCopy.clinico?.historyByAppointment) {
+        const validAppointmentIds = new Set(state.appointments.map(a => a.id));
+        const beforeCleanup = patientCopy.clinico.historyByAppointment.length;
+        
+        patientCopy.clinico.historyByAppointment = 
+          patientCopy.clinico.historyByAppointment.filter(
+            entry => validAppointmentIds.has(entry.appointmentId)
+          );
+        
+        const afterCleanup = patientCopy.clinico.historyByAppointment.length;
+        const removed = beforeCleanup - afterCleanup;
+        if (removed > 0) {
+          console.log('[ClinicalHistoryDialog] Limpieza de huérfanos - eliminados:', removed);
+        }
+      }
+      
+      // 2️⃣ AGREGAR stubs para citas nuevas de hoy
       ensureTodayStubs(patientCopy, state.appointments, state.currentUserId);
       
-      // If stubs were added, update immediately
+      // If anything changed (cleanup or new stubs), update
       const oldLength = patient.clinico?.historyByAppointment?.length || 0;
       const newLength = patientCopy.clinico?.historyByAppointment?.length || 0;
       
-      console.log('[ClinicalHistoryDialog] Después de ensureTodayStubs - oldLength:', oldLength, 'newLength:', newLength);
+      console.log('[ClinicalHistoryDialog] Después de procesamiento - oldLength:', oldLength, 'newLength:', newLength);
       
       if (newLength !== oldLength) {
-        console.log('[ClinicalHistoryDialog] Actualizando paciente con nuevos stubs');
+        console.log('[ClinicalHistoryDialog] Actualizando paciente con cambios');
         dispatch({
           type: 'UPDATE_PATIENT',
           payload: {
