@@ -55,6 +55,7 @@ export interface AppState {
   selectedTreatmentType?: TreatmentType;
   currentUserId: string;
   currentUserName: string;
+  testCurrentDate?: string; // YYYY-MM-DD - For testing purposes only
 }
 
 export type PatientDocument = {
@@ -186,7 +187,8 @@ export type AppAction =
   | { type: 'CLEAR_SLOT_SELECTION' }
   | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] }
   | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } }
-  | { type: 'AUTO_NO_ASISTIO'; payload: string[] };
+  | { type: 'AUTO_NO_ASISTIO'; payload: string[] }
+  | { type: 'SET_TEST_DATE'; payload: string | undefined };
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
@@ -231,6 +233,7 @@ const initialState: AppState = {
   selectedSlots: new Set<string>(),
   currentUserId: 'demo-user-1',
   currentUserName: 'Usuario Demo',
+  testCurrentDate: undefined,
 };
 
 // Reducer
@@ -470,6 +473,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         selectedSlots: new Set<string>(), // Limpiar selección
       };
     }
+    
+    case 'SET_TEST_DATE':
+      return {
+        ...state,
+        testCurrentDate: action.payload,
+      };
     
     default:
       return state;

@@ -9,21 +9,26 @@ dayjs.extend(timezone);
 
 export const CLINIC_TZ = 'America/Argentina/Buenos_Aires';
 
-export const todayYMD = (): string => {
+export const todayYMD = (override?: string): string => {
+  if (override) {
+    console.log('[todayYMD] 🕐 TIME TRAVEL MODE:', override);
+    return override;
+  }
   return dayjs().tz(CLINIC_TZ).format('YYYY-MM-DD');
 };
 
 export function ensureTodayStubs(
   patient: Patient,
   allAppointments: Appointment[],
-  currentUserId: string
+  currentUserId: string,
+  testCurrentDate?: string
 ): void {
   // Initialize clinico if it doesn't exist
   if (!patient.clinico) {
     patient.clinico = {};
   }
   
-  const ymd = todayYMD();
+  const ymd = todayYMD(testCurrentDate);
   console.log('[ensureTodayStubs] Fecha actual (CLINIC_TZ):', ymd);
   console.log('[ensureTodayStubs] Total appointments en store:', allAppointments.length);
   console.log('[ensureTodayStubs] Patient ID:', patient.id);

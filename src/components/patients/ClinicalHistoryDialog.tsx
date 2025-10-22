@@ -62,7 +62,7 @@ export const ClinicalHistoryDialog = ({
       }
       
       // 2️⃣ AGREGAR stubs para citas nuevas de hoy
-      ensureTodayStubs(patientCopy, state.appointments, state.currentUserId);
+      ensureTodayStubs(patientCopy, state.appointments, state.currentUserId, state.testCurrentDate);
       
       // If anything changed (cleanup or new stubs), update
       const oldLength = patient.clinico?.historyByAppointment?.length || 0;
@@ -83,7 +83,7 @@ export const ClinicalHistoryDialog = ({
         });
       }
     }
-  }, [open, patient, state.appointments, state.currentUserId, dispatch]);
+  }, [open, patient, state.appointments, state.currentUserId, state.testCurrentDate, dispatch]);
 
   const handleHistoryChange = useCallback((entries: EvolutionEntry[]) => {
     setPendingHistory(entries);
@@ -193,6 +193,7 @@ export const ClinicalHistoryDialog = ({
           currentUserName={state.currentUserName}
           currentUserRole={state.userRole || 'kinesio'}
           onHistoryChange={handleHistoryChange}
+          testCurrentDate={state.testCurrentDate}
         />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

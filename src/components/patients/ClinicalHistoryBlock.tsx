@@ -13,6 +13,7 @@ interface ClinicalHistoryBlockProps {
   currentUserName: string;
   currentUserRole: 'admin' | 'recep' | 'kinesio';
   onHistoryChange: (entries: EvolutionEntry[]) => void;
+  testCurrentDate?: string;
 }
 
 export const ClinicalHistoryBlock = ({
@@ -21,13 +22,14 @@ export const ClinicalHistoryBlock = ({
   currentUserName,
   currentUserRole,
   onHistoryChange,
+  testCurrentDate,
 }: ClinicalHistoryBlockProps) => {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<EvolutionEntry[]>([]);
 
   useEffect(() => {
     // Initialize local state from props
-    const today = todayYMD();
+    const today = todayYMD(testCurrentDate);
     
     console.log('[ClinicalHistoryBlock] historyByAppointment recibido:', historyByAppointment.length, 'entradas');
     console.log('[ClinicalHistoryBlock] Fecha de hoy:', today);
@@ -53,10 +55,10 @@ export const ClinicalHistoryBlock = ({
 
     setEntries(visibleEntries);
     setDrafts(initialDrafts);
-  }, [historyByAppointment]);
+  }, [historyByAppointment, testCurrentDate]);
 
   const canEdit = (entry: EvolutionEntry): boolean => {
-    const today = todayYMD();
+    const today = todayYMD(testCurrentDate);
     if (currentUserRole === 'admin') return true;
     return entry.date === today;
   };
@@ -110,7 +112,7 @@ export const ClinicalHistoryBlock = ({
     return `${dateStr} • ${entry.time} • ${treatment}`;
   };
 
-  const today = todayYMD();
+  const today = todayYMD(testCurrentDate);
 
   return (
     <Card>
