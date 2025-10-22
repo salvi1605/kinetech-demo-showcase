@@ -161,7 +161,7 @@ export const ClinicalHistoryBlock = ({
               placeholder={
                 entry.date === today && !entry.text ? 'Escribe la evolución de hoy…' : undefined
               }
-              className="min-h-[96px]"
+              className="min-h-[48px]"
             />
             <div className="text-xs text-muted-foreground text-right">
               {(drafts[entry.appointmentId] || '').length}/3000
