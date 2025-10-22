@@ -38,11 +38,21 @@ export const ClinicalHistoryDialog = ({
   // Ensure stubs for today's appointments when dialog opens
   useEffect(() => {
     if (open && patient.id) {
+      console.log('[ClinicalHistoryDialog] Modal abierto para paciente:', patient.id);
+      console.log('[ClinicalHistoryDialog] Appointments en estado:', state.appointments.length);
+      console.log('[ClinicalHistoryDialog] Historia actual:', patient.clinico?.historyByAppointment?.length || 0, 'entradas');
+      
       const patientCopy = { ...patient };
       ensureTodayStubs(patientCopy, state.appointments, state.currentUserId);
       
       // If stubs were added, update immediately
-      if (patientCopy.clinico?.historyByAppointment?.length !== patient.clinico?.historyByAppointment?.length) {
+      const oldLength = patient.clinico?.historyByAppointment?.length || 0;
+      const newLength = patientCopy.clinico?.historyByAppointment?.length || 0;
+      
+      console.log('[ClinicalHistoryDialog] Después de ensureTodayStubs - oldLength:', oldLength, 'newLength:', newLength);
+      
+      if (newLength !== oldLength) {
+        console.log('[ClinicalHistoryDialog] Actualizando paciente con nuevos stubs');
         dispatch({
           type: 'UPDATE_PATIENT',
           payload: {

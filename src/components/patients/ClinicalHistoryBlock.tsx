@@ -29,8 +29,21 @@ export const ClinicalHistoryBlock = ({
     // Initialize local state from props
     const today = todayYMD();
     
+    console.log('[ClinicalHistoryBlock] historyByAppointment recibido:', historyByAppointment.length, 'entradas');
+    console.log('[ClinicalHistoryBlock] Fecha de hoy:', today);
+    
     // Only show entries up to today (no future)
     const visibleEntries = historyByAppointment.filter((e) => e.date <= today);
+    
+    console.log('[ClinicalHistoryBlock] Entradas visibles (<=hoy):', visibleEntries.length);
+    if (visibleEntries.length > 0) {
+      console.log('[ClinicalHistoryBlock] Detalles:', visibleEntries.map(e => ({
+        date: e.date,
+        time: e.time,
+        treatmentType: e.treatmentType,
+        appointmentId: e.appointmentId
+      })));
+    }
     
     // Initialize drafts
     const initialDrafts: Record<string, string> = {};

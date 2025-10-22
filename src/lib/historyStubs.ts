@@ -18,21 +18,41 @@ export function ensureTodayStubs(
   allAppointments: Appointment[],
   currentUserId: string
 ): void {
-  if (!patient.clinico) return;
+  // Initialize clinico if it doesn't exist
+  if (!patient.clinico) {
+    patient.clinico = {};
+  }
   
   const ymd = todayYMD();
+  console.log('[ensureTodayStubs] Fecha actual (CLINIC_TZ):', ymd);
+  console.log('[ensureTodayStubs] Total appointments en store:', allAppointments.length);
+  console.log('[ensureTodayStubs] Patient ID:', patient.id);
+  
   const existingSet = new Set(
     (patient.clinico.historyByAppointment || [])
       .filter((e) => e.date === ymd)
       .map((e) => e.appointmentId)
   );
+  
+  console.log('[ensureTodayStubs] Entradas existentes para hoy:', existingSet.size);
 
   // Filter today's appointments for this patient
+  // Direct comparison since a.date is already in 'YYYY-MM-DD' format
   const todaysAppointments = allAppointments.filter((a) => {
     if (a.patientId !== patient.id) return false;
-    const aptDate = dayjs(a.date).tz(CLINIC_TZ).format('YYYY-MM-DD');
-    return aptDate === ymd;
+    return a.date === ymd;
   });
+  
+  console.log('[ensureTodayStubs] Citas de hoy para este paciente:', todaysAppointments.length);
+  if (todaysAppointments.length > 0) {
+    console.log('[ensureTodayStubs] Detalles de citas:', todaysAppointments.map(a => ({
+      id: a.id,
+      date: a.date,
+      startTime: a.startTime,
+      treatmentType: a.treatmentType,
+      patientId: a.patientId
+    })));
+  }
 
   // Create stubs for appointments not yet in history
   const additions: EvolutionEntry[] = todaysAppointments
@@ -50,10 +70,13 @@ export function ensureTodayStubs(
       status: 'active',
     }));
 
+  console.log('[ensureTodayStubs] Nuevos stubs a crear:', additions.length);
+
   if (additions.length > 0) {
     patient.clinico.historyByAppointment = [
       ...(patient.clinico.historyByAppointment || []),
       ...additions,
     ];
+    console.log('[ensureTodayStubs] Stubs agregados. Total entries:', patient.clinico.historyByAppointment.length);
   }
 }
