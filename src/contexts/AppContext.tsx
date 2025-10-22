@@ -492,6 +492,26 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
           console.warn('Rechazado en masiva: inicio > 19:00', apt);
           return false;
         }
+        
+        // OPCIÓN 4: Validación de seguridad en reducer
+        // Rechazar si ya existe una cita en el mismo slot
+        const hasConflict = state.appointments.some(existingApt =>
+          existingApt.practitionerId === apt.practitionerId &&
+          existingApt.date === apt.date &&
+          existingApt.startTime === apt.startTime &&
+          existingApt.subSlot === apt.subSlot
+        );
+        
+        if (hasConflict) {
+          console.warn('Rechazado en reducer: slot ya ocupado', {
+            date: apt.date,
+            time: apt.startTime,
+            subSlot: apt.subSlot,
+            practitioner: apt.practitionerId
+          });
+          return false;
+        }
+        
         return true;
       });
       const newAppointments = [...state.appointments, ...validAppointments];

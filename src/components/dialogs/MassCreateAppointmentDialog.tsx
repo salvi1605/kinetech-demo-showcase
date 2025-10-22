@@ -259,9 +259,40 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         }
       }
 
-      // Agregar las citas exitosas
-      if (successfulAppointments.length > 0) {
-        dispatch({ type: 'ADD_MULTIPLE_APPOINTMENTS', payload: successfulAppointments });
+      // RE-VALIDAR contra estado actual antes del dispatch final (Opción 1)
+      const finalValidAppointments: Appointment[] = [];
+      
+      for (const apt of successfulAppointments) {
+        // Verificar si este slot ya está ocupado en state.appointments
+        const hasConflictInState = state.appointments.some(existingApt => 
+          existingApt.practitionerId === apt.practitionerId &&
+          existingApt.date === apt.date &&
+          existingApt.startTime === apt.startTime &&
+          existingApt.subSlot === apt.subSlot
+        );
+        
+        if (hasConflictInState) {
+          // Este slot ya está ocupado, no agregar y marcar como fallido
+          const slotInfo = `${apt.date} ${apt.startTime} (Slot ${apt.subSlot})`;
+          failed.push(`${slotInfo} - Ya existe una cita en este slot`);
+          
+          // Si es una cita primaria con 1 Hora marcado, también desmarcar
+          if (!apt.isContinuation) {
+            const slotKey = `${apt.date}:${apt.startTime}:S${apt.subSlot - 1}`;
+            setPerItemExtend60(prev => {
+              const newState = { ...prev };
+              delete newState[slotKey];
+              return newState;
+            });
+          }
+        } else {
+          finalValidAppointments.push(apt);
+        }
+      }
+      
+      // Agregar solo las citas que pasaron la re-validación
+      if (finalValidAppointments.length > 0) {
+        dispatch({ type: 'ADD_MULTIPLE_APPOINTMENTS', payload: finalValidAppointments });
       }
 
       // Limpiar selección
