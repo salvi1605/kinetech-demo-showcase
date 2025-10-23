@@ -363,7 +363,7 @@ export const Calendar = () => {
     // Si hay citas, mostrar sub-slots
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-0"
+        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1"
              style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
@@ -450,7 +450,7 @@ export const Calendar = () => {
 
     // Slot completamente vacío - mostrar todos los sub-slots disponibles
     return (
-      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-0" 
+      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
            style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
@@ -464,10 +464,10 @@ export const Calendar = () => {
             return (
               <button
                  key={`${dayIndex}-${time}-${subIndex}`}
-                 className={`text-xs p-1 rounded cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
                    isSelected 
-                     ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 hover:bg-blue-100 border-t border-l border-r border-border/30' 
-                     : 'bg-green-50/50 hover:bg-green-100 hover:ring-1 hover:ring-green-400 hover:ring-inset border-0'
+                     ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                     : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                  }`}
                onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
