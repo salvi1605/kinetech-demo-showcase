@@ -363,7 +363,7 @@ export const Calendar = () => {
     // Si hay citas, mostrar sub-slots
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1 relative before:content-[''] before:absolute before:left-0 before:right-0 before:bottom-0 before:h-[2px] before:bg-[#60A5FA]/80 before:pointer-events-none before:z-0"
+        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-0"
              style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
@@ -450,7 +450,7 @@ export const Calendar = () => {
 
     // Slot completamente vacío - mostrar todos los sub-slots disponibles
     return (
-      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1 relative before:content-[''] before:absolute before:left-0 before:right-0 before:bottom-0 before:h-[2px] before:bg-[#60A5FA]/80 before:pointer-events-none before:z-0" 
+      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-0" 
            style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
@@ -631,8 +631,11 @@ export const Calendar = () => {
 
                   {/* Slots de tiempo */}
                   {TIME_SLOTS.map((time) => (
-                    <div key={time} className="contents">
-                      <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center relative before:content-[''] before:absolute before:left-0 before:right-0 before:bottom-0 before:h-[2px] before:bg-[#60A5FA]/80 before:pointer-events-none before:z-0">
+                    <div 
+                      key={time} 
+                      className="col-span-6 grid grid-cols-[auto_repeat(5,1fr)] relative after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1px] after:bg-[#60A5FA]/40 after:pointer-events-none after:z-0"
+                    >
+                      <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
                         {time}
                       </div>
