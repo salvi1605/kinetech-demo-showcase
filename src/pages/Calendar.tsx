@@ -363,7 +363,7 @@ export const Calendar = () => {
     // Si hay citas, mostrar sub-slots
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
+        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1 relative before:content-[''] before:absolute before:left-0 before:right-0 before:top-0 before:h-[2px] before:bg-[#94A3B8] before:pointer-events-none before:z-0" 
              style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
@@ -379,7 +379,7 @@ export const Calendar = () => {
               return (
                 <div className="flex justify-center items-center px-1">
                   <div 
-                    className="mx-auto text-xs p-2 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-2 w-full max-w-full relative"
+                    className="mx-auto text-xs p-2 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-2 w-full max-w-full relative z-[2]"
                     style={styles}
                     role="button"
                     tabIndex={0}
@@ -427,7 +427,7 @@ export const Calendar = () => {
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
-                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring ${
+                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
                     isSelected 
                       ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
@@ -450,7 +450,7 @@ export const Calendar = () => {
 
     // Slot completamente vacío - mostrar todos los sub-slots disponibles
     return (
-      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
+      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1 relative before:content-[''] before:absolute before:left-0 before:right-0 before:top-0 before:h-[2px] before:bg-[#94A3B8] before:pointer-events-none before:z-0" 
            style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
@@ -461,14 +461,14 @@ export const Calendar = () => {
            const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
            const isSelected = state.selectedSlots.has(key);
            
-           return (
-             <button
-               key={`${dayIndex}-${time}-${subIndex}`}
-               className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring ${
-                 isSelected 
-                   ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
-                   : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
-               }`}
+            return (
+              <button
+                key={`${dayIndex}-${time}-${subIndex}`}
+                className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                  isSelected 
+                    ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                    : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
+                }`}
                onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                tabIndex={0}
@@ -632,7 +632,7 @@ export const Calendar = () => {
                   {/* Slots de tiempo */}
                   {TIME_SLOTS.map((time) => (
                     <div key={time} className="contents">
-                      <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center">
+                      <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center relative before:content-[''] before:absolute before:left-0 before:right-0 before:top-0 before:h-[2px] before:bg-[#94A3B8] before:pointer-events-none before:z-0">
                         <Clock className="h-3 w-3 mr-1" />
                         {time}
                       </div>
