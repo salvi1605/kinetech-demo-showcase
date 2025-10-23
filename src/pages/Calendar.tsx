@@ -464,10 +464,10 @@ export const Calendar = () => {
             return (
               <button
                  key={`${dayIndex}-${time}-${subIndex}`}
-                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                 className={`text-xs p-1 rounded cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
                    isSelected 
-                     ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 hover:bg-blue-100 border-border/30' 
-                     : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
+                     ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 hover:bg-blue-100 border-t border-l border-r border-border/30' 
+                     : 'bg-green-50/50 hover:bg-green-100 hover:ring-1 hover:ring-green-400 hover:ring-inset border-0'
                  }`}
                onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
