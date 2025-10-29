@@ -618,12 +618,12 @@ export const Calendar = () => {
                 <div className="min-w-[800px]">
                   {/* Header */}
                   <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1">
-                    <div className="p-2 text-sm font-medium text-muted-foreground border-b">
+                    <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center">
                       Hora
                     </div>
                     {WEEKDAYS.map((day, index) => (
-                      <div key={day} className="p-2 text-sm font-medium border-b bg-muted/30 flex flex-col items-center justify-center">
-                        <div>{day}</div>
+                      <div key={day} className="p-1 border border-border/30 bg-muted/30 flex flex-col items-center justify-center">
+                        <div className="text-sm font-medium">{day}</div>
                         <div className="text-xs text-muted-foreground">
                           {format(weekDates[index], 'd MMM', { locale: es })}
                         </div>
