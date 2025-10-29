@@ -11,3 +11,7 @@ export interface TreatmentOption {
   value: TreatmentType;
   label: string;
 }
+
+// DEPRECATED: Los siguientes campos ya no se utilizan
+// isContinuation?: boolean;        // DEPRECATED: no usar
+// primaryAppointmentId?: string;   // DEPRECATED: no usar
