@@ -622,7 +622,7 @@ export const Calendar = () => {
                       Hora
                     </div>
                     {WEEKDAYS.map((day, index) => (
-                      <div key={day} className="p-2 text-sm font-medium text-center border-b bg-muted/30">
+                      <div key={day} className="p-2 text-sm font-medium border-b bg-muted/30 flex flex-col items-center justify-center">
                         <div>{day}</div>
                         <div className="text-xs text-muted-foreground">
                           {format(weekDates[index], 'd MMM', { locale: es })}
