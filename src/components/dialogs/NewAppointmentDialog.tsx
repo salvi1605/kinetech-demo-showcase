@@ -17,6 +17,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { addMinutesStr } from '@/utils/dateUtils';
+import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
+import { treatmentLabel } from '@/utils/formatters';
+import type { TreatmentType } from '@/types/appointments';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -163,6 +166,25 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       toast({
         title: "Conflicto de horario",
         description: "El doctor ya tiene un turno en este Slot y horario.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validar conflicto de tratamiento exclusivo
+    const candidate = {
+      date: appointmentDate,
+      startTime: data.startTime,
+      practitionerId: data.practitionerId,
+      treatmentType: 'fkt', // Tratamiento por defecto en nueva cita
+    };
+    
+    const validation = hasExclusiveConflict(state.appointments, candidate);
+    if (!validation.ok && validation.conflict) {
+      const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+      toast({
+        title: "Conflicto de disponibilidad",
+        description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${data.startTime}. No puede tomar otra cita en este horario.`,
         variant: "destructive"
       });
       return;

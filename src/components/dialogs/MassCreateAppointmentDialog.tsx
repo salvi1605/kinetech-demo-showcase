@@ -13,9 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel } from '@/utils/formatters';
-import { Search, User, Clock, AlertCircle, Copy } from 'lucide-react';
+import { Search, User, Clock, AlertCircle, Copy, AlertTriangle } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
+import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -107,6 +108,37 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       toast({
         title: "Datos incompletos",
         description: "Falta la información del paciente para poder agendar las citas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar conflictos de tratamientos exclusivos
+    const conflictsExclusive: string[] = [];
+    for (const slot of sortedSlots) {
+      const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+      const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
+      
+      if (slotPractitionerId && slotTreatmentType) {
+        const candidate = {
+          date: slot.dateISO,
+          startTime: slot.hour,
+          practitionerId: slotPractitionerId,
+          treatmentType: slotTreatmentType,
+        };
+        
+        const validation = hasExclusiveConflict(state.appointments, candidate);
+        if (!validation.ok && validation.conflict) {
+          const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
+          conflictsExclusive.push(`${slot.displayText} - ${practitionerName} ya tiene ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${slot.hour}`);
+        }
+      }
+    }
+    
+    if (conflictsExclusive.length > 0) {
+      toast({
+        title: "Conflictos de disponibilidad",
+        description: "No se pudo confirmar: hay conflictos por Drenaje/Masaje. El profesional ya tiene una cita en ese horario.",
         variant: "destructive",
       });
       return;
@@ -304,6 +336,24 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
               <div className="mt-2 max-h-80 overflow-y-auto border rounded-md p-3 space-y-3">
                 {sortedSlots.map((slot) => {
                   const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+                  const currentTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
+                  
+                  // Verificar conflicto de tratamiento exclusivo
+                  let exclusiveWarning: string | null = null;
+                  if (currentPractitionerId && currentTreatmentType) {
+                    const candidate = {
+                      date: slot.dateISO,
+                      startTime: slot.hour,
+                      practitionerId: currentPractitionerId,
+                      treatmentType: currentTreatmentType,
+                    };
+                    
+                    const validation = hasExclusiveConflict(state.appointments, candidate);
+                    if (!validation.ok && validation.conflict) {
+                      const practitionerName = state.practitioners.find(p => p.id === currentPractitionerId)?.name || 'Profesional';
+                      exclusiveWarning = `⚠️ ${practitionerName} no disponible: ya tiene ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${slot.hour}`;
+                    }
+                  }
                   
                   return (
                     <div key={slot.key} className="bg-muted/50 p-3 rounded space-y-2">
@@ -387,6 +437,14 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                           </SelectContent>
                         </Select>
                       </div>
+                      
+                      {/* Warning de conflicto exclusivo */}
+                      {exclusiveWarning && (
+                        <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                          <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          <span>{exclusiveWarning}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

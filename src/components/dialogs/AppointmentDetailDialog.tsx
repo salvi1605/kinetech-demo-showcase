@@ -39,6 +39,7 @@ import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePat
 import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
+import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
 
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -250,6 +251,26 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         variant: "destructive",
       });
       return; // Impedir persistencia
+    }
+    
+    // Validar conflicto de tratamiento exclusivo
+    const candidate = {
+      id: appointment.id,
+      date: data.date,
+      startTime: data.startTime,
+      practitionerId: data.practitionerId,
+      treatmentType: data.treatmentType,
+    };
+    
+    const validation = hasExclusiveConflict(state.appointments, candidate);
+    if (!validation.ok && validation.conflict) {
+      const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+      toast({
+        title: "Conflicto de disponibilidad",
+        description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${data.startTime}. No puede tomar otra cita en este horario.`,
+        variant: "destructive",
+      });
+      return;
     }
     
     const updatedAppointment: Appointment = {
