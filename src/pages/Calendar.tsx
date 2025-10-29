@@ -617,7 +617,7 @@ export const Calendar = () => {
                 </div>
                 <div className="min-w-[800px]">
                   {/* Header */}
-                  <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1">
+                  <div className="grid grid-cols-[88px_repeat(5,1fr)] gap-1">
                     <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center">
                       Hora
                     </div>
@@ -635,7 +635,7 @@ export const Calendar = () => {
                   {TIME_SLOTS.map((time) => (
                     <div 
                       key={time} 
-                      className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 relative after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1px] after:bg-[#60A5FA]/40 after:pointer-events-none after:z-0"
+                      className="grid grid-cols-[88px_repeat(5,1fr)] gap-1 relative after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1px] after:bg-[#60A5FA]/40 after:pointer-events-none after:z-0"
                     >
                       <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
