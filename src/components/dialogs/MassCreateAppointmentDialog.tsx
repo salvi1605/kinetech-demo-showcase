@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -61,6 +61,26 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         treatmentType: state.selectedTreatmentType,
       };
     });
+
+  // Calcular si hay algún conflicto de tratamiento exclusivo
+  const hasAnyExclusiveConflict = useMemo(() => {
+    return sortedSlots.some(slot => {
+      const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+      const currentTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
+      
+      if (!currentPractitionerId || !currentTreatmentType) return false;
+      
+      const candidate = {
+        date: slot.dateISO,
+        startTime: slot.hour,
+        practitionerId: currentPractitionerId,
+        treatmentType: currentTreatmentType,
+      };
+      
+      const validation = hasExclusiveConflict(state.appointments, candidate);
+      return !validation.ok;
+    });
+  }, [sortedSlots, perItemPractitioner, perItemTreatment, state.appointments, state.selectedPractitionerId]);
 
   // Filtrar pacientes por búsqueda
   const filteredPatients = state.patients.filter(p =>
@@ -517,7 +537,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
             </Button>
             <Button 
               onClick={handleConfirm} 
-              disabled={isCreating || !patientId}
+              disabled={isCreating || !patientId || hasAnyExclusiveConflict}
             >
               {isCreating ? 'Creando...' : 'Confirmar selección'}
             </Button>
