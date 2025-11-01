@@ -76,6 +76,13 @@ export type PatientHistoryEntry = {
   updatedAt: string; // ISO
 };
 
+export type DailySummary = {
+  date: string; // 'YYYY-MM-DD'
+  text: string;
+  authorId: string;
+  updatedAtISO: string;
+};
+
 export interface Patient {
   id: string;
   name: string;
@@ -110,6 +117,9 @@ export interface Patient {
     restricciones?: { noMagnetoterapia: boolean; noElectroterapia: boolean; };
     history?: PatientHistoryEntry[]; // Legacy: conservar sin borrar
     historyByAppointment?: EvolutionEntry[]; // Nuevo: por cita
+  };
+  history?: {
+    summaries?: DailySummary[]; // Resumen clínico por día
   };
   seguro?: {
     obraSocial?: string;

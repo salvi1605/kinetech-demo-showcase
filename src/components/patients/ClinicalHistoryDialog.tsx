@@ -262,11 +262,23 @@ export const ClinicalHistoryDialog = ({
         </div>
 
         <ClinicalHistoryBlock
+          patient={patient}
           historyByAppointment={patient.clinico?.historyByAppointment ?? []}
           currentUserId={state.currentUserId}
           currentUserName={state.currentUserName}
           currentUserRole={state.userRole || 'kinesio'}
           onHistoryChange={handleHistoryChange}
+          onPatientChange={(updatedPatient) => {
+            dispatch({
+              type: 'UPDATE_PATIENT',
+              payload: {
+                id: patient.id,
+                updates: {
+                  history: updatedPatient.history,
+                },
+              },
+            });
+          }}
           testCurrentDate={state.testCurrentDate}
         />
         <DialogFooter>
