@@ -137,14 +137,49 @@ export const ClinicalHistoryDialog = ({
     ? calcularEdad(patient.identificacion.dateOfBirth) 
     : null;
 
-  const banderasYRestricciones = [
-    ...(patient.clinico?.redFlags 
-      ? Object.keys(patient.clinico.redFlags).filter(k => patient.clinico.redFlags?.[k])
-      : []),
-    ...(patient.clinico?.restricciones 
-      ? Object.keys(patient.clinico.restricciones).filter(k => patient.clinico.restricciones?.[k])
-      : [])
-  ].join(' • ') || 'Ninguna';
+  // Mapeo de nombres técnicos a nombres legibles
+  const redFlagsLabels: Record<string, string> = {
+    embarazo: 'Embarazo',
+    cancer: 'Cáncer',
+    marcapasos: 'Marcapasos',
+    alergias: 'Alergias'
+  };
+
+  const restriccionesLabels: Record<string, string> = {
+    noMagnetoterapia: 'No Magnetoterapia',
+    noElectroterapia: 'No Electroterapia'
+  };
+
+  // Formatear Banderas Rojas con detalle de alergias
+  const formatBanderasRojas = (): string => {
+    if (!patient.clinico?.redFlags) return '—';
+    
+    const flags = Object.entries(patient.clinico.redFlags)
+      .filter(([_, value]) => value)
+      .map(([key]) => {
+        // Si es alergias y hay detalle, mostrar el detalle
+        if (key === 'alergias' && patient.clinico?.redFlagsDetail?.alergias) {
+          return `Alergias: ${patient.clinico.redFlagsDetail.alergias}`;
+        }
+        return redFlagsLabels[key] || key;
+      });
+    
+    return flags.length > 0 ? flags.join(' • ') : '—';
+  };
+
+  // Formatear Restricciones
+  const formatRestricciones = (): string => {
+    if (!patient.clinico?.restricciones) return '—';
+    
+    const restricciones = Object.entries(patient.clinico.restricciones)
+      .filter(([_, value]) => value)
+      .map(([key]) => restriccionesLabels[key] || key);
+    
+    return restricciones.length > 0 ? restricciones.join(' • ') : '—';
+  };
+
+  const banderasRojas = formatBanderasRojas();
+  const restricciones = formatRestricciones();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,8 +243,12 @@ export const ClinicalHistoryDialog = ({
                 <p className="font-medium">{patient.clinico?.mainReason || '—'}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs mb-1">Banderas Rojas / Restricciones</p>
-                <p className="font-medium text-xs">{banderasYRestricciones}</p>
+                <p className="text-muted-foreground text-xs mb-1">Banderas Rojas</p>
+                <p className="font-medium text-xs">{banderasRojas}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Restricciones</p>
+                <p className="font-medium text-xs">{restricciones}</p>
               </div>
             </div>
           </CardContent>
