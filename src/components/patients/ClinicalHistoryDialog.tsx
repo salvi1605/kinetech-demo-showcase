@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Stethoscope } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
+import { PatientClinicoModal } from './PatientClinicoModal';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { ensureTodayStubs } from '@/lib/historyStubs';
@@ -34,6 +36,10 @@ export const ClinicalHistoryDialog = ({
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [pendingHistory, setPendingHistory] = useState<EvolutionEntry[]>([]);
+  const [clinicoOpen, setClinicoOpen] = useState(false);
+
+  // Check permissions: admin and kinesio can edit
+  const canEditClinico = state.userRole === 'admin' || state.userRole === 'kinesio';
 
   // Process patient history: cleanup orphans + create stubs for current day
   const processPatientHistory = useCallback(() => {
@@ -149,8 +155,21 @@ export const ClinicalHistoryDialog = ({
 
         {/* Resumen Clínico */}
         <Card className="mb-4 border bg-card">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg">Resumen Clínico</CardTitle>
+            {canEditClinico && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setClinicoOpen(true)}
+                aria-label="Abrir Clínico del paciente"
+                disabled={!patient.id}
+                title={!patient.id ? "Guarda el paciente para editar el clínico" : undefined}
+              >
+                <Stethoscope className="mr-2 h-4 w-4" />
+                Clínico
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
@@ -218,6 +237,15 @@ export const ClinicalHistoryDialog = ({
           <Button onClick={handleSave}>Guardar cambios</Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Modal Clínico del paciente */}
+      {patient.id && (
+        <PatientClinicoModal
+          open={clinicoOpen}
+          onOpenChange={setClinicoOpen}
+          patient={patient}
+        />
+      )}
     </Dialog>
   );
 };
