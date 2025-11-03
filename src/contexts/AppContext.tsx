@@ -83,6 +83,31 @@ export type DailySummary = {
   updatedAtISO: string;
 };
 
+export type ClinicalSummaryDay = {
+  date: string; // 'YYYY-MM-DD'
+  clinicalData: {
+    mainReason?: string;
+    diagnosis?: string;
+    laterality?: 'Derecha' | 'Izquierda' | 'Bilateral' | '';
+    painLevel?: number; // 0-10
+    redFlags?: {
+      embarazo: boolean;
+      cancer: boolean;
+      marcapasos: boolean;
+      alergias: boolean;
+    };
+    redFlagsDetail?: {
+      alergias?: string;
+    };
+    restricciones?: {
+      noMagnetoterapia: boolean;
+      noElectroterapia: boolean;
+    };
+  };
+  authorId: string;
+  updatedAt: string; // ISO
+};
+
 export interface Patient {
   id: string;
   name: string;
@@ -119,7 +144,8 @@ export interface Patient {
     historyByAppointment?: EvolutionEntry[]; // Nuevo: por cita
   };
   history?: {
-    summaries?: DailySummary[]; // Resumen clínico por día
+    summaries?: DailySummary[]; // Resumen clínico por día (texto libre)
+    clinicalSummaries?: ClinicalSummaryDay[]; // Snapshots estructurados del clínico por día
   };
   seguro?: {
     obraSocial?: string;

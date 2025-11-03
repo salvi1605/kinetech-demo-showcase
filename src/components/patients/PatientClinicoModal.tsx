@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Patient } from '@/contexts/AppContext';
+import { getTodayISO, upsertSummaryFor } from '@/lib/clinicalSummaryHelpers';
 
 interface PatientClinicoModalProps {
   open: boolean;
@@ -18,7 +19,7 @@ interface PatientClinicoModalProps {
 }
 
 export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClinicoModalProps) => {
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const { toast } = useToast();
 
   const [form, setForm] = useState({
@@ -47,6 +48,23 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
   }, [open, patient]);
 
   const handleSave = useCallback(() => {
+    const today = getTodayISO(state.testCurrentDate);
+
+    // Preparar datos clínicos
+    const clinicalData = {
+      mainReason: form.mainReason,
+      diagnosis: form.diagnosis,
+      laterality: form.laterality as 'Derecha' | 'Izquierda' | 'Bilateral' | '',
+      painLevel: form.painLevel,
+      redFlags: form.redFlags,
+      redFlagsDetail: form.redFlagsDetail,
+      restricciones: form.restricciones,
+    };
+
+    // Crear/actualizar snapshot para hoy
+    const updatedPatient = upsertSummaryFor(patient, today, clinicalData, state.currentUserId);
+
+    // Dispatch update con clinico y history
     dispatch({
       type: 'UPDATE_PATIENT',
       payload: {
@@ -62,6 +80,7 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
             redFlagsDetail: form.redFlagsDetail,
             restricciones: form.restricciones,
           },
+          history: updatedPatient.history,
         },
       },
     });
@@ -72,7 +91,7 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
     });
 
     onOpenChange(false);
-  }, [dispatch, patient, form, toast, onOpenChange]);
+  }, [state.testCurrentDate, state.currentUserId, patient, form, dispatch, toast, onOpenChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
