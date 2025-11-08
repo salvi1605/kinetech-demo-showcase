@@ -1,27 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Stethoscope } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
-import { PatientClinicoModal } from './PatientClinicoModal';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { ensureTodayStubs } from '@/lib/historyStubs';
 import type { EvolutionEntry } from '@/types/patient';
-import dayjs from 'dayjs';
 import { getTodayISO, getLatestSummaryBefore, upsertSummaryFor, hasAppointmentOn, getSummaryByDate } from '@/lib/clinicalSummaryHelpers';
 
-const calcularEdad = (fechaNac: string): number => {
-  const hoy = dayjs();
-  const nac = dayjs(fechaNac, 'YYYY-MM-DD');
-  return hoy.diff(nac, 'year');
-};
-
-const formatearFecha = (fecha: string): string => {
-  return dayjs(fecha, 'YYYY-MM-DD').format('DD/MM/YYYY');
-};
 
 interface ClinicalHistoryDialogProps {
   open: boolean;
@@ -37,10 +23,6 @@ export const ClinicalHistoryDialog = ({
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [pendingHistory, setPendingHistory] = useState<EvolutionEntry[]>([]);
-  const [clinicoOpen, setClinicoOpen] = useState(false);
-
-  // Check permissions: admin and kinesio can edit
-  const canEditClinico = state.userRole === 'admin' || state.userRole === 'kinesio';
 
   // Process patient history: cleanup orphans + create stubs for current day + prefill snapshot
   const processPatientHistory = useCallback(() => {
@@ -185,133 +167,12 @@ export const ClinicalHistoryDialog = ({
     onOpenChange(false);
   };
 
-  const edad = patient.identificacion?.dateOfBirth 
-    ? calcularEdad(patient.identificacion.dateOfBirth) 
-    : null;
-
-  // Mapeo de nombres técnicos a nombres legibles
-  const redFlagsLabels: Record<string, string> = {
-    embarazo: 'Embarazo',
-    cancer: 'Cáncer',
-    marcapasos: 'Marcapasos',
-    alergias: 'Alergias'
-  };
-
-  const restriccionesLabels: Record<string, string> = {
-    noMagnetoterapia: 'No Magnetoterapia',
-    noElectroterapia: 'No Electroterapia'
-  };
-
-  // Formatear Banderas Rojas con detalle de alergias
-  const formatBanderasRojas = (): string => {
-    if (!patient.clinico?.redFlags) return '—';
-    
-    const flags = Object.entries(patient.clinico.redFlags)
-      .filter(([_, value]) => value)
-      .map(([key]) => {
-        // Si es alergias y hay detalle, mostrar el detalle
-        if (key === 'alergias' && patient.clinico?.redFlagsDetail?.alergias) {
-          return `Alergias: ${patient.clinico.redFlagsDetail.alergias}`;
-        }
-        return redFlagsLabels[key] || key;
-      });
-    
-    return flags.length > 0 ? flags.join(' • ') : '—';
-  };
-
-  // Formatear Restricciones
-  const formatRestricciones = (): string => {
-    if (!patient.clinico?.restricciones) return '—';
-    
-    const restricciones = Object.entries(patient.clinico.restricciones)
-      .filter(([_, value]) => value)
-      .map(([key]) => restriccionesLabels[key] || key);
-    
-    return restricciones.length > 0 ? restricciones.join(' • ') : '—';
-  };
-
-  const banderasRojas = formatBanderasRojas();
-  const restricciones = formatRestricciones();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Historial del Paciente - {patient.name}</DialogTitle>
         </DialogHeader>
-
-        {/* Resumen Clínico */}
-        <Card className="mb-4 border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg">Resumen Clínico</CardTitle>
-            {canEditClinico && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setClinicoOpen(true)}
-                aria-label="Abrir Clínico del paciente"
-                disabled={!patient.id}
-                title={!patient.id ? "Guarda el paciente para editar el clínico" : undefined}
-              >
-                <Stethoscope className="mr-2 h-4 w-4" />
-                Clínico
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Nombre Completo</p>
-                <p className="font-medium">{patient.identificacion?.fullName || patient.name}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Diagnóstico</p>
-                <p className="font-medium">{patient.clinico?.diagnosis || '—'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Fecha de Nacimiento</p>
-                <p className="font-medium">
-                  {patient.identificacion?.dateOfBirth 
-                    ? formatearFecha(patient.identificacion.dateOfBirth) 
-                    : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Lateralidad</p>
-                <p className="font-medium">{patient.clinico?.laterality || '—'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Edad</p>
-                <p className="font-medium">{edad !== null ? `${edad} años` : '—'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Nivel de Dolor (0–10)</p>
-                <p className="font-medium">
-                  {patient.clinico?.painLevel !== undefined ? `${patient.clinico.painLevel}/10` : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Motivo Principal</p>
-                <p className="font-medium">{patient.clinico?.mainReason || '—'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Banderas Rojas</p>
-                <p className="font-medium text-xs">{banderasRojas}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Restricciones</p>
-                <p className="font-medium text-xs">{restricciones}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Separator className="my-4" />
-
-        {/* Subtítulo Evolución */}
-        <div className="mb-3">
-          <h3 className="text-base font-semibold">Evolución del Día</h3>
-        </div>
 
         <ClinicalHistoryBlock
           patient={patient}
@@ -340,15 +201,6 @@ export const ClinicalHistoryDialog = ({
           <Button onClick={handleSave}>Guardar cambios</Button>
         </DialogFooter>
       </DialogContent>
-
-      {/* Modal Clínico del paciente */}
-      {patient.id && (
-        <PatientClinicoModal
-          open={clinicoOpen}
-          onOpenChange={setClinicoOpen}
-          patient={patient}
-        />
-      )}
     </Dialog>
   );
 };

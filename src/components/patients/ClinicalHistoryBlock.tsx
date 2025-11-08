@@ -266,8 +266,8 @@ export const ClinicalHistoryBlock = ({
           })}
 
           {datesWithAppointments.length === 0 && (
-            <p className="text-muted-foreground text-center py-4">
-              No hay citas registradas aún
+            <p className="text-foreground text-center py-4">
+              No se ha creado Historial clínico
             </p>
           )}
         </CardContent>
