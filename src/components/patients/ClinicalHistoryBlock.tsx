@@ -19,6 +19,7 @@ interface ClinicalHistoryBlockProps {
   currentUserId: string;
   currentUserName: string;
   currentUserRole: 'admin' | 'recep' | 'kinesio';
+  tempPrefill: any;
   onHistoryChange: (entries: EvolutionEntry[]) => void;
   onPatientChange: (patient: Patient) => void;
   testCurrentDate?: string;
@@ -30,6 +31,7 @@ export const ClinicalHistoryBlock = ({
   currentUserId,
   currentUserName,
   currentUserRole,
+  tempPrefill,
   onHistoryChange,
   onPatientChange,
   testCurrentDate,
@@ -282,6 +284,7 @@ export const ClinicalHistoryBlock = ({
             if (!open) setEditingSnapshotDate(null);
           }}
           patient={patient}
+          tempPrefill={tempPrefill}
         />
       )}
     </>

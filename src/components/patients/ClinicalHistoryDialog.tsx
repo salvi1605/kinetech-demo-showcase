@@ -6,7 +6,8 @@ import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { ensureTodayStubs } from '@/lib/historyStubs';
 import type { EvolutionEntry } from '@/types/patient';
-import { getTodayISO, getLatestSummaryBefore, upsertSummaryFor, hasAppointmentOn, getSummaryByDate } from '@/lib/clinicalSummaryHelpers';
+import type { ClinicalSummaryDay } from '@/contexts/AppContext';
+import { getTodayISO, getLatestSummaryBefore } from '@/lib/clinicalSummaryHelpers';
 
 
 interface ClinicalHistoryDialogProps {
@@ -23,16 +24,11 @@ export const ClinicalHistoryDialog = ({
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [pendingHistory, setPendingHistory] = useState<EvolutionEntry[]>([]);
+  const [tempPrefill, setTempPrefill] = useState<ClinicalSummaryDay['clinicalData'] | null>(null);
 
-  // Process patient history: cleanup orphans + create stubs for current day + prefill snapshot
+  // Process patient history: cleanup orphans + create stubs for current day
   const processPatientHistory = useCallback(() => {
     if (!patient.id) return;
-    
-    const today = getTodayISO(state.testCurrentDate);
-    
-    console.log('[ClinicalHistoryDialog] Procesando historia para fecha:', today);
-    console.log('[ClinicalHistoryDialog] Appointments en estado:', state.appointments.length);
-    console.log('[ClinicalHistoryDialog] Historia actual:', patient.clinico?.historyByAppointment?.length || 0, 'entradas');
     
     const patientCopy = { ...patient };
     
@@ -56,90 +52,60 @@ export const ClinicalHistoryDialog = ({
     // 2️⃣ AGREGAR stubs para citas del día (según Time Travel)
     ensureTodayStubs(patientCopy, state.appointments, state.currentUserId, state.testCurrentDate);
     
-    // 3️⃣ PREFILL snapshot del día actual si tiene citas y no existe
-    const hasTodayAppointment = hasAppointmentOn(state.appointments, patient.id, today);
-    const todaySummary = getSummaryByDate(patientCopy, today);
-    
-    if (hasTodayAppointment && !todaySummary) {
-      console.log('[ClinicalHistoryDialog] Hoy tiene citas pero no snapshot, creando prefill...');
-      
-      const lastSummary = getLatestSummaryBefore(patientCopy, today);
-      
-      if (lastSummary) {
-        console.log('[ClinicalHistoryDialog] Prefill desde snapshot previo:', lastSummary.date);
-        const prefillPatient = upsertSummaryFor(
-          patientCopy,
-          today,
-          lastSummary.clinicalData,
-          state.currentUserId
-        );
-        Object.assign(patientCopy, prefillPatient);
-        
-        console.log('[Analytics] summary_prefilled_from_previous', {
-          patientId: patient.id,
-          fromDate: lastSummary.date,
-          toDate: today,
-        });
-      } else {
-        // Si no hay snapshot previo, crear uno vacío
-        console.log('[ClinicalHistoryDialog] No hay snapshot previo, creando vacío');
-        const emptyPatient = upsertSummaryFor(
-          patientCopy,
-          today,
-          {
-            mainReason: '',
-            diagnosis: '',
-            laterality: '',
-            painLevel: 0,
-            redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
-            redFlagsDetail: { alergias: '' },
-            restricciones: { noMagnetoterapia: false, noElectroterapia: false },
-          },
-          state.currentUserId
-        );
-        Object.assign(patientCopy, emptyPatient);
-      }
-    }
-    
     // Si hubo cambios, actualizar
     const oldLength = patient.clinico?.historyByAppointment?.length || 0;
     const newLength = patientCopy.clinico?.historyByAppointment?.length || 0;
-    const oldSummariesLength = patient.history?.clinicalSummaries?.length || 0;
-    const newSummariesLength = patientCopy.history?.clinicalSummaries?.length || 0;
     
-    console.log('[ClinicalHistoryDialog] Después de procesamiento - evolutions:', oldLength, '->', newLength);
-    console.log('[ClinicalHistoryDialog] Después de procesamiento - snapshots:', oldSummariesLength, '->', newSummariesLength);
-    
-    if (newLength !== oldLength || newSummariesLength !== oldSummariesLength) {
-      console.log('[ClinicalHistoryDialog] Actualizando paciente con cambios');
+    if (newLength !== oldLength) {
+      console.log('[ClinicalHistoryDialog] Actualizando paciente con cambios en stubs');
       dispatch({
         type: 'UPDATE_PATIENT',
         payload: {
           id: patient.id,
           updates: {
             clinico: patientCopy.clinico,
-            history: patientCopy.history,
           },
         },
       });
     }
   }, [patient, state.appointments, state.currentUserId, state.testCurrentDate, dispatch]);
 
-  // Process history when modal opens
+  // Process history when modal opens and calculate temp prefill
   useEffect(() => {
     if (open) {
       console.log('[ClinicalHistoryDialog] Modal abierto para paciente:', patient.id);
       processPatientHistory();
+      
+      // Calcular prefill temporal solo para el día actual si no existe snapshot
+      const today = getTodayISO(state.testCurrentDate);
+      const lastSummary = getLatestSummaryBefore(patient, today);
+      
+      if (lastSummary) {
+        console.log('[ClinicalHistoryDialog] Prefill temporal desde snapshot previo:', lastSummary.date);
+        setTempPrefill(lastSummary.clinicalData);
+      } else {
+        setTempPrefill(null);
+      }
     }
-  }, [open, patient.id, processPatientHistory]);
+  }, [open, patient.id, patient, state.testCurrentDate, processPatientHistory]);
 
   // Re-process history when Time Travel date changes (only if modal is open)
   useEffect(() => {
     if (open) {
       console.log('[ClinicalHistoryDialog] Time Travel cambió, reprocesando historia');
       processPatientHistory();
+      
+      // Recalcular prefill temporal
+      const today = getTodayISO(state.testCurrentDate);
+      const lastSummary = getLatestSummaryBefore(patient, today);
+      
+      if (lastSummary) {
+        setTempPrefill(lastSummary.clinicalData);
+      } else {
+        setTempPrefill(null);
+      }
     }
-  }, [state.testCurrentDate, open, processPatientHistory]);
+  }, [state.testCurrentDate, open, patient, processPatientHistory]);
 
   const handleHistoryChange = useCallback((entries: EvolutionEntry[]) => {
     setPendingHistory(entries);
@@ -180,6 +146,7 @@ export const ClinicalHistoryDialog = ({
           currentUserId={state.currentUserId}
           currentUserName={state.currentUserName}
           currentUserRole={state.userRole || 'kinesio'}
+          tempPrefill={tempPrefill}
           onHistoryChange={handleHistoryChange}
           onPatientChange={(updatedPatient) => {
             dispatch({

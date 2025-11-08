@@ -16,9 +16,18 @@ interface PatientClinicoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient;
+  tempPrefill?: {
+    mainReason: string;
+    diagnosis: string;
+    laterality: string;
+    painLevel: number;
+    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean };
+    redFlagsDetail: { alergias: string };
+    restricciones: { noMagnetoterapia: boolean; noElectroterapia: boolean };
+  } | null;
 }
 
-export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClinicoModalProps) => {
+export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }: PatientClinicoModalProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
 
@@ -32,10 +41,13 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
     restricciones: { noMagnetoterapia: false, noElectroterapia: false },
   });
 
+  const [initialForm, setInitialForm] = useState(form);
+
   // Load patient data when modal opens
   useEffect(() => {
-    if (open && patient?.clinico) {
-      setForm({
+    if (open) {
+      // Prioridad: 1) patient.clinico, 2) tempPrefill, 3) vacío
+      const dataToLoad = patient?.clinico ? {
         mainReason: patient.clinico.mainReason || '',
         diagnosis: patient.clinico.diagnosis || '',
         laterality: patient.clinico.laterality || '',
@@ -43,11 +55,50 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
         redFlags: patient.clinico.redFlags || { embarazo: false, cancer: false, marcapasos: false, alergias: false },
         redFlagsDetail: patient.clinico.redFlagsDetail || { alergias: '' },
         restricciones: patient.clinico.restricciones || { noMagnetoterapia: false, noElectroterapia: false },
-      });
+      } : tempPrefill ? {
+        mainReason: tempPrefill.mainReason || '',
+        diagnosis: tempPrefill.diagnosis || '',
+        laterality: tempPrefill.laterality || '',
+        painLevel: tempPrefill.painLevel || 0,
+        redFlags: tempPrefill.redFlags || { embarazo: false, cancer: false, marcapasos: false, alergias: false },
+        redFlagsDetail: tempPrefill.redFlagsDetail || { alergias: '' },
+        restricciones: tempPrefill.restricciones || { noMagnetoterapia: false, noElectroterapia: false },
+      } : {
+        mainReason: '',
+        diagnosis: '',
+        laterality: '',
+        painLevel: 0,
+        redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
+        redFlagsDetail: { alergias: '' },
+        restricciones: { noMagnetoterapia: false, noElectroterapia: false },
+      };
+      
+      setForm(dataToLoad);
+      setInitialForm(dataToLoad);
     }
-  }, [open, patient]);
+  }, [open, patient, tempPrefill]);
 
   const handleSave = useCallback(() => {
+    // Detectar si hubo cambios reales
+    const hasChanges = 
+      form.mainReason !== initialForm.mainReason ||
+      form.diagnosis !== initialForm.diagnosis ||
+      form.laterality !== initialForm.laterality ||
+      form.painLevel !== initialForm.painLevel ||
+      JSON.stringify(form.redFlags) !== JSON.stringify(initialForm.redFlags) ||
+      JSON.stringify(form.redFlagsDetail) !== JSON.stringify(initialForm.redFlagsDetail) ||
+      JSON.stringify(form.restricciones) !== JSON.stringify(initialForm.restricciones);
+
+    if (!hasChanges) {
+      console.log('[PatientClinicoModal] Sin cambios detectados, no se guarda snapshot');
+      toast({
+        title: 'Sin cambios',
+        description: 'No se detectaron cambios en el resumen clínico.',
+      });
+      onOpenChange(false);
+      return;
+    }
+
     const today = getTodayISO(state.testCurrentDate);
 
     // Preparar datos clínicos
@@ -63,6 +114,8 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
 
     // Crear/actualizar snapshot para hoy
     const updatedPatient = upsertSummaryFor(patient, today, clinicalData, state.currentUserId);
+
+    console.log('[PatientClinicoModal] Guardando snapshot editado manualmente para:', today);
 
     // Dispatch update con clinico y history
     dispatch({
@@ -91,7 +144,7 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient }: PatientClin
     });
 
     onOpenChange(false);
-  }, [state.testCurrentDate, state.currentUserId, patient, form, dispatch, toast, onOpenChange]);
+  }, [state.testCurrentDate, state.currentUserId, patient, form, initialForm, dispatch, toast, onOpenChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
