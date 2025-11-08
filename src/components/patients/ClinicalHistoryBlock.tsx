@@ -142,6 +142,27 @@ export const ClinicalHistoryBlock = ({
   // Recepcionista no ve el bloque de resumen
   const showSummaries = currentUserRole !== 'recep';
 
+  // Default clinical data cuando no hay tempPrefill
+  const defaultClinicalData = {
+    motivoConsulta: '',
+    diagnostico: '',
+    lateralidad: '',
+    dolorActual: 0,
+    banderasRojas: {
+      traumatismo: false,
+      fiebre: false,
+      perdidaPeso: false,
+      incontinencia: false,
+      alergia: '',
+    },
+    restricciones: {
+      cardiovascular: false,
+      respiratoria: false,
+      neurologica: false,
+      otras: '',
+    },
+  };
+
   const canEditSnapshot = (date: string): boolean => {
     if (currentUserRole === 'admin') return true;
     if (currentUserRole === 'kinesio') return date === today;
@@ -209,20 +230,20 @@ export const ClinicalHistoryBlock = ({
                   // Determinar qué snapshot mostrar
                   let snapshotToShow = snapshot;
                   
-                  // Para el día actual, si no hay snapshot guardado, usar tempPrefill
-                  if (isToday && !snapshot && tempPrefill) {
+                  // Para el día actual, si no hay snapshot guardado, usar tempPrefill o defaultClinicalData
+                  if (isToday && !snapshot) {
                     snapshotToShow = {
                       date: today,
-                      clinicalData: tempPrefill,
+                      clinicalData: tempPrefill ?? defaultClinicalData,
                       authorId: currentUserId,
                       updatedAt: new Date().toISOString(),
                     };
                   }
                   
                   // Mostrar snapshot si:
-                  // - Es el día actual (siempre, con snapshot guardado o tempPrefill)
+                  // - Es el día actual (siempre)
                   // - Es un día pasado Y existe snapshot guardado
-                  const shouldShowSnapshot = showSummaries && ((isToday && snapshotToShow) || (!isToday && snapshot));
+                  const shouldShowSnapshot = showSummaries && (isToday || !!snapshot);
                   
                   return shouldShowSnapshot && snapshotToShow ? (
                     <ClinicalSnapshotBlock
