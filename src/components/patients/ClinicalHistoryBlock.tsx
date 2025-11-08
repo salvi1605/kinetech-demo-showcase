@@ -204,18 +204,38 @@ export const ClinicalHistoryBlock = ({
                   {formatDateHeader(date)}
                 </h3>
 
-                {/* Clinical Snapshot (only for admin and kinesio, and only if exists) */}
-                {showSummaries && snapshot && (
-                  <ClinicalSnapshotBlock
-                    date={date}
-                    snapshot={snapshot}
-                    isToday={isToday}
-                    canEdit={canEditSnapshot(date)}
-                    canDelete={canDeleteSnapshot}
-                    onEdit={() => handleEditSnapshot(date)}
-                    onDelete={() => handleDeleteSnapshot(date)}
-                  />
-                )}
+                {/* Clinical Snapshot */}
+                {(() => {
+                  // Determinar qué snapshot mostrar
+                  let snapshotToShow = snapshot;
+                  
+                  // Para el día actual, si no hay snapshot guardado, usar tempPrefill
+                  if (isToday && !snapshot && tempPrefill) {
+                    snapshotToShow = {
+                      date: today,
+                      clinicalData: tempPrefill,
+                      authorId: currentUserId,
+                      updatedAt: new Date().toISOString(),
+                    };
+                  }
+                  
+                  // Mostrar snapshot si:
+                  // - Es el día actual (siempre, con snapshot guardado o tempPrefill)
+                  // - Es un día pasado Y existe snapshot guardado
+                  const shouldShowSnapshot = showSummaries && ((isToday && snapshotToShow) || (!isToday && snapshot));
+                  
+                  return shouldShowSnapshot && snapshotToShow ? (
+                    <ClinicalSnapshotBlock
+                      date={date}
+                      snapshot={snapshotToShow}
+                      isToday={isToday}
+                      canEdit={canEditSnapshot(date)}
+                      canDelete={canDeleteSnapshot}
+                      onEdit={() => handleEditSnapshot(date)}
+                      onDelete={() => handleDeleteSnapshot(date)}
+                    />
+                  ) : null;
+                })()}
 
                 {/* Evolution entries for this date */}
                 <div className="space-y-3">
