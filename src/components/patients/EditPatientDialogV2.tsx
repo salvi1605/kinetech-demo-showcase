@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, User, Phone, Stethoscope, CreditCard, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, User, Phone, CreditCard, LifeBuoy, ShieldCheck } from 'lucide-react';
 import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
+
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Patient } from '@/contexts/AppContext';
@@ -31,13 +31,12 @@ interface EditPatientDialogV2Props {
   patient?: Patient | null;
 }
 
-const sections = ['identificacion', 'emergencia', 'clinico', 'seguro'] as const;
+const sections = ['identificacion', 'emergencia', 'seguro'] as const;
 type Section = typeof sections[number];
 
 const sectionConfig = [
   { key: 'identificacion' as Section, label: 'Identificación', Icon: User },
   { key: 'emergencia' as Section, label: 'Emergencia', Icon: LifeBuoy },
-  { key: 'clinico' as Section, label: 'Clínico', Icon: Stethoscope },
   { key: 'seguro' as Section, label: 'Seguro', Icon: ShieldCheck },
 ];
 
@@ -59,15 +58,6 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       contactName: '',
       relationship: '',
       emergencyPhone: '',
-    },
-    clinico: {
-      mainReason: '',
-      diagnosis: '',
-      laterality: '',
-      painLevel: 0,
-      redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
-      redFlagsDetail: { alergias: '' },
-      restricciones: { noMagnetoterapia: false, noElectroterapia: false },
     },
     seguro: {
       obraSocial: '',
@@ -135,7 +125,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
   const validateExceptSeguro = (): { ok: boolean; errors: Record<string, string> } => {
     let allErrors: Record<string, string> = {};
     
-    for (const sec of ['identificacion', 'emergencia', 'clinico'] as Section[]) {
+    for (const sec of ['identificacion', 'emergencia'] as Section[]) {
       const { ok, errors } = validateSection(sec);
       if (!ok) {
         allErrors = { ...allErrors, ...errors };
@@ -176,6 +166,11 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
 
     const normalizedForm = normalizePatientForm(form);
     const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
+    
+    // Preservar clinico del paciente original si existe (no se edita en este formulario)
+    if (patient.clinico) {
+      updatedPatient.clinico = patient.clinico;
+    }
 
     dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
     toast({
@@ -211,6 +206,11 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
 
     const normalizedForm = normalizePatientForm(form);
     const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
+    
+    // Preservar clinico del paciente original si existe (no se edita en este formulario)
+    if (patient.clinico) {
+      updatedPatient.clinico = patient.clinico;
+    }
 
     dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
     toast({
@@ -333,170 +333,6 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
                 />
                 {errors.emergencyPhone && <p className="text-sm text-destructive mt-1">{errors.emergencyPhone}</p>}
               </div>
-            </div>
-          </div>
-        );
-
-      case 'clinico':
-        return (
-          <div className="space-y-6" data-step-content>
-            {/* Header con botón Historial */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Información Clínica</h3>
-              <PatientHistoryButton patient={patient} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Label htmlFor="mainReason">Motivo Principal</Label>
-                <Textarea
-                  id="mainReason"
-                  value={form.clinico.mainReason}
-                  onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, mainReason: e.target.value } }))}
-                  placeholder="Descripción del problema principal"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="diagnosis">Diagnóstico</Label>
-                <Input
-                  id="diagnosis"
-                  value={form.clinico.diagnosis}
-                  onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, diagnosis: e.target.value } }))}
-                  placeholder="Diagnóstico médico"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="laterality">Lateralidad</Label>
-                <Select
-                  value={form.clinico.laterality}
-                  onValueChange={(value) => setForm(f => ({ ...f, clinico: { ...f.clinico, laterality: value as Lateralidad } }))}
-                >
-                  <SelectTrigger id="laterality" className={!form.clinico.laterality ? 'text-muted-foreground italic' : ''}>
-                    <SelectValue placeholder="Seleccione lateralidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Derecha">Derecha</SelectItem>
-                    <SelectItem value="Izquierda">Izquierda</SelectItem>
-                    <SelectItem value="Bilateral">Bilateral</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Nivel de dolor (0-10)</Label>
-              <div className="px-4 py-6">
-                <Slider
-                  value={[form.clinico.painLevel]}
-                  onValueChange={(value) => setForm(f => ({ ...f, clinico: { ...f.clinico, painLevel: value[0] } }))}
-                  max={10}
-                  min={0}
-                  step={1}
-                />
-                <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                  <span>0 (sin dolor)</span>
-                  <span className="font-medium">{form.clinico.painLevel}</span>
-                  <span>10 (Dolor Máximo)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <fieldset>
-                <legend className="text-sm font-medium mb-3">Banderas Rojas</legend>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="embarazo"
-                      checked={form.clinico.redFlags.embarazo}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, embarazo: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="embarazo" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Embarazo
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="cancer"
-                      checked={form.clinico.redFlags.cancer}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, cancer: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="cancer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Cáncer
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="marcapasos-edit"
-                      checked={form.clinico.redFlags.marcapasos}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, marcapasos: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="marcapasos-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Marcapasos
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="alergias-edit"
-                      checked={form.clinico.redFlags.alergias}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, alergias: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="alergias-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-shrink-0">
-                      Alergias
-                    </label>
-                    <Input
-                      id="alergias-detail-edit"
-                      value={form.clinico.redFlagsDetail.alergias}
-                      onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, redFlagsDetail: { ...f.clinico.redFlagsDetail, alergias: e.target.value.slice(0, 120) } } }))}
-                      placeholder="Tipo de alergia"
-                      disabled={!form.clinico.redFlags.alergias}
-                      maxLength={120}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </fieldset>
-              
-              <fieldset>
-                <legend className="text-sm font-medium mb-3">Restricciones</legend>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="noMagnetoterapia-edit"
-                      checked={form.clinico.restricciones.noMagnetoterapia}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, restricciones: { ...f.clinico.restricciones, noMagnetoterapia: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="noMagnetoterapia-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      No Magnetoterapia
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="noElectroterapia-edit"
-                      checked={form.clinico.restricciones.noElectroterapia}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, restricciones: { ...f.clinico.restricciones, noElectroterapia: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="noElectroterapia-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      No Electroterapia
-                    </label>
-                  </div>
-                </div>
-              </fieldset>
             </div>
           </div>
         );

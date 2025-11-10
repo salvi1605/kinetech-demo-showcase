@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, Stethoscope, CreditCard, FileCheck, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
 import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
 import { format } from 'date-fns';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useApp } from '@/contexts/AppContext';
@@ -32,7 +32,6 @@ export const PatientDetailTabs = () => {
   const { toast } = useToast();
   const [showWizard, setShowWizard] = useState(false);
   const [editingData, setEditingData] = useState(false);
-  const [editingClinical, setEditingClinical] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState(false);
   const [showUploadDocument, setShowUploadDocument] = useState(false);
 
@@ -118,7 +117,6 @@ export const PatientDetailTabs = () => {
     
     // Reset editing state
     setEditingData(false);
-    setEditingClinical(false);
     setEditingInsurance(false);
   };
 
@@ -188,7 +186,7 @@ export const PatientDetailTabs = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="resumen" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
           <TabsTrigger value="resumen" className="gap-2">
             <FileText className="h-4 w-4" />
             Resumen
@@ -196,10 +194,6 @@ export const PatientDetailTabs = () => {
           <TabsTrigger value="datos" className="gap-2">
             <User className="h-4 w-4" />
             Datos
-          </TabsTrigger>
-          <TabsTrigger value="clinico" className="gap-2">
-            <Stethoscope className="h-4 w-4" />
-            Clínico
           </TabsTrigger>
           <TabsTrigger value="seguro" className="gap-2">
             <CreditCard className="h-4 w-4" />
@@ -384,209 +378,6 @@ export const PatientDetailTabs = () => {
                     />
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Clínico Tab */}
-        <TabsContent value="clinico" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Información Clínica</CardTitle>
-                {!isReadOnly('clinical') && (
-                  <Button
-                    variant={editingClinical ? "default" : "outline"}
-                    onClick={() => editingClinical ? handleSave('información clínica') : setEditingClinical(true)}
-                  >
-                    {editingClinical ? 'Guardar' : 'Editar'}
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label>Motivo Principal</Label>
-                <Textarea
-                  value={patient.clinico?.mainReason || ''}
-                  onChange={(e) => handleFieldUpdate('clinico', { ...patient.clinico, mainReason: e.target.value })}
-                  placeholder="Descripción del problema..."
-                  disabled={!editingClinical}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Diagnóstico</Label>
-                  <Input
-                    value={patient.clinico?.diagnosis || ''}
-                    onChange={(e) => handleFieldUpdate('clinico', { ...patient.clinico, diagnosis: e.target.value })}
-                    placeholder="Diagnóstico médico"
-                    disabled={!editingClinical}
-                  />
-                </div>
-                <div>
-                  <Label>Lateralidad</Label>
-                  <Select
-                    value={patient.clinico?.laterality || ''}
-                    onValueChange={(value) => handleFieldUpdate('clinico', { ...patient.clinico, laterality: value })}
-                    disabled={!editingClinical}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione lateralidad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Derecha">Derecha</SelectItem>
-                      <SelectItem value="Izquierda">Izquierda</SelectItem>
-                      <SelectItem value="Bilateral">Bilateral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Nivel de Dolor (0-10)</Label>
-                <div className="px-4 py-6">
-                  <Slider
-                    value={[patient.clinico?.painLevel || 0]}
-                    onValueChange={(value) => handleFieldUpdate('clinico', { ...patient.clinico, painLevel: value[0] })}
-                    max={10}
-                    min={0}
-                    step={1}
-                    disabled={!editingClinical}
-                  />
-                  <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                    <span>0 (Sin dolor)</span>
-                    <span className="font-medium">{patient.clinico?.painLevel || 0}</span>
-                    <span>10 (Dolor máximo)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <fieldset>
-                  <legend className="text-sm font-medium mb-3">Banderas Rojas</legend>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="embarazo-tabs"
-                        checked={patient.clinico?.redFlags?.embarazo || false}
-                        onCheckedChange={(checked) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            redFlags: { ...patient.clinico?.redFlags, embarazo: !!checked }
-                          })
-                        }
-                        disabled={!editingClinical}
-                      />
-                      <label htmlFor="embarazo-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Embarazo
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="cancer-tabs"
-                        checked={patient.clinico?.redFlags?.cancer || false}
-                        onCheckedChange={(checked) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            redFlags: { ...patient.clinico?.redFlags, cancer: !!checked }
-                          })
-                        }
-                        disabled={!editingClinical}
-                      />
-                      <label htmlFor="cancer-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Cáncer
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="marcapasos-tabs"
-                        checked={patient.clinico?.redFlags?.marcapasos || false}
-                        onCheckedChange={(checked) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            redFlags: { ...patient.clinico?.redFlags, marcapasos: !!checked }
-                          })
-                        }
-                        disabled={!editingClinical}
-                      />
-                      <label htmlFor="marcapasos-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Marcapasos
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="alergias-tabs"
-                        checked={patient.clinico?.redFlags?.alergias || false}
-                        onCheckedChange={(checked) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            redFlags: { ...patient.clinico?.redFlags, alergias: !!checked }
-                          })
-                        }
-                        disabled={!editingClinical}
-                      />
-                      <label htmlFor="alergias-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-shrink-0">
-                        Alergias
-                      </label>
-                      <Input
-                        id="alergias-detail-tabs"
-                        value={patient.clinico?.redFlagsDetail?.alergias || ''}
-                        onChange={(e) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            redFlagsDetail: { ...patient.clinico?.redFlagsDetail, alergias: e.target.value.slice(0, 120) }
-                          })
-                        }
-                        placeholder="Tipo de alergia"
-                        disabled={!editingClinical || !patient.clinico?.redFlags?.alergias}
-                        maxLength={120}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </fieldset>
-                
-                <fieldset>
-                  <legend className="text-sm font-medium mb-3">Restricciones</legend>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="noMagnetoterapia-tabs"
-                        checked={patient.clinico?.restricciones?.noMagnetoterapia || false}
-                        onCheckedChange={(checked) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            restricciones: { ...patient.clinico?.restricciones, noMagnetoterapia: !!checked }
-                          })
-                        }
-                        disabled={!editingClinical}
-                      />
-                      <label htmlFor="noMagnetoterapia-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        No Magnetoterapia
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="noElectroterapia-tabs"
-                        checked={patient.clinico?.restricciones?.noElectroterapia || false}
-                        onCheckedChange={(checked) =>
-                          handleFieldUpdate('clinico', {
-                            ...patient.clinico,
-                            restricciones: { ...patient.clinico?.restricciones, noElectroterapia: !!checked }
-                          })
-                        }
-                        disabled={!editingClinical}
-                      />
-                      <label htmlFor="noElectroterapia-tabs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        No Electroterapia
-                      </label>
-                    </div>
-                  </div>
-                </fieldset>
               </div>
             </CardContent>
           </Card>

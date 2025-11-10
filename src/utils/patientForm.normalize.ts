@@ -18,7 +18,7 @@ export type PatientForm = {
     relationship: string;
     emergencyPhone: string;
   };
-  clinico: {
+  clinico?: {
     mainReason: string;
     diagnosis: string;
     laterality: Lateralidad;
@@ -38,51 +38,59 @@ export type PatientForm = {
 };
 
 // Normalizar el formulario asegurando valores por defecto
-export const normalizePatientForm = (f: PatientForm): PatientForm => ({
-  identificacion: {
-    fullName: f.identificacion?.fullName ?? '',
-    preferredName: f.identificacion?.preferredName ?? '',
-    documentId: f.identificacion?.documentId ?? '',
-    dateOfBirth: f.identificacion?.dateOfBirth ?? '',
-    mobilePhone: f.identificacion?.mobilePhone ?? '',
-    email: f.identificacion?.email ?? '',
-  },
-  emergencia: {
-    contactName: f.emergencia?.contactName ?? '',
-    relationship: f.emergencia?.relationship ?? '',
-    emergencyPhone: f.emergencia?.emergencyPhone ?? '',
-  },
-  clinico: {
-    mainReason: f.clinico?.mainReason ?? '',
-    diagnosis: f.clinico?.diagnosis ?? '',
-    laterality: f.clinico?.laterality ?? '',
-    painLevel: Number.isFinite(f.clinico?.painLevel) ? f.clinico.painLevel : 0,
-    redFlags: {
-      embarazo: !!f.clinico?.redFlags?.embarazo,
-      cancer: !!f.clinico?.redFlags?.cancer,
-      marcapasos: !!f.clinico?.redFlags?.marcapasos,
-      alergias: !!f.clinico?.redFlags?.alergias,
+export const normalizePatientForm = (f: PatientForm): PatientForm => {
+  const normalized: PatientForm = {
+    identificacion: {
+      fullName: f.identificacion?.fullName ?? '',
+      preferredName: f.identificacion?.preferredName ?? '',
+      documentId: f.identificacion?.documentId ?? '',
+      dateOfBirth: f.identificacion?.dateOfBirth ?? '',
+      mobilePhone: f.identificacion?.mobilePhone ?? '',
+      email: f.identificacion?.email ?? '',
     },
-    redFlagsDetail: {
-      alergias: f.clinico?.redFlagsDetail?.alergias ?? '',
+    emergencia: {
+      contactName: f.emergencia?.contactName ?? '',
+      relationship: f.emergencia?.relationship ?? '',
+      emergencyPhone: f.emergencia?.emergencyPhone ?? '',
     },
-    restricciones: {
-      noMagnetoterapia: !!f.clinico?.restricciones?.noMagnetoterapia,
-      noElectroterapia: !!f.clinico?.restricciones?.noElectroterapia,
-    },
-  },
-  seguro: {
-    obraSocial: f.seguro?.obraSocial ?? '',
-    numeroAfiliado: f.seguro?.numeroAfiliado ?? '',
-    sesionesAutorizadas: typeof f.seguro?.sesionesAutorizadas === 'number' ? f.seguro.sesionesAutorizadas : undefined,
-    copago: typeof f.seguro?.copago === 'number' ? f.seguro.copago : undefined,
-    contactAuth: {
-      whatsapp: !!f.seguro?.contactAuth?.whatsapp,
-      email: !!f.seguro?.contactAuth?.email,
-    },
-    reminderPref: f.seguro?.reminderPref ?? 'none',
+    seguro: {
+      obraSocial: f.seguro?.obraSocial ?? '',
+      numeroAfiliado: f.seguro?.numeroAfiliado ?? '',
+      sesionesAutorizadas: typeof f.seguro?.sesionesAutorizadas === 'number' ? f.seguro.sesionesAutorizadas : undefined,
+      copago: typeof f.seguro?.copago === 'number' ? f.seguro.copago : undefined,
+      contactAuth: {
+        whatsapp: !!f.seguro?.contactAuth?.whatsapp,
+        email: !!f.seguro?.contactAuth?.email,
+      },
+      reminderPref: f.seguro?.reminderPref ?? 'none',
+    }
+  };
+
+  // Solo incluir clinico si existe en el formulario
+  if (f.clinico) {
+    normalized.clinico = {
+      mainReason: f.clinico?.mainReason ?? '',
+      diagnosis: f.clinico?.diagnosis ?? '',
+      laterality: f.clinico?.laterality ?? '',
+      painLevel: Number.isFinite(f.clinico?.painLevel) ? f.clinico.painLevel : 0,
+      redFlags: {
+        embarazo: !!f.clinico?.redFlags?.embarazo,
+        cancer: !!f.clinico?.redFlags?.cancer,
+        marcapasos: !!f.clinico?.redFlags?.marcapasos,
+        alergias: !!f.clinico?.redFlags?.alergias,
+      },
+      redFlagsDetail: {
+        alergias: f.clinico?.redFlagsDetail?.alergias ?? '',
+      },
+      restricciones: {
+        noMagnetoterapia: !!f.clinico?.restricciones?.noMagnetoterapia,
+        noElectroterapia: !!f.clinico?.restricciones?.noElectroterapia,
+      },
+    };
   }
-});
+
+  return normalized;
+};
 
 // Convertir desde el paciente persistido a PatientForm (para Editar)
 export const toFormFromPatient = (p: any): PatientForm => {
@@ -146,23 +154,31 @@ export const toFormFromPatient = (p: any): PatientForm => {
 };
 
 // Convertir PatientForm a Patient para guardar
-export const toPatientFromForm = (id: string, form: PatientForm): any => ({
-  id,
-  name: form.identificacion.fullName,
-  email: form.identificacion.email || '',
-  phone: form.identificacion.mobilePhone,
-  birthDate: form.identificacion.dateOfBirth,
-  conditions: [
-    ...(form.clinico.redFlags?.embarazo ? ['Embarazo'] : []),
-    ...(form.clinico.redFlags?.cancer ? ['Cáncer'] : []),
-    ...(form.clinico.redFlags?.marcapasos ? ['Marcapasos'] : []),
-    ...(form.clinico.redFlags?.alergias && form.clinico.redFlagsDetail?.alergias ? [`Alergias: ${form.clinico.redFlagsDetail.alergias}`] : []),
-    ...(form.clinico.restricciones?.noMagnetoterapia ? ['No Magnetoterapia'] : []),
-    ...(form.clinico.restricciones?.noElectroterapia ? ['No Electroterapia'] : []),
-  ],
-  // Guardar el formulario completo en campos adicionales
-  identificacion: form.identificacion,
-  emergencia: form.emergencia,
-  clinico: form.clinico,
-  seguro: form.seguro,
-});
+export const toPatientFromForm = (id: string, form: PatientForm): any => {
+  const patient: any = {
+    id,
+    name: form.identificacion.fullName,
+    email: form.identificacion.email || '',
+    phone: form.identificacion.mobilePhone,
+    birthDate: form.identificacion.dateOfBirth,
+    conditions: [
+      ...(form.clinico?.redFlags?.embarazo ? ['Embarazo'] : []),
+      ...(form.clinico?.redFlags?.cancer ? ['Cáncer'] : []),
+      ...(form.clinico?.redFlags?.marcapasos ? ['Marcapasos'] : []),
+      ...(form.clinico?.redFlags?.alergias && form.clinico?.redFlagsDetail?.alergias ? [`Alergias: ${form.clinico.redFlagsDetail.alergias}`] : []),
+      ...(form.clinico?.restricciones?.noMagnetoterapia ? ['No Magnetoterapia'] : []),
+      ...(form.clinico?.restricciones?.noElectroterapia ? ['No Electroterapia'] : []),
+    ],
+    // Guardar el formulario completo en campos adicionales
+    identificacion: form.identificacion,
+    emergencia: form.emergencia,
+    seguro: form.seguro,
+  };
+
+  // Solo incluir clinico si existe en el formulario
+  if (form.clinico) {
+    patient.clinico = form.clinico;
+  }
+
+  return patient;
+};

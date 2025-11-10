@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, User, Phone, Stethoscope, CreditCard } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, User, Phone, CreditCard } from 'lucide-react';
 import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
+
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -32,8 +32,7 @@ interface NewPatientDialogV2Props {
 const steps = [
   { id: 1, title: 'Identificación', icon: User },
   { id: 2, title: 'Emergencia', icon: Phone },
-  { id: 3, title: 'Clínico', icon: Stethoscope },
-  { id: 4, title: 'Seguro', icon: CreditCard },
+  { id: 3, title: 'Seguro', icon: CreditCard },
 ];
 
 const obraSocialLabels: Record<Exclude<ObraSocial, ''>, string> = {
@@ -61,15 +60,6 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       relationship: '',
       emergencyPhone: '',
     },
-      clinico: {
-        mainReason: '',
-        diagnosis: '',
-        laterality: '',
-        painLevel: 0,
-        redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
-        redFlagsDetail: { alergias: '' },
-        restricciones: { noMagnetoterapia: false, noElectroterapia: false },
-      },
     seguro: {
       obraSocial: '',
       numeroAfiliado: '',
@@ -126,7 +116,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      if (currentStep < 4) {
+      if (currentStep < 3) {
         setCurrentStep(currentStep + 1);
         setTimeout(() => {
           const firstInput = document.querySelector('[data-step-content] input, [data-step-content] textarea, [data-step-content] button') as HTMLElement;
@@ -145,7 +135,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
   const handleSubmit = () => {
     // Validate all steps
     let allValid = true;
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 3; i++) {
       if (!validateStep(i)) {
         allValid = false;
         setCurrentStep(i);
@@ -180,15 +170,6 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
         contactName: '',
         relationship: '',
         emergencyPhone: '',
-      },
-      clinico: {
-        mainReason: '',
-        diagnosis: '',
-        laterality: '',
-        painLevel: 0,
-        redFlags: { embarazo: false, cancer: false, marcapasos: false, alergias: false },
-        redFlagsDetail: { alergias: '' },
-        restricciones: { noMagnetoterapia: false, noElectroterapia: false },
       },
       seguro: {
         obraSocial: '',
@@ -319,170 +300,6 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
         );
 
       case 3:
-        return (
-          <div className="space-y-6" data-step-content>
-            {/* Header con botón Historial */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Información Clínica</h3>
-              <PatientHistoryButton patient={undefined} disabled />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Label htmlFor="mainReason">Motivo Principal</Label>
-                <Textarea
-                  id="mainReason"
-                  value={form.clinico.mainReason}
-                  onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, mainReason: e.target.value } }))}
-                  placeholder="Descripción del problema principal"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="diagnosis">Diagnóstico</Label>
-                <Input
-                  id="diagnosis"
-                  value={form.clinico.diagnosis}
-                  onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, diagnosis: e.target.value } }))}
-                  placeholder="Diagnóstico médico"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="laterality">Lateralidad</Label>
-                <Select
-                  value={form.clinico.laterality}
-                  onValueChange={(value) => setForm(f => ({ ...f, clinico: { ...f.clinico, laterality: value as Lateralidad } }))}
-                >
-                  <SelectTrigger id="laterality" className={!form.clinico.laterality ? 'text-muted-foreground italic' : ''}>
-                    <SelectValue placeholder="Seleccione lateralidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Derecha">Derecha</SelectItem>
-                    <SelectItem value="Izquierda">Izquierda</SelectItem>
-                    <SelectItem value="Bilateral">Bilateral</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Nivel de dolor (0-10)</Label>
-              <div className="px-4 py-6">
-                <Slider
-                  value={[form.clinico.painLevel]}
-                  onValueChange={(value) => setForm(f => ({ ...f, clinico: { ...f.clinico, painLevel: value[0] } }))}
-                  max={10}
-                  min={0}
-                  step={1}
-                />
-                <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                  <span>0 (sin dolor)</span>
-                  <span className="font-medium">{form.clinico.painLevel}</span>
-                  <span>10 (Dolor Máximo)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <fieldset>
-                <legend className="text-sm font-medium mb-3">Banderas Rojas</legend>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="embarazo"
-                      checked={form.clinico.redFlags.embarazo}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, embarazo: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="embarazo" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Embarazo
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="cancer"
-                      checked={form.clinico.redFlags.cancer}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, cancer: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="cancer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Cáncer
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="marcapasos"
-                      checked={form.clinico.redFlags.marcapasos}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, marcapasos: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="marcapasos" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Marcapasos
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="alergias"
-                      checked={form.clinico.redFlags.alergias}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, redFlags: { ...f.clinico.redFlags, alergias: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="alergias" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-shrink-0">
-                      Alergias
-                    </label>
-                    <Input
-                      id="alergias-detail"
-                      value={form.clinico.redFlagsDetail.alergias}
-                      onChange={(e) => setForm(f => ({ ...f, clinico: { ...f.clinico, redFlagsDetail: { ...f.clinico.redFlagsDetail, alergias: e.target.value.slice(0, 120) } } }))}
-                      placeholder="Tipo de alergia"
-                      disabled={!form.clinico.redFlags.alergias}
-                      maxLength={120}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </fieldset>
-              
-              <fieldset>
-                <legend className="text-sm font-medium mb-3">Restricciones</legend>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="noMagnetoterapia"
-                      checked={form.clinico.restricciones.noMagnetoterapia}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, restricciones: { ...f.clinico.restricciones, noMagnetoterapia: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="noMagnetoterapia" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      No Magnetoterapia
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="noElectroterapia"
-                      checked={form.clinico.restricciones.noElectroterapia}
-                      onCheckedChange={(checked) =>
-                        setForm(f => ({ ...f, clinico: { ...f.clinico, restricciones: { ...f.clinico.restricciones, noElectroterapia: !!checked } } }))
-                      }
-                    />
-                    <label htmlFor="noElectroterapia" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      No Electroterapia
-                    </label>
-                  </div>
-                </div>
-              </fieldset>
-            </div>
-          </div>
-        );
-
-      case 4:
         return (
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
