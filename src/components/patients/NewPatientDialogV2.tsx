@@ -421,10 +421,11 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
         </DialogHeader>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-center gap-4 mb-8 px-4">
           {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
+            <div key={step.id} className="flex items-center">
+              {/* Contenedor del paso */}
+              <div className="flex flex-col items-center min-w-[100px]">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
                     currentStep >= step.id
@@ -434,11 +435,13 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
                 >
                   <step.icon className="h-5 w-5" />
                 </div>
-                <span className="text-xs mt-2 text-center hidden lg:block">{step.title}</span>
+                <span className="text-xs mt-2 text-center">{step.title}</span>
               </div>
+              
+              {/* Línea conectora entre pasos */}
               {index < steps.length - 1 && (
                 <div
-                  className={`h-[2px] flex-1 ${
+                  className={`h-[2px] w-16 mx-2 ${
                     currentStep > step.id ? 'bg-primary' : 'bg-muted'
                   }`}
                 />
