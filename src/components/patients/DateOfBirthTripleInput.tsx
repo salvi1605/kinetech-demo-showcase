@@ -100,21 +100,26 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     const value = e.target.value.replace(/\D/g, "").slice(0, 2);
     setDay(value);
     
-    // Auto-advance
+    // Auto-advance solo si ya tenemos 2 dígitos completos
     if (value.length === 2) {
-      monthRef.current?.focus();
+      // Usar setTimeout para asegurar que el estado se actualice primero
+      setTimeout(() => {
+        monthRef.current?.focus();
+      }, 0);
     }
   };
 
-  const handleDayBlur = () => {
-    if (day && day.length === 1 && parseInt(day) > 0) {
-      const padded = day.padStart(2, "0");
+  const handleDayBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = e.target.value; // Usar el valor del DOM directamente
+    
+    if (currentValue && currentValue.length === 1 && parseInt(currentValue) > 0) {
+      const padded = currentValue.padStart(2, "0");
       setDay(padded);
       validateAndEmit(padded, month, year);
-    } else if (day && day.length === 2) {
-      validateAndEmit(day, month, year);
+    } else if (currentValue && currentValue.length === 2) {
+      validateAndEmit(currentValue, month, year);
     } else {
-      validateAndEmit(day, month, year);
+      validateAndEmit(currentValue, month, year);
     }
   };
 
@@ -149,21 +154,25 @@ export function DateOfBirthTripleInput({ valueDOB, onChangeDOB, required, showEr
     const value = e.target.value.replace(/\D/g, "").slice(0, 2);
     setMonth(value);
     
-    // Auto-advance
+    // Auto-advance con setTimeout
     if (value.length === 2) {
-      yearRef.current?.focus();
+      setTimeout(() => {
+        yearRef.current?.focus();
+      }, 0);
     }
   };
 
-  const handleMonthBlur = () => {
-    if (month && month.length === 1 && parseInt(month) > 0) {
-      const padded = month.padStart(2, "0");
+  const handleMonthBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = e.target.value;
+    
+    if (currentValue && currentValue.length === 1 && parseInt(currentValue) > 0) {
+      const padded = currentValue.padStart(2, "0");
       setMonth(padded);
       validateAndEmit(day, padded, year);
-    } else if (month && month.length === 2) {
-      validateAndEmit(day, month, year);
+    } else if (currentValue && currentValue.length === 2) {
+      validateAndEmit(day, currentValue, year);
     } else {
-      validateAndEmit(day, month, year);
+      validateAndEmit(day, currentValue, year);
     }
   };
 
