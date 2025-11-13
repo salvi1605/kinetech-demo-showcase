@@ -12,10 +12,9 @@ export function hasExclusiveConflict(
   all: Appt[], 
   candidate: Appt
 ): { ok: boolean; conflict?: Appt } {
-  const isExclusive = TREATMENTS_EXCLUSIVOS.includes(candidate.treatmentType.toLowerCase() as any);
+  const candidateIsExclusive = TREATMENTS_EXCLUSIVOS.includes(candidate.treatmentType.toLowerCase() as any);
   
-  if (!isExclusive) return { ok: true };
-  
+  // Buscar si ya existe una cita en el mismo slot
   const match = all.find(a => 
     a.practitionerId === candidate.practitionerId &&
     a.date === candidate.date &&
@@ -23,5 +22,16 @@ export function hasExclusiveConflict(
     a.id !== candidate.id
   );
   
-  return match ? { ok: false, conflict: match } : { ok: true };
+  if (!match) return { ok: true };
+  
+  // Hay conflicto si:
+  // 1. La cita existente es exclusiva (Drenaje/Masaje)
+  // 2. O el candidato es exclusivo (Drenaje/Masaje)
+  const existingIsExclusive = TREATMENTS_EXCLUSIVOS.includes(match.treatmentType.toLowerCase() as any);
+  
+  if (existingIsExclusive || candidateIsExclusive) {
+    return { ok: false, conflict: match };
+  }
+  
+  return { ok: true };
 }
