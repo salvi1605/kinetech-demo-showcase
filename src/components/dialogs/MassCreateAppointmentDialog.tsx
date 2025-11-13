@@ -339,7 +339,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                 size="sm" 
                 onClick={handleCopySelected} 
                 disabled={selectedSlotKeys.length === 0}
-                className="bg-blue-700 hover:bg-blue-800 text-white font-bold flex items-center gap-1"
+                className="bg-blue-700 hover:bg-blue-800 text-white font-bold flex items-center gap-1 mr-8"
               >
                 <Copy className="h-4 w-4" />
                 Copiar Horarios
