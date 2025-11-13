@@ -421,7 +421,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 <Button 
                   size="sm" 
                   onClick={handleCopyAllPatientAppointments}
-                  className="bg-blue-700 hover:bg-blue-800 text-white font-bold flex items-center gap-1"
+                  className="flex items-center gap-1"
                 >
                   <Copy className="h-4 w-4" />
                   Copiar Horarios
