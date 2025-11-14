@@ -212,7 +212,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
               </div>
 
               <div>
-                <Label htmlFor="documentId">Documento/ID</Label>
+                <Label htmlFor="documentId">DNI/Pasaporte</Label>
                 <Input
                   id="documentId"
                   value={form.identificacion.documentId}

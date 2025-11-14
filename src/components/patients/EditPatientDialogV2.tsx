@@ -250,7 +250,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
               </div>
 
               <div>
-                <Label htmlFor="documentId">Documento/ID</Label>
+                <Label htmlFor="documentId">DNI/Pasaporte</Label>
                 <Input
                   id="documentId"
                   value={form.identificacion.documentId}
