@@ -79,6 +79,9 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       if (!form.identificacion.fullName.trim()) {
         newErrors.fullName = 'El nombre completo es requerido';
       }
+      if (!form.identificacion.documentId.trim()) {
+        newErrors.documentId = 'El DNI/Pasaporte es requerido';
+      }
       if (!form.identificacion.dateOfBirth) {
         newErrors.dateOfBirth = 'La fecha de nacimiento es requerida';
       }
