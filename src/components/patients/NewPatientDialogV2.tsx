@@ -91,12 +91,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
     }
 
     if (step === 2) {
-      if (!form.emergencia.contactName.trim()) {
-        newErrors.contactName = 'El nombre de contacto es requerido';
-      }
-      if (!form.emergencia.emergencyPhone.trim()) {
-        newErrors.emergencyPhone = 'El teléfono de emergencia es requerido';
-      }
+      // Los campos de emergencia ahora son opcionales
     }
 
     if (step === 4) {

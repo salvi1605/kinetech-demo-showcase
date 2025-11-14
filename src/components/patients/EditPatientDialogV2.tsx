@@ -100,12 +100,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     }
 
     if (sec === 'emergencia') {
-      if (!form.emergencia.contactName.trim()) {
-        newErrors.contactName = 'El nombre de contacto es requerido';
-      }
-      if (!form.emergencia.emergencyPhone.trim()) {
-        newErrors.emergencyPhone = 'El teléfono de emergencia es requerido';
-      }
+      // Los campos de emergencia ahora son opcionales
     }
 
     if (sec === 'seguro') {
