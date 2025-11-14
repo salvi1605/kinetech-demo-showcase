@@ -186,8 +186,8 @@ export const Patients = () => {
                         </Avatar>
                         <div>
                           <p className="font-medium">{patient.name}</p>
-                          {state.userRole !== 'kinesio' && (
-                            <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
+                          {state.userRole !== 'kinesio' && patient.identificacion?.documentId && (
+                            <p className="text-sm text-muted-foreground">{patient.identificacion.documentId}</p>
                           )}
                         </div>
                       </TableCell>
@@ -353,6 +353,9 @@ export const Patients = () => {
                       <div>
                         <CardTitle className="text-lg">{patient.name}</CardTitle>
                         <CardDescription>
+                          {state.userRole !== 'kinesio' && patient.identificacion?.documentId && (
+                            <span className="block">{patient.identificacion.documentId} • </span>
+                          )}
                           {calculateAge(patient.birthDate)} años
                         </CardDescription>
                       </div>
