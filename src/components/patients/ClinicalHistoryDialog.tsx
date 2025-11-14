@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
 import { useApp, Patient } from '@/contexts/AppContext';
@@ -8,6 +8,8 @@ import { ensureTodayStubs } from '@/lib/historyStubs';
 import type { EvolutionEntry } from '@/types/patient';
 import type { ClinicalSummaryDay } from '@/contexts/AppContext';
 import { getTodayISO, getLatestSummaryBefore } from '@/lib/clinicalSummaryHelpers';
+import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
+import { differenceInYears } from 'date-fns';
 
 
 interface ClinicalHistoryDialogProps {
@@ -133,11 +135,24 @@ export const ClinicalHistoryDialog = ({
     onOpenChange(false);
   };
 
+  const age = patient.birthDate 
+    ? differenceInYears(new Date(), parseSmartDOB(patient.birthDate))
+    : null;
+  
+  const birthDateFormatted = patient.birthDate 
+    ? formatDisplayDate(parseSmartDOB(patient.birthDate))
+    : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Historial del Paciente - {patient.name}</DialogTitle>
+          {age !== null && birthDateFormatted && (
+            <DialogDescription className="text-base">
+              {age} años • Nacimiento: {birthDateFormatted}
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <ClinicalHistoryBlock
