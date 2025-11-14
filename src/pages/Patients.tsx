@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil } from 'lucide-react';
+import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText } from 'lucide-react';
 import { parseSmartDOB } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +11,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '@/contexts/AppContext';
+import { useApp, Patient } from '@/contexts/AppContext';
 import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
+import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
+import { RoleGuard } from '@/components/shared/RoleGuard';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -30,6 +32,7 @@ export const Patients = () => {
   const [showWizard, setShowWizard] = useState(false);
   const [editingPatient, setEditingPatient] = useState<any>(null);
   const [deletePatient, setDeletePatient] = useState<any>(null);
+  const [historyPatient, setHistoryPatient] = useState<Patient | null>(null);
   const itemsPerPage = 10;
 
   const filteredPatients = state.patients.filter(patient => {
@@ -221,6 +224,25 @@ export const Patients = () => {
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <TooltipProvider>
                           <div className="flex items-center justify-end gap-1">
+                            <RoleGuard allowedRoles={['admin', 'kinesio']}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setHistoryPatient(patient);
+                                    }}
+                                  >
+                                    <ScrollText className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Historial del paciente</TooltipContent>
+                              </Tooltip>
+                            </RoleGuard>
+                            
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button 
@@ -530,6 +552,14 @@ export const Patients = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {historyPatient && (
+        <ClinicalHistoryDialog 
+          open={!!historyPatient}
+          onOpenChange={(open) => !open && setHistoryPatient(null)}
+          patient={historyPatient}
+        />
+      )}
     </div>
   );
 };
