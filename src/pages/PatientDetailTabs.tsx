@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
-import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
 import { format } from 'date-fns';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
@@ -147,7 +146,6 @@ export const PatientDetailTabs = () => {
           <p className="text-muted-foreground">Información completa y gestión</p>
         </div>
         <div className="flex gap-2">
-          <PatientHistoryButton patient={patient} />
           <Button onClick={() => setShowWizard(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Editar Paciente
