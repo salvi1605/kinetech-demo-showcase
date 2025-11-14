@@ -309,7 +309,7 @@ export const PatientDetailTabs = () => {
                   />
                 </div>
                 <div>
-                  <Label>Documento/ID</Label>
+                  <Label>DNI/Pasaporte</Label>
                   <Input
                     value={patient.identificacion?.documentId || ''}
                     onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, documentId: e.target.value })}
