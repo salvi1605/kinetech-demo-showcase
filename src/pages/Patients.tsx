@@ -111,12 +111,14 @@ export const Patients = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button onClick={handleNewPatient} className={cn("hidden lg:flex")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Paciente
-          </Button>
-        </div>
+        {state.userRole !== 'kinesio' && (
+          <div className="flex items-center gap-2">
+            <Button onClick={handleNewPatient} className={cn("hidden lg:flex")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Paciente
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -155,7 +157,7 @@ export const Patients = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Paciente</TableHead>
-                    <TableHead>Contacto</TableHead>
+                    {state.userRole !== 'kinesio' && <TableHead>Contacto</TableHead>}
                     <TableHead>Edad</TableHead>
                     <TableHead>Última Visita</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -165,16 +167,16 @@ export const Patients = () => {
                   {paginatedPatients.map((patient) => (
                     <TableRow 
                       key={patient.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => navigate(`/patients/${patient.id}`)}
-                      onKeyDown={(e) => {
+                      role={state.userRole !== 'kinesio' ? "button" : undefined}
+                      tabIndex={state.userRole !== 'kinesio' ? 0 : undefined}
+                      onClick={state.userRole !== 'kinesio' ? () => navigate(`/patients/${patient.id}`) : undefined}
+                      onKeyDown={state.userRole !== 'kinesio' ? (e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           navigate(`/patients/${patient.id}`);
                         }
-                      }}
-                      className="hover:bg-muted cursor-pointer"
+                      } : undefined}
+                      className={state.userRole !== 'kinesio' ? "hover:bg-muted cursor-pointer" : ""}
                     >
                       <TableCell className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -184,33 +186,37 @@ export const Patients = () => {
                         </Avatar>
                         <div>
                           <p className="font-medium">{patient.name}</p>
-                          <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
+                          {state.userRole !== 'kinesio' && (
+                            <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Mail className="h-3 w-3" />
-                            <a 
-                              href={`mailto:${patient.email}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="truncate max-w-[150px] hover:underline"
-                            >
-                              {patient.email}
-                            </a>
+                      {state.userRole !== 'kinesio' && (
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="h-3 w-3" />
+                              <a 
+                                href={`mailto:${patient.email}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="truncate max-w-[150px] hover:underline"
+                              >
+                                {patient.email}
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="h-3 w-3" />
+                              <a 
+                                href={`tel:${patient.phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:underline"
+                              >
+                                {patient.phone}
+                              </a>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-3 w-3" />
-                            <a 
-                              href={`tel:${patient.phone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="hover:underline"
-                            >
-                              {patient.phone}
-                            </a>
-                          </div>
-                        </div>
-                      </TableCell>
+                        </TableCell>
+                      )}
                       <TableCell>{calculateAge(patient.birthDate)} años</TableCell>
                       <TableCell>
                         {patient.lastVisit ? (
@@ -243,39 +249,43 @@ export const Patients = () => {
                               </Tooltip>
                             </RoleGuard>
                             
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-9 w-9"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(patient);
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Editar</TooltipContent>
-                            </Tooltip>
+                            <RoleGuard allowedRoles={['admin', 'recep']}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(patient);
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar</TooltipContent>
+                              </Tooltip>
+                            </RoleGuard>
                             
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-9 w-9"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletePatient(patient);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Eliminar</TooltipContent>
-                            </Tooltip>
+                            <RoleGuard allowedRoles={['admin', 'recep']}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletePatient(patient);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Eliminar</TooltipContent>
+                              </Tooltip>
+                            </RoleGuard>
                           </div>
                         </TooltipProvider>
                       </TableCell>
@@ -329,8 +339,8 @@ export const Patients = () => {
             paginatedPatients.map((patient) => (
               <Card 
                 key={patient.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/patients/${patient.id}`)}
+                className={state.userRole !== 'kinesio' ? "hover:shadow-md transition-shadow cursor-pointer" : "hover:shadow-md transition-shadow"}
+                onClick={state.userRole !== 'kinesio' ? () => navigate(`/patients/${patient.id}`) : undefined}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -348,50 +358,66 @@ export const Patients = () => {
                       </div>
                     </div>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => handleEdit(patient)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => setDeletePatient(patient)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <RoleGuard allowedRoles={['admin', 'kinesio']}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => setHistoryPatient(patient)}
+                        >
+                          <ScrollText className="h-4 w-4" />
+                        </Button>
+                      </RoleGuard>
+                      <RoleGuard allowedRoles={['admin', 'recep']}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => handleEdit(patient)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </RoleGuard>
+                      <RoleGuard allowedRoles={['admin', 'recep']}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => setDeletePatient(patient)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </RoleGuard>
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
                   {/* Contact Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      <a 
-                        href={`mailto:${patient.email}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="truncate hover:underline"
-                      >
-                        {patient.email}
-                      </a>
+                  {state.userRole !== 'kinesio' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <a 
+                          href={`mailto:${patient.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="truncate hover:underline"
+                        >
+                          {patient.email}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <a 
+                          href={`tel:${patient.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:underline"
+                        >
+                          {patient.phone}
+                        </a>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      <a 
-                        href={`tel:${patient.phone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="hover:underline"
-                      >
-                        {patient.phone}
-                      </a>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Last Visit / Next Appointment */}
                   <div className="space-y-2 text-sm">
@@ -507,7 +533,7 @@ export const Patients = () => {
       </div>
 
       {/* FAB for Mobile */}
-      {isMobile && (
+      {isMobile && state.userRole !== 'kinesio' && (
         <Button
           onClick={handleNewPatient}
           className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-40"
