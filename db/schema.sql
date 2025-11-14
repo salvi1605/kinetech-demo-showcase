@@ -305,7 +305,12 @@ CREATE TABLE schedule_exceptions (
   type text NOT NULL,
   created_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  updated_at timestamptz DEFAULT now(),
+  CHECK (
+    (from_time IS NULL AND to_time IS NULL)
+    OR
+    (from_time IS NOT NULL AND to_time IS NOT NULL)
+  )
 );
 
 CREATE INDEX idx_exceptions_clinic_date ON schedule_exceptions(clinic_id, date);
@@ -330,3 +335,14 @@ CREATE TABLE audit_log (
 CREATE INDEX idx_audit_log_clinic_id ON audit_log(clinic_id);
 CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
 CREATE INDEX idx_audit_log_created_at ON audit_log(created_at);
+
+-- =====================================================
+-- 8. DATOS INICIALES
+-- =====================================================
+
+-- Insertar roles base
+INSERT INTO roles (id, description) VALUES
+('admin_clinic', 'Administrador de la clínica'),
+('receptionist', 'Recepcionista'),
+('health_pro', 'Profesional de la salud')
+ON CONFLICT DO NOTHING;
