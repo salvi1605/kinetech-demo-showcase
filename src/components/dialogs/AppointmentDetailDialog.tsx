@@ -350,10 +350,22 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
             {/* Información del paciente */}
             <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-base font-medium">
-                <User className="h-4 w-4" />
-                Paciente
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2 text-base font-medium">
+                  <User className="h-4 w-4" />
+                  Paciente
+                </Label>
+                {patient && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowHistoryDialog(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <History className="h-4 w-4" />
+                    Historial del Paciente
+                  </Button>
+                )}
+              </div>
               <div className="bg-muted/30 p-4 rounded-lg">
                 <p className="font-medium">{patient?.name || 'Sin paciente asignado'}</p>
                 {patient && (
@@ -765,29 +777,14 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
         {/* Footer para vista de solo lectura */}
         {!isEditing && (
-          <div className="space-y-3">
-            {patient && (
-              <>
-                <Separator />
-                <Button
-                  variant="outline"
-                  onClick={() => setShowHistoryDialog(true)}
-                  className="w-full"
-                >
-                  <History className="h-4 w-4 mr-2" />
-                  Historial del Paciente
-                </Button>
-              </>
-            )}
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cerrar
-              </Button>
-            </DialogFooter>
-          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cerrar
+            </Button>
+          </DialogFooter>
         )}
 
         {/* Diálogo Liberar Cita */}
