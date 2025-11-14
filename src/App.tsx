@@ -7,6 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 // Context
 import { AppProvider } from "@/contexts/AppContext";
 
+// Route Guards
+import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
+
 // Layout
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -42,7 +45,7 @@ const App = () => (
               <Route path="select-clinic" element={<SelectClinic />} />
               <Route path="calendar" element={<Calendar />} />
               <Route path="patients" element={<Patients />} />
-              <Route path="patients/:id" element={<PatientDetail />} />
+              <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
               <Route path="practitioners" element={<Practitioners />} />
               <Route path="availability" element={<Availability />} />
               <Route path="exceptions" element={<Exceptions />} />
