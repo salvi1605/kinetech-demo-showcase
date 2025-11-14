@@ -582,7 +582,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 <Button
                   variant="outline"
                   onClick={() => setShowFreeDialog(true)}
-                  className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                  className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-black"
                 >
                   <Trash2 className="h-4 w-4" />
                   Liberar Cita
