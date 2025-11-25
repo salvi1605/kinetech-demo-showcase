@@ -148,73 +148,30 @@ export default function UserManagement() {
     try {
       setIsCreating(true);
 
-      // Step 1: Create auth user using admin API
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: data.email,
-        password: data.password,
-        email_confirm: true, // Auto-confirm email
+      // Get auth token for edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      // Call edge function to create user
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: data.password,
+          fullName: data.fullName,
+          roleId: data.roleId,
+          clinicId: data.clinicId,
+        },
       });
 
-      if (authError) {
-        throw new Error(`Error al crear usuario en auth: ${authError.message}`);
+      if (functionError) {
+        throw new Error(functionError.message);
       }
 
-      if (!authData.user) {
-        throw new Error('No se obtuvo el usuario de auth');
-      }
-
-      // Step 2: Check if user exists in public.users (might have been created by trigger)
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', authData.user.id)
-        .single();
-
-      let userId: string;
-
-      if (existingUser) {
-        // Update existing user
-        const { data: updatedUser, error: updateError } = await supabase
-          .from('users')
-          .update({
-            full_name: data.fullName,
-            email: data.email,
-          })
-          .eq('id', existingUser.id)
-          .select('id')
-          .single();
-
-        if (updateError) throw updateError;
-        userId = updatedUser.id;
-      } else {
-        // Create new user in public.users
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            auth_user_id: authData.user.id,
-            email: data.email,
-            full_name: data.fullName,
-            is_active: true,
-          })
-          .select('id')
-          .single();
-
-        if (insertError) throw insertError;
-        userId = newUser.id;
-      }
-
-      // Step 3: Create user_role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          clinic_id: data.clinicId,
-          role_id: data.roleId,
-          active: true,
-        });
-
-      if (roleError) {
-        throw new Error(`Error al asignar rol: ${roleError.message}`);
+      if (functionData.error) {
+        throw new Error(functionData.error);
       }
 
       toast.success('Usuario creado exitosamente');
