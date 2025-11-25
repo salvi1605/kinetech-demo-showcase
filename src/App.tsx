@@ -25,6 +25,7 @@ import { Availability } from "@/pages/Availability";
 import { Exceptions } from "@/pages/Exceptions";
 import { CopySchedule } from "@/pages/CopySchedule";
 import { Settings } from "@/pages/Settings";
+import UserManagement from "@/pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="exceptions" element={<Exceptions />} />
               <Route path="copy-schedule" element={<CopySchedule />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="users" element={<UserManagement />} />
             </Route>
             
             {/* 404 Route */}
