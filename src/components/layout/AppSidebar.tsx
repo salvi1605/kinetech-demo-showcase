@@ -12,7 +12,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Shield
+  Shield,
+  Building2
 } from 'lucide-react';
 import { useApp, type UserRole } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -81,6 +82,12 @@ const authItems = [
     title: 'Usuarios',
     url: '/users',
     icon: Shield,
+    roles: ['admin'] as UserRole[],
+  },
+  {
+    title: 'Clínicas',
+    url: '/clinics',
+    icon: Building2,
     roles: ['admin'] as UserRole[],
   },
   {
