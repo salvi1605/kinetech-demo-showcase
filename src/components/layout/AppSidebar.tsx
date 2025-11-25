@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Calendar,
   Users,
@@ -9,12 +9,15 @@ import {
   Copy,
   Settings,
   LogIn,
+  LogOut,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 import { useApp, type UserRole } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Sidebar,
   SidebarContent,
@@ -83,9 +86,22 @@ const authItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { state, dispatch } = useApp();
   const currentPath = location.pathname;
   const collapsed = !state.sidebarExpanded;
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      dispatch({ type: 'LOGOUT' });
+      toast.success('Sesión cerrada exitosamente');
+      navigate('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast.error('Error al cerrar sesión');
+    }
+  };
 
   // Classes de nav en esquema oscuro-azul
   const getNavClasses = ({ isActive }: { isActive: boolean }) =>
@@ -249,6 +265,49 @@ export function AppSidebar() {
                   }}
                 />
               </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* User info and logout when authenticated */}
+        {state.isAuthenticated && state.currentUser && (
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupContent>
+              <div className="px-3 py-2 space-y-2">
+                {!collapsed && (
+                  <div className="text-xs text-white/70 truncate">
+                    {state.currentUser.email}
+                  </div>
+                )}
+                {collapsed ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleLogout}
+                          className="w-full h-10 p-0 text-white hover:bg-white hover:text-black"
+                        >
+                          <LogOut className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium">
+                        Cerrar sesión
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onClick={handleLogout}
+                    className="w-full justify-start gap-2 text-white hover:bg-white hover:text-black"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span>Cerrar sesión</span>
+                  </Button>
+                )}
+              </div>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
