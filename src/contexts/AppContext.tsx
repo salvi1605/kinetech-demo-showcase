@@ -1,7 +1,8 @@
-import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { addWeeks, subWeeks, format } from 'date-fns';
 import type { TreatmentType } from '@/types/appointments';
 import type { EvolutionEntry } from '@/types/patient';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types
 export type UserRole = 'admin' | 'recep' | 'kinesio';
@@ -48,6 +49,7 @@ export interface AppState {
   availability: Availability[];
   exceptions: Exception[];
   isAuthenticated: boolean;
+  isLoadingAuth: boolean;
   currentUser?: User;
   preferences: Preferences;
   selectedSlots: Set<string>;
@@ -212,6 +214,7 @@ export type AppAction =
   | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOGIN'; payload: User }
   | { type: 'LOGOUT' }
+  | { type: 'SET_AUTH_LOADING'; payload: boolean }
   | { type: 'ADD_PATIENT'; payload: Patient }
   | { type: 'UPDATE_PATIENT'; payload: { id: string; updates: Partial<Patient> } }
   | { type: 'DELETE_PATIENT'; payload: string }
@@ -260,6 +263,7 @@ const initialState: AppState = {
   availability: [],
   exceptions: [],
   isAuthenticated: false,
+  isLoadingAuth: true,
   preferences: {
     timezone: 'America/Argentina/Buenos_Aires',
     weekStartsOn: 1,
@@ -269,8 +273,8 @@ const initialState: AppState = {
     multiTenant: false,
   },
   selectedSlots: new Set<string>(),
-  currentUserId: 'demo-user-1',
-  currentUserName: 'Usuario Demo',
+  currentUserId: '',
+  currentUserName: '',
   testCurrentDate: undefined,
 };
 
@@ -340,15 +344,27 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         isAuthenticated: true,
+        isLoadingAuth: false,
         currentUser: action.payload,
         userRole: action.payload.role,
+        currentUserId: action.payload.id,
+        currentUserName: action.payload.name,
       };
     
     case 'LOGOUT':
       return {
         ...state,
         isAuthenticated: false,
+        isLoadingAuth: false,
         currentUser: undefined,
+        currentUserId: '',
+        currentUserName: '',
+      };
+    
+    case 'SET_AUTH_LOADING':
+      return {
+        ...state,
+        isLoadingAuth: action.payload,
       };
     
     case 'ADD_PATIENT':
@@ -814,9 +830,97 @@ const AppContext = createContext<{
   dispatch: React.Dispatch<AppAction>;
 } | null>(null);
 
+// Helper function to get user role from database
+const getUserRoleFromDB = async (authUserId: string): Promise<{ user: User; clinicId: string } | null> => {
+  try {
+    // Get user from public.users
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, full_name, email, auth_user_id')
+      .eq('auth_user_id', authUserId)
+      .single();
+
+    if (userError || !userData) {
+      console.error('Error fetching user:', userError);
+      return null;
+    }
+
+    // Get user role from user_roles
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role_id, clinic_id')
+      .eq('user_id', userData.id)
+      .eq('active', true)
+      .single();
+
+    if (roleError || !roleData) {
+      console.error('Error fetching user role:', roleError);
+      return null;
+    }
+
+    // Map database role to app role
+    let appRole: UserRole = 'recep';
+    if (roleData.role_id === 'admin_clinic') appRole = 'admin';
+    else if (roleData.role_id === 'receptionist') appRole = 'recep';
+    else if (roleData.role_id === 'health_pro') appRole = 'kinesio';
+
+    const user: User = {
+      id: userData.id,
+      name: userData.full_name,
+      email: userData.email,
+      role: appRole,
+      clinicId: roleData.clinic_id,
+    };
+
+    return { user, clinicId: roleData.clinic_id };
+  } catch (error) {
+    console.error('Error in getUserRoleFromDB:', error);
+    return null;
+  }
+};
+
 // Provider
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          // Defer database calls to avoid blocking
+          setTimeout(async () => {
+            const result = await getUserRoleFromDB(session.user.id);
+            if (result) {
+              dispatch({ type: 'LOGIN', payload: result.user });
+              dispatch({ type: 'SET_SELECTED_CLINIC', payload: result.clinicId });
+            } else {
+              dispatch({ type: 'LOGOUT' });
+            }
+          }, 0);
+        } else {
+          dispatch({ type: 'LOGOUT' });
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const result = await getUserRoleFromDB(session.user.id);
+        if (result) {
+          dispatch({ type: 'LOGIN', payload: result.user });
+          dispatch({ type: 'SET_SELECTED_CLINIC', payload: result.clinicId });
+        } else {
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+        }
+      } else {
+        dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

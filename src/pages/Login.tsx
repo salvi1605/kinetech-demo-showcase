@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,52 +7,69 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { dispatch } = useApp();
+  const { state } = useApp();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (state.isAuthenticated) {
+      navigate('/calendar', { replace: true });
+    }
+  }, [state.isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login delay
-    setTimeout(() => {
-      // Mock user based on email
-      const mockUser = {
-        id: '1',
-        name: email.split('@')[0],
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        role: email.includes('admin') ? 'admin' as const : 
-              email.includes('recep') ? 'recep' as const : 'kinesio' as const,
-        clinicId: 'clinic-1',
-      };
-
-      dispatch({ type: 'LOGIN', payload: mockUser });
-      
-      toast({
-        title: "Sesión iniciada",
-        description: `Bienvenido, ${mockUser.name}`,
+        password,
       });
 
-      navigate('/calendar');
+      if (error) {
+        // Handle specific error messages
+        let errorMessage = 'Error al iniciar sesión';
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Credenciales inválidas. Verifica tu email y contraseña.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Email no confirmado. Por favor verifica tu correo.';
+        } else {
+          errorMessage = error.message;
+        }
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: "Sesión iniciada",
+          description: `Bienvenido`,
+        });
+        // Auth listener will handle the redirect
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error inesperado. Intenta nuevamente.",
+        variant: "destructive",
+      });
       setIsLoading(false);
-    }, 1000);
-  };
-
-  const quickLoginOptions = [
-    { role: 'admin', email: 'admin@clinica.com', label: 'Admin' },
-    { role: 'recep', email: 'recep@clinica.com', label: 'Recepcionista' },
-    { role: 'kinesio', email: 'kinesio@clinica.com', label: 'Kinesiólogo' },
-  ];
-
-  const handleQuickLogin = (email: string) => {
-    setEmail(email);
-    setPassword('demo123');
+    }
   };
 
   return (
@@ -123,36 +140,6 @@ export const Login = () => {
                 {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
-
-            {/* Quick Login Options */}
-            <div className="mt-6 pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-3 text-center">
-                Acceso rápido para demo:
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {quickLoginOptions.map((option) => (
-                  <Button
-                    key={option.role}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickLogin(option.email)}
-                    className="text-xs"
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Demo Notice */}
-        <Card className="bg-info/10 border-info/20">
-          <CardContent className="pt-4">
-            <p className="text-sm text-center text-info-foreground">
-              <strong>Modo Demo:</strong> Usa cualquier email/contraseña para acceder.
-              Los datos no se persisten y son solo para demostración.
-            </p>
           </CardContent>
         </Card>
       </div>
