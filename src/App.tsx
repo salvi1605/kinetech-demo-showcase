@@ -16,6 +16,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 
 // Pages
 import { Login } from "@/pages/Login";
+import { CreateClinicPage } from "@/pages/CreateClinicPage";
 import { SelectClinic } from "@/pages/SelectClinic";
 import { Calendar } from "@/pages/Calendar";
 import { Patients } from "@/pages/Patients";
@@ -39,13 +40,25 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Auth Routes */}
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             
-            {/* App Routes with Layout - Protected */}
+            {/* Auth Required - No Clinic Setup */}
+            <Route path="/create-clinic" element={
+              <AuthRouteGuard requireClinic={false}>
+                <CreateClinicPage />
+              </AuthRouteGuard>
+            } />
+            
+            <Route path="/select-clinic" element={
+              <AuthRouteGuard requireClinic={false}>
+                <SelectClinic />
+              </AuthRouteGuard>
+            } />
+            
+            {/* Protected Routes - Clinic Required */}
             <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
               <Route index element={<Calendar />} />
-              <Route path="select-clinic" element={<SelectClinic />} />
               <Route path="calendar" element={<Calendar />} />
               <Route path="patients" element={<Patients />} />
               <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />

@@ -1,4 +1,4 @@
-import { Users, Settings, Calendar as CalendarIcon, X, LogOut } from 'lucide-react';
+import { Users, Settings, Calendar as CalendarIcon, X, LogOut, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -107,6 +107,26 @@ export const Topbar = () => {
 
       {/* Right Section */}
       <div className="flex items-center gap-4">
+        {/* Clinic Name */}
+        {state.currentClinicName && (
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{state.currentClinicName}</span>
+          </div>
+        )}
+
+        {/* Change Clinic Button */}
+        {state.isAuthenticated && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/select-clinic')}
+            className="hidden md:flex"
+          >
+            Cambiar Clínica
+          </Button>
+        )}
+
         {/* Time Travel Control */}
         <div className="flex items-center gap-2">
             <Popover>
