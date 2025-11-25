@@ -978,6 +978,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_user: { Args: { target_user_id: string }; Returns: boolean }
       current_auth_user_id: { Args: never; Returns: string }
       current_practitioner_id: { Args: never; Returns: string }
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
