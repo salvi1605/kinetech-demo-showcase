@@ -1,4 +1,4 @@
-import { Users, Settings, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Users, Settings, Calendar as CalendarIcon, X, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -8,13 +8,16 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useApp, type UserRole, runAutoNoAsistio } from '@/contexts/AppContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
   const location = useLocation();
+  const navigate = useNavigate();
   const isCalendarRoute = location.pathname === '/calendar';
 
   const handleRoleChange = (role: UserRole) => {
@@ -69,6 +72,18 @@ export const Topbar = () => {
   const parseLocalDate = (dateStr: string): Date => {
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      dispatch({ type: 'LOGOUT' });
+      toast.success('Sesión cerrada exitosamente');
+      navigate('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast.error('Error al cerrar sesión');
+    }
   };
 
   return (
@@ -180,6 +195,25 @@ export const Topbar = () => {
           >
             Simular cambio de día
           </Button>
+        )}
+
+        {/* User Info and Logout */}
+        {state.isAuthenticated && state.currentUser && (
+          <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2">
+            <span className="text-sm text-muted-foreground">
+              {state.currentUser.email}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="gap-2"
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden lg:inline">Cerrar sesión</span>
+            </Button>
+          </div>
         )}
 
         {/* Settings */}
