@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useApp, Patient } from '@/contexts/AppContext';
+import { usePatients } from '@/hooks/usePatients';
 import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
 
 export const Patients = () => {
   const { state, dispatch } = useApp();
+  const { patients, loading: loadingPatients } = usePatients(state.currentClinicId);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ export const Patients = () => {
   const [historyPatient, setHistoryPatient] = useState<Patient | null>(null);
   const itemsPerPage = 10;
 
-  const filteredPatients = state.patients.filter(patient => {
+  const filteredPatients = patients.filter(patient => {
     const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.phone.toLowerCase().includes(searchTerm.toLowerCase());
@@ -146,7 +148,7 @@ export const Patients = () => {
       {!isMobile && (
         <Card>
           <CardContent className="p-0">
-            {isLoading ? (
+            {(loadingPatients || isLoading) ? (
               <div className="p-6 space-y-4">
                 {Array.from({ length: 5 }).map((_, index) => (
                   <Skeleton key={index} className="h-16 w-full" />
@@ -331,7 +333,7 @@ export const Patients = () => {
       {/* Mobile Cards View */}
       {isMobile && (
         <div className="space-y-4">
-          {isLoading ? (
+          {(loadingPatients || isLoading) ? (
             Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} className="h-32 w-full" />
             ))
@@ -472,7 +474,7 @@ export const Patients = () => {
       )}
 
       {/* No Results */}
-      {filteredPatients.length === 0 && searchTerm && (
+      {!loadingPatients && filteredPatients.length === 0 && searchTerm && (
         <Card className="text-center p-8">
           <CardContent>
             <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -485,7 +487,7 @@ export const Patients = () => {
       )}
 
       {/* No Data State */}
-      {!state.isDemoMode && state.patients.length === 0 && (
+      {!loadingPatients && patients.length === 0 && !searchTerm && (
         <Card className="text-center p-8">
           <CardContent>
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -502,38 +504,40 @@ export const Patients = () => {
       )}
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{state.patients.length}</p>
-            <p className="text-sm text-muted-foreground">Total Pacientes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-accent">
-              {state.patients.filter(p => p.nextAppointment).length}
-            </p>
-            <p className="text-sm text-muted-foreground">Con Citas</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-warning">
-              {state.patients.filter(p => p.lastVisit).length}
-            </p>
-            <p className="text-sm text-muted-foreground">Visitados</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-info">
-              {new Set(state.patients.flatMap(p => p.conditions)).size}
-            </p>
-            <p className="text-sm text-muted-foreground">Condiciones</p>
-          </CardContent>
-        </Card>
-      </div>
+      {!loadingPatients && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-primary">{patients.length}</p>
+              <p className="text-sm text-muted-foreground">Total Pacientes</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-accent">
+                {patients.filter(p => p.nextAppointment).length}
+              </p>
+              <p className="text-sm text-muted-foreground">Con Citas</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-warning">
+                {patients.filter(p => p.lastVisit).length}
+              </p>
+              <p className="text-sm text-muted-foreground">Visitados</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-info">
+                {new Set(patients.flatMap(p => p.conditions)).size}
+              </p>
+              <p className="text-sm text-muted-foreground">Condiciones</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* FAB for Mobile */}
       {isMobile && state.userRole !== 'kinesio' && (
