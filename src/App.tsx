@@ -9,6 +9,7 @@ import { AppProvider } from "@/contexts/AppContext";
 
 // Route Guards
 import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
+import { AuthRouteGuard } from "@/components/shared/AuthRouteGuard";
 
 // Layout
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -39,8 +40,8 @@ const App = () => (
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
             
-            {/* App Routes with Layout */}
-            <Route path="/" element={<AppLayout />}>
+            {/* App Routes with Layout - Protected */}
+            <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
               <Route index element={<Calendar />} />
               <Route path="select-clinic" element={<SelectClinic />} />
               <Route path="calendar" element={<Calendar />} />
