@@ -307,6 +307,13 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state, 
         currentClinicId: action.payload.id,
         currentClinicName: action.payload.name,
+      };
+    
+    case 'SET_CURRENT_CLINIC':
+      return { 
+        ...state, 
+        currentClinicId: action.payload.id,
+        currentClinicName: action.payload.name,
         selectedClinic: action.payload.id
       };
     
@@ -841,8 +848,8 @@ const AppContext = createContext<{
   dispatch: React.Dispatch<AppAction>;
 } | null>(null);
 
-// Helper function to get user role from database
-const getUserRoleFromDB = async (authUserId: string): Promise<{ user: User; clinicId: string } | null> => {
+// Helper function to get user clinics and check count
+const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[]; userId: string } | null> => {
   try {
     // Get user from public.users
     const { data: userData, error: userError } = await supabase
@@ -856,24 +863,85 @@ const getUserRoleFromDB = async (authUserId: string): Promise<{ user: User; clin
       return null;
     }
 
-    // Get user role from user_roles
-    const { data: roleData, error: roleError } = await supabase
+    // Get all user roles/clinics
+    const { data: userRoles, error: roleError } = await supabase
       .from('user_roles')
-      .select('role_id, clinic_id')
+      .select(`
+        role_id,
+        clinic_id,
+        clinics:clinic_id (
+          id,
+          name
+        )
+      `)
       .eq('user_id', userData.id)
-      .eq('active', true)
+      .eq('active', true);
+
+    if (roleError) {
+      console.error('Error fetching user roles:', roleError);
+      return null;
+    }
+
+    return { 
+      clinics: userRoles || [],
+      userId: userData.id,
+    };
+  } catch (error) {
+    console.error('Error in getUserClinicsFromDB:', error);
+    return null;
+  }
+};
+
+// Helper function to get user role from database
+const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise<{ user: User; clinicId: string; clinicName: string } | null> => {
+  try {
+    // Get user from public.users
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, full_name, email, auth_user_id')
+      .eq('auth_user_id', authUserId)
       .single();
+
+    if (userError || !userData) {
+      console.error('Error fetching user:', userError);
+      return null;
+    }
+
+    // Build query for user role
+    let query = supabase
+      .from('user_roles')
+      .select(`
+        role_id, 
+        clinic_id,
+        clinics:clinic_id (
+          id,
+          name
+        )
+      `)
+      .eq('user_id', userData.id)
+      .eq('active', true);
+
+    // If clinicId provided, filter by it
+    if (clinicId) {
+      query = query.eq('clinic_id', clinicId);
+    }
+
+    const { data: roleData, error: roleError } = await query.single();
 
     if (roleError || !roleData) {
       console.error('Error fetching user role:', roleError);
       return null;
     }
 
-    // Map database role to app role
+    // Map database role to app role (prioritize tenant_owner and admin_clinic)
     let appRole: UserRole = 'recep';
-    if (roleData.role_id === 'admin_clinic') appRole = 'admin';
-    else if (roleData.role_id === 'receptionist') appRole = 'recep';
-    else if (roleData.role_id === 'health_pro') appRole = 'kinesio';
+    if (roleData.role_id === 'tenant_owner' || roleData.role_id === 'admin_clinic') {
+      appRole = 'admin';
+    } else if (roleData.role_id === 'receptionist') {
+      appRole = 'recep';
+    } else if (roleData.role_id === 'health_pro') {
+      appRole = 'kinesio';
+    }
 
     const user: User = {
       id: userData.id,
@@ -883,7 +951,11 @@ const getUserRoleFromDB = async (authUserId: string): Promise<{ user: User; clin
       clinicId: roleData.clinic_id,
     };
 
-    return { user, clinicId: roleData.clinic_id };
+    return { 
+      user, 
+      clinicId: roleData.clinic_id,
+      clinicName: (roleData.clinics as any)?.name || 'Sin nombre',
+    };
   } catch (error) {
     console.error('Error in getUserRoleFromDB:', error);
     return null;
@@ -901,12 +973,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           // Defer database calls to avoid blocking
           setTimeout(async () => {
-            const result = await getUserRoleFromDB(session.user.id);
-            if (result) {
-              dispatch({ type: 'LOGIN', payload: result.user });
-              dispatch({ type: 'SET_SELECTED_CLINIC', payload: result.clinicId });
-            } else {
+            // Check user's clinics
+            const clinicsResult = await getUserClinicsFromDB(session.user.id);
+            
+            if (!clinicsResult || clinicsResult.clinics.length === 0) {
+              // No clinics - will be redirected to create clinic page
               dispatch({ type: 'LOGOUT' });
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            } else {
+              // User has clinics - auth guard will handle routing
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
             }
           }, 0);
         } else {
@@ -918,11 +994,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const result = await getUserRoleFromDB(session.user.id);
-        if (result) {
-          dispatch({ type: 'LOGIN', payload: result.user });
-          dispatch({ type: 'SET_SELECTED_CLINIC', payload: result.clinicId });
+        const clinicsResult = await getUserClinicsFromDB(session.user.id);
+        
+        if (!clinicsResult || clinicsResult.clinics.length === 0) {
+          // No clinics
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+        } else if (clinicsResult.clinics.length === 1) {
+          // Single clinic - auto-select it
+          const clinic = clinicsResult.clinics[0];
+          const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
+          
+          if (result) {
+            dispatch({ type: 'LOGIN', payload: result.user });
+            dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: result.clinicId, name: result.clinicName } });
+          }
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
         } else {
+          // Multiple clinics - will be redirected to select clinic page
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
         }
       } else {
