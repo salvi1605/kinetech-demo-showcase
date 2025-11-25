@@ -5,18 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/contexts/AppContext';
+import { usePractitioners } from '@/hooks/usePractitioners';
 import { NewProfessionalDialog } from '@/components/dialogs/NewProfessionalDialog';
 import { EditProfessionalDialog } from '@/components/dialogs/EditProfessionalDialog';
 import type { Practitioner } from '@/contexts/AppContext';
 
 export const Practitioners = () => {
   const { state } = useApp();
+  const { practitioners, loading } = usePractitioners(state.currentClinicId);
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewProfessional, setShowNewProfessional] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Practitioner | null>(null);
 
-  const filteredPractitioners = state.practitioners.filter(practitioner => 
+  const filteredPractitioners = practitioners.filter(practitioner =>
     practitioner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     practitioner.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
     practitioner.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -63,9 +66,33 @@ export const Practitioners = () => {
         </CardContent>
       </Card>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Practitioners Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredPractitioners.map((practitioner) => (
+      {!loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredPractitioners.map((practitioner) => (
           <Card key={practitioner.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
@@ -105,11 +132,12 @@ export const Practitioners = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* No Results */}
-      {filteredPractitioners.length === 0 && searchTerm && (
+      {!loading && filteredPractitioners.length === 0 && searchTerm && (
         <Card className="text-center p-8">
           <CardContent>
             <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -122,7 +150,7 @@ export const Practitioners = () => {
       )}
 
       {/* No Data State */}
-      {!state.isDemoMode && state.practitioners.length === 0 && (
+      {!loading && practitioners.length === 0 && !searchTerm && (
         <Card className="text-center p-8">
           <CardContent>
             <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
