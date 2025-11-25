@@ -38,6 +38,8 @@ import { KinesioCombobox } from '@/components/shared/KinesioCombobox';
 import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
 import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
+import { useAppointmentsForClinic } from '@/hooks/useAppointmentsForClinic';
+import { updateAppointmentStatus } from '@/lib/appointmentService';
 
 // Configuración de horarios y slots
 const WORK_START_HOUR = 8;
@@ -107,12 +109,25 @@ export const Calendar = () => {
   };
 
   const weekDates = getWeekDates();
+  
+  // Fetch appointments from Supabase
+  const { appointments: dbAppointments, isLoading: loadingAppointments, refetch } = useAppointmentsForClinic(
+    weekDates[0], 
+    weekDates[4]
+  );
+  
+  // Effect to refetch when appointments are updated
+  useEffect(() => {
+    const handleRefetch = () => refetch();
+    window.addEventListener('appointmentUpdated', handleRefetch);
+    return () => window.removeEventListener('appointmentUpdated', handleRefetch);
+  }, [refetch]);
 
-  // Índice de citas por clave de sub-slot
+  // Índice de citas por clave de sub-slot (usar dbAppointments en lugar de state.appointments)
   const appointmentsBySlotKey = new Map<string, Appointment>();
 
   // Construir índice de citas (convertir subSlot 1-5 a índice 0-4 para el Map)
-  state.appointments.forEach(appointment => {
+  dbAppointments.forEach(appointment => {
     const dateISO = appointment.date.length === 10
       ? appointment.date
       : format(parseISO(appointment.date), 'yyyy-MM-dd');
@@ -124,8 +139,7 @@ export const Calendar = () => {
   // Effect to update loading when week changes and clean past selections
   useEffect(() => {
     if (state.calendarWeekStart) {
-      setIsLoading(true);
-      const timer = setTimeout(() => setIsLoading(false), 300);
+      // El loading ahora viene de loadingAppointments
       
       // Clean past day selections only for non-admin users
       if (state.userRole !== 'admin') {
@@ -142,16 +156,14 @@ export const Calendar = () => {
       
       // Clear banner
       setAgendaBanner(null);
-      
-      return () => clearTimeout(timer);
     }
-  }, [state.calendarWeekStart, state.userRole]);
+  }, [state.calendarWeekStart, state.userRole, state.selectedSlots, dispatch]);
 
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
   const getAppointmentsForSlot = (dayIndex: number, time: string, subIndex?: number) => {
     const targetDateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
-    return state.appointments.filter(apt => {
+    return dbAppointments.filter(apt => {
       const aptISO = apt.date.length === 10
         ? apt.date
         : format(parseISO(apt.date), 'yyyy-MM-dd');
@@ -223,8 +235,8 @@ export const Calendar = () => {
     dispatch({ type: 'TOGGLE_SLOT_SELECTION', payload: key });
   };
 
-  // Handler para toggle tri-estado
-  const onTriToggle = (apt: Appointment) => {
+  // Handler para toggle tri-estado - CONECTADO A BD
+  const onTriToggle = async (apt: Appointment) => {
     const dateISO = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
     if (isPastDay(dateISO) && state.userRole !== 'admin') {
       toast({
@@ -236,27 +248,35 @@ export const Calendar = () => {
     }
     
     const nextStatusValue = nextStatus(apt.status as Status);
-    dispatch({ 
-      type: 'UPDATE_APPOINTMENT', 
-      payload: { 
-        id: apt.id, 
-        updates: { status: nextStatusValue } 
-      } 
-    });
     
-    // Actualizar el índice local (convertir subSlot 1-5 a 0-4)
-    const subSlot0 = ((apt.subSlot ?? 1) - 1);
-    const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot: subSlot0 });
-    const updatedApt = { ...apt, status: nextStatusValue };
-    appointmentsBySlotKey.set(key, updatedApt);
-    
-    const msg = nextStatusValue === 'completed' ? 'Turno marcado como Asistió' : 
-                nextStatusValue === 'scheduled' ? 'Turno marcado como Reservado' : 
-                'Turno marcado como No Asistió';
-    toast({
-      title: msg,
-      description: "El estado del turno se ha actualizado",
-    });
+    try {
+      // Actualizar en BD
+      await updateAppointmentStatus(apt.id, nextStatusValue);
+      
+      // Actualizar índice local
+      const subSlot0 = ((apt.subSlot ?? 1) - 1);
+      const key = getSlotKey({ dateISO, hour: apt.startTime, subSlot: subSlot0 });
+      const updatedApt = { ...apt, status: nextStatusValue };
+      appointmentsBySlotKey.set(key, updatedApt);
+      
+      // Refrescar lista
+      refetch();
+      
+      const msg = nextStatusValue === 'completed' ? 'Turno marcado como Asistió' : 
+                  nextStatusValue === 'scheduled' ? 'Turno marcado como Reservado' : 
+                  'Turno marcado como No Asistió';
+      toast({
+        title: msg,
+        description: "El estado del turno se ha actualizado",
+      });
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del turno",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handler de clic en sub-slot
@@ -808,7 +828,7 @@ export const Calendar = () => {
 
 
       {/* Estado vacío */}
-      {!state.isDemoMode && state.appointments.length === 0 && !isLoading && (
+      {!state.isDemoMode && dbAppointments.length === 0 && !loadingAppointments && (
         <EmptyState
           icon={<CalendarIcon className="h-12 w-12" />}
           title="No hay turnos programados"

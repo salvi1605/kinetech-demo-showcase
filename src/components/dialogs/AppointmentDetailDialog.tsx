@@ -34,12 +34,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useApp, updateAppointment } from '@/contexts/AppContext';
+import { useApp } from '@/contexts/AppContext';
 import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePatientAppointments';
 import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
+import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
 
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -224,23 +225,30 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     }
   };
 
-  // Eliminar cita
-  const onDeleteAppointment = (appt: Appointment) => {
-    // Eliminar del estado global usando el reducer
-    dispatch({ type: 'DELETE_APPOINTMENT', payload: appt.id });
-    
-    // Mostrar confirmación
-    toast({
-      title: "Turno eliminado",
-      description: `El turno de ${patient?.name || 'Sin paciente'} ha sido eliminado`,
-    });
-    
-    // Cerrar el modal
-    onOpenChange(false);
+  // Eliminar cita - CONECTADO A BD
+  const onDeleteAppointment = async (appt: Appointment) => {
+    try {
+      await deleteAppointmentInDb(appt.id);
+      
+      toast({
+        title: "Turno eliminado",
+        description: `El turno de ${patient?.name || 'Sin paciente'} ha sido eliminado`,
+      });
+      
+      onOpenChange(false);
+      window.dispatchEvent(new Event('appointmentUpdated'));
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el turno",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Enviar formulario
-  const onSubmit = (data: EditAppointmentForm) => {
+  // Enviar formulario - CONECTADO A BD
+  const onSubmit = async (data: EditAppointmentForm) => {
     if (!appointment) return;
     
     // Check permissions for past day appointments
@@ -273,27 +281,34 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return;
     }
     
-    const updatedAppointment: Appointment = {
-      ...appointment,
-      date: data.date,
-      startTime: data.startTime,
-      practitionerId: data.practitionerId,
-      status: data.status,
-      treatmentType: data.treatmentType as TreatmentType,
-      notes: data.notes || ''
-    };
+    try {
+      await updateAppointmentInDb(appointment.id, {
+        date: data.date,
+        startTime: data.startTime,
+        practitionerId: data.practitionerId,
+        status: data.status,
+        treatmentType: data.treatmentType as TreatmentType,
+        notes: data.notes || ''
+      });
 
-    updateAppointment(dispatch, updatedAppointment);
+      const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
+      const statusLabel = getStatusInfo(data.status).label;
 
-    const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
-    const statusLabel = getStatusInfo(data.status).label;
+      toast({
+        title: "Turno actualizado",
+        description: `Turno de ${patient?.name || 'Sin paciente'} con ${updatedPractitioner?.name} actualizado a ${statusLabel}`,
+      });
 
-    toast({
-      title: "Turno actualizado",
-      description: `Turno de ${patient?.name || 'Sin paciente'} con ${updatedPractitioner?.name} actualizado a ${statusLabel}`,
-    });
-
-    setIsEditing(false);
+      setIsEditing(false);
+      window.dispatchEvent(new Event('appointmentUpdated'));
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el turno",
+        variant: "destructive",
+      });
+    }
   };
 
   // Copiar todas las citas del paciente - computed from store each render
