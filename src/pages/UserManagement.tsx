@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, UserPlus, Shield } from 'lucide-react';
+import { Loader2, UserPlus, Shield, Pencil, Power } from 'lucide-react';
 import { z } from 'zod';
+import { EditUserDialog } from '@/components/dialogs/EditUserDialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -64,6 +65,8 @@ export default function UserManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -209,6 +212,32 @@ export default function UserManagement() {
         return 'Profesional';
       default:
         return roleId;
+    }
+  };
+
+  const handleEditUser = (user: UserWithRole) => {
+    setSelectedUser(user);
+    setEditUserDialogOpen(true);
+  };
+
+  const handleToggleActive = async (user: UserWithRole) => {
+    try {
+      const newStatus = !user.is_active;
+      
+      const { error } = await supabase.functions.invoke('update-user', {
+        body: {
+          action: 'toggle_active',
+          userId: user.id,
+          isActive: newStatus,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(newStatus ? 'Usuario activado' : 'Usuario desactivado');
+      await loadData();
+    } catch (error: any) {
+      toast.error(error.message || 'Error al cambiar estado del usuario');
     }
   };
 
@@ -407,6 +436,7 @@ export default function UserManagement() {
                     <TableHead>Rol</TableHead>
                     <TableHead>Clínica</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -437,6 +467,24 @@ export default function UserManagement() {
                           {user.is_active ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={user.is_active ? 'outline' : 'default'}
+                            onClick={() => handleToggleActive(user)}
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -445,6 +493,15 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      <EditUserDialog
+        open={editUserDialogOpen}
+        onOpenChange={setEditUserDialogOpen}
+        user={selectedUser}
+        roles={roles}
+        clinics={clinics}
+        onSuccess={loadData}
+      />
     </div>
   );
 }
