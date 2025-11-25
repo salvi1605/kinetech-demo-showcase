@@ -39,6 +39,8 @@ export interface AppState {
   userRole: UserRole;
   isDemoMode: boolean;
   selectedClinic?: string;
+  currentClinicId?: string;
+  currentClinicName?: string;
   searchQuery: string;
   sidebarExpanded: boolean;
   patients: Patient[];
@@ -207,6 +209,7 @@ export type AppAction =
   | { type: 'TOGGLE_DEMO_MODE' }
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_SELECTED_CLINIC'; payload: string }
+  | { type: 'SET_CURRENT_CLINIC'; payload: { id: string; name: string } }
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_SELECTED_PRACTITIONER'; payload: string | undefined }
   | { type: 'SET_SELECTED_TREATMENT_TYPE'; payload: TreatmentType | undefined }
@@ -298,6 +301,14 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'SET_SELECTED_CLINIC':
       return { ...state, selectedClinic: action.payload };
+    
+    case 'SET_CURRENT_CLINIC':
+      return { 
+        ...state, 
+        currentClinicId: action.payload.id,
+        currentClinicName: action.payload.name,
+        selectedClinic: action.payload.id
+      };
     
     case 'SET_SEARCH_QUERY':
       return { ...state, searchQuery: action.payload };

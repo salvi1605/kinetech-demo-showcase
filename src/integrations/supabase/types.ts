@@ -207,6 +207,8 @@ export type Database = {
       clinic_settings: {
         Row: {
           allow_professional_self_block: boolean | null
+          auto_mark_no_show: boolean
+          auto_mark_no_show_time: string
           clinic_id: string
           created_at: string | null
           id: string
@@ -217,6 +219,8 @@ export type Database = {
         }
         Insert: {
           allow_professional_self_block?: boolean | null
+          auto_mark_no_show?: boolean
+          auto_mark_no_show_time?: string
           clinic_id: string
           created_at?: string | null
           id?: string
@@ -227,6 +231,8 @@ export type Database = {
         }
         Update: {
           allow_professional_self_block?: boolean | null
+          auto_mark_no_show?: boolean
+          auto_mark_no_show_time?: string
           clinic_id?: string
           created_at?: string | null
           id?: string
