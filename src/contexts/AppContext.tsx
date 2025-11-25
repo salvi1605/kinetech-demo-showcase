@@ -977,11 +977,57 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const clinicsResult = await getUserClinicsFromDB(session.user.id);
             
             if (!clinicsResult || clinicsResult.clinics.length === 0) {
-              // No clinics - will be redirected to create clinic page
-              dispatch({ type: 'LOGOUT' });
+              // No clinics - but still authenticated, will be redirected to create clinic page
+              // Create minimal user object for authentication
+              const { data: userData } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .eq('auth_user_id', session.user.id)
+                .single();
+              
+              if (userData) {
+                dispatch({ 
+                  type: 'LOGIN', 
+                  payload: { 
+                    id: userData.id, 
+                    name: userData.full_name, 
+                    email: userData.email,
+                    role: 'admin', // Default role until clinic is selected
+                    clinicId: undefined
+                  } 
+                });
+              }
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            } else if (clinicsResult.clinics.length === 1) {
+              // Single clinic - auto-select it
+              const clinic = clinicsResult.clinics[0];
+              const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
+              
+              if (result) {
+                dispatch({ type: 'LOGIN', payload: result.user });
+                dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: result.clinicId, name: result.clinicName } });
+              }
               dispatch({ type: 'SET_AUTH_LOADING', payload: false });
             } else {
-              // User has clinics - auth guard will handle routing
+              // Multiple clinics - user authenticated but needs to select clinic
+              const { data: userData } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .eq('auth_user_id', session.user.id)
+                .single();
+              
+              if (userData) {
+                dispatch({ 
+                  type: 'LOGIN', 
+                  payload: { 
+                    id: userData.id, 
+                    name: userData.full_name, 
+                    email: userData.email,
+                    role: 'admin', // Temp role until clinic is selected
+                    clinicId: undefined
+                  } 
+                });
+              }
               dispatch({ type: 'SET_AUTH_LOADING', payload: false });
             }
           }, 0);
