@@ -20,6 +20,7 @@ import { addMinutesStr } from '@/utils/dateUtils';
 import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
 import { treatmentLabel } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
+import { createAppointment as createAppointmentInDb } from '@/lib/appointmentService';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -144,8 +145,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     });
   };
 
-  // Crear cita segura
-  const createAppointment = (data: NewAppointmentForm) => {
+  // Crear cita segura - CONECTADO A BD
+  const createAppointment = async (data: NewAppointmentForm) => {
     if (!selectedSlot) return;
     
     // Guarda de seguridad: rechazar si falta algún ID
@@ -190,37 +191,50 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       return;
     }
 
-    const newAppointment = {
-      id: Date.now().toString(),
-      date: format(selectedSlot.date, 'yyyy-MM-dd'),
-      startTime: data.startTime,
-      practitionerId: data.practitionerId,
-      patientId: data.patientId,
-      status: 'scheduled' as const,
-      type: 'consultation' as const,
-      notes: data.notes || '',
-      subSlot: (selectedSlot.subSlot ?? 1) as 1 | 2 | 3 | 4 | 5,
-      treatmentType: 'fkt' as const,
-    };
-
-    // Validación en DEV
-    if (import.meta.env.DEV && (newAppointment.subSlot == null || newAppointment.subSlot < 1 || newAppointment.subSlot > 5)) {
-      console.warn('subSlot inválido en payload', newAppointment);
+    if (!state.currentClinicId) {
+      toast({
+        title: "Error",
+        description: "No hay clínica seleccionada",
+        variant: "destructive"
+      });
+      return;
     }
 
-    dispatch({ type: 'ADD_APPOINTMENT', payload: newAppointment });
+    try {
+      // Crear en BD
+      await createAppointmentInDb({
+        clinicId: state.currentClinicId,
+        patientId: data.patientId,
+        practitionerId: data.practitionerId,
+        date: appointmentDate,
+        startTime: data.startTime,
+        subSlot: subSlot,
+        notes: data.notes || '',
+        treatmentType: 'fkt',
+      });
 
-    const patient = state.patients.find(p => p.id === data.patientId);
-    const practitioner = state.practitioners.find(p => p.id === data.practitionerId);
+      const patient = state.patients.find(p => p.id === data.patientId);
+      const practitioner = state.practitioners.find(p => p.id === data.practitionerId);
 
-    toast({
-      title: "Turno creado exitosamente",
-      description: `Turno para ${patient?.name || 'Sin paciente'} con ${practitioner?.name} el ${format(selectedSlot.date, 'dd/MM/yyyy')} a las ${data.startTime}`,
-    });
+      toast({
+        title: "Turno creado exitosamente",
+        description: `Turno para ${patient?.name || 'Sin paciente'} con ${practitioner?.name} el ${format(selectedSlot.date, 'dd/MM/yyyy')} a las ${data.startTime}`,
+      });
 
-    form.reset();
-    setPatientSearch('');
-    onOpenChange(false);
+      form.reset();
+      setPatientSearch('');
+      onOpenChange(false);
+      
+      // Trigger refetch en Calendar
+      window.dispatchEvent(new Event('appointmentUpdated'));
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear el turno",
+        variant: "destructive",
+      });
+    }
   };
 
   // Manejar confirmación de creación
