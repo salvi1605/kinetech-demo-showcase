@@ -62,11 +62,11 @@ serve(async (req) => {
       .eq('user_id', userRecord.id)
       .eq('active', true)
 
-    const isAdmin = userRoles?.some(ur => ur.role_id === 'admin_clinic')
+    const isAdmin = userRoles?.some(ur => ur.role_id === 'admin_clinic' || ur.role_id === 'tenant_owner')
     
     if (!isAdmin) {
       return new Response(
-        JSON.stringify({ error: 'Only admins can create users' }),
+        JSON.stringify({ error: 'Only admins or tenant owners can create users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
