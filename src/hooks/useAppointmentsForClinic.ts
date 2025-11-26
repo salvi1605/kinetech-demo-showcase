@@ -10,6 +10,10 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Convertir fechas a ISO strings para evitar recreación de objetos
+  const startDateISO = format(startDate, 'yyyy-MM-dd');
+  const endDateISO = format(endDate, 'yyyy-MM-dd');
+
   const fetchAppointments = useCallback(async () => {
     if (!state.currentClinicId) {
       setIsLoading(false);
@@ -21,8 +25,6 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
     setError(null);
 
     try {
-      const startDateISO = format(startDate, 'yyyy-MM-dd');
-      const endDateISO = format(endDate, 'yyyy-MM-dd');
 
       const { data: dbAppointments, error: fetchError } = await supabase
         .from('appointments')
@@ -81,7 +83,7 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
     } finally {
       setIsLoading(false);
     }
-  }, [state.currentClinicId, startDate, endDate]);
+  }, [state.currentClinicId, startDateISO, endDateISO]);
 
   useEffect(() => {
     fetchAppointments();
