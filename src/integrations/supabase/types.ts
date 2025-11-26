@@ -990,6 +990,7 @@ export type Database = {
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
+      is_tenant_owner: { Args: never; Returns: boolean }
     }
     Enums: {
       appointment_mode: "in_person" | "virtual" | "home_visit"
