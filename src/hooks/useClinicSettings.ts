@@ -30,6 +30,8 @@ export const useClinicSettings = () => {
       return;
     }
 
+    let isMounted = true;
+
     const fetchSettings = async () => {
       setIsLoading(true);
       setError(null);
@@ -41,25 +43,22 @@ export const useClinicSettings = () => {
           .eq('clinic_id', state.currentClinicId)
           .single();
 
-        if (fetchError) {
-          // Si no existe, crear con defaults
-          if (fetchError.code === 'PGRST116') {
-            const { data: newSettings, error: insertError } = await supabase
-              .from('clinic_settings')
-              .insert({
-                clinic_id: state.currentClinicId,
-                min_slot_minutes: 30,
-                workday_start: '08:00:00',
-                workday_end: '19:00:00',
-                allow_professional_self_block: true,
-                auto_mark_no_show: true,
-                auto_mark_no_show_time: '00:00:00',
-              })
-              .select()
-              .single();
+        if (!isMounted) return;
 
-            if (insertError) throw insertError;
-            setSettings(newSettings);
+        if (fetchError) {
+          // Si no existe (PGRST116), usar defaults sin intentar INSERT
+          if (fetchError.code === 'PGRST116') {
+            console.warn('No clinic_settings found for clinic, using defaults');
+            setSettings({
+              id: 'default',
+              clinic_id: state.currentClinicId,
+              min_slot_minutes: 30,
+              workday_start: '08:00:00',
+              workday_end: '19:00:00',
+              allow_professional_self_block: true,
+              auto_mark_no_show: true,
+              auto_mark_no_show_time: '00:00:00',
+            });
           } else {
             throw fetchError;
           }
@@ -67,6 +66,7 @@ export const useClinicSettings = () => {
           setSettings(data);
         }
       } catch (err) {
+        if (!isMounted) return;
         console.error('Error fetching clinic settings:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar configuración');
         // Fallback a defaults locales si falla
@@ -81,11 +81,17 @@ export const useClinicSettings = () => {
           auto_mark_no_show_time: '00:00:00',
         });
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, [state.currentClinicId]);
 
   return { settings, isLoading, error };
