@@ -367,6 +367,16 @@ export const Login = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Link to Create Clinic */}
+        <div className="text-center">
+          <button
+            onClick={() => navigate('/create-clinic')}
+            className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+          >
+            ¿Crear mi clínica?
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -217,16 +217,18 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       const practitioner = state.practitioners.find(p => p.id === data.practitionerId);
 
       toast({
-        title: "Turno creado exitosamente",
+        title: "Turno creado correctamente",
         description: `Turno para ${patient?.name || 'Sin paciente'} con ${practitioner?.name} el ${format(selectedSlot.date, 'dd/MM/yyyy')} a las ${data.startTime}`,
       });
 
       form.reset();
       setPatientSearch('');
-      onOpenChange(false);
       
-      // Trigger refetch en Calendar
+      // Trigger refetch en Calendar antes de cerrar
       window.dispatchEvent(new Event('appointmentUpdated'));
+      
+      // Cerrar modal después de refrescar
+      onOpenChange(false);
     } catch (error) {
       console.error('Error creating appointment:', error);
       toast({
@@ -351,16 +353,22 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
                          <SelectValue placeholder="Seleccionar kinesiólogo" />
                        </SelectTrigger>
                       <SelectContent>
-                        {state.practitioners.map((practitioner) => (
-                          <SelectItem key={practitioner.id} value={practitioner.id}>
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full bg-primary" 
-                              />
-                              {practitioner.name}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {state.practitioners.length === 0 ? (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            Cargando...
+                          </div>
+                        ) : (
+                          state.practitioners.map((practitioner) => (
+                            <SelectItem key={practitioner.id} value={practitioner.id}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full bg-primary" 
+                                />
+                                {practitioner.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </FormControl>

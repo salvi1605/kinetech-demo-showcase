@@ -416,11 +416,17 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                             <SelectValue placeholder="Seleccionar kinesiólogo" />
                           </SelectTrigger>
                           <SelectContent>
-                            {state.practitioners.map((practitioner) => (
-                              <SelectItem key={practitioner.id} value={practitioner.id}>
-                                {practitioner.name}
-                              </SelectItem>
-                            ))}
+                            {state.practitioners.length === 0 ? (
+                              <div className="p-2 text-center text-xs text-muted-foreground">
+                                Cargando...
+                              </div>
+                            ) : (
+                              state.practitioners.map((practitioner) => (
+                                <SelectItem key={practitioner.id} value={practitioner.id}>
+                                  {practitioner.name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>

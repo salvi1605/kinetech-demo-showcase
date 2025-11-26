@@ -397,7 +397,10 @@ export default function UserManagement() {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isCreating}>
+                  <Button 
+                    type="submit" 
+                    disabled={isCreating || !form.formState.isValid}
+                  >
                     {isCreating ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
