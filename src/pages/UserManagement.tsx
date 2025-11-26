@@ -36,6 +36,7 @@ interface UserWithRole {
   user_roles: {
     role_id: string;
     clinic_id: string;
+    active: boolean;
     clinics: {
       name: string;
     };
@@ -92,16 +93,20 @@ export default function UserManagement() {
     }
   }, [state.isAuthenticated, state.userRole, navigate]);
 
-  // Load initial data
+  // Load initial data for current clinic
   useEffect(() => {
-    loadData();
-  }, []);
+    if (state.currentClinicId) {
+      loadData();
+    }
+  }, [state.currentClinicId]);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
 
-      // Load users with their roles
+      if (!state.currentClinicId) return;
+
+      // Load users with their roles for current clinic only
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select(`
@@ -109,13 +114,15 @@ export default function UserManagement() {
           email,
           full_name,
           is_active,
-          user_roles (
+          user_roles!inner (
             role_id,
             clinic_id,
+            active,
             clinics (name),
             roles (id, description)
           )
         `)
+        .eq('user_roles.clinic_id', state.currentClinicId)
         .order('email');
 
       if (usersError) throw usersError;
@@ -204,6 +211,8 @@ export default function UserManagement() {
 
   const getRoleLabel = (roleId: string): string => {
     switch (roleId) {
+      case 'tenant_owner':
+        return 'Propietario';
       case 'admin_clinic':
         return 'Administrador';
       case 'receptionist':
@@ -215,6 +224,22 @@ export default function UserManagement() {
     }
   };
 
+  // Get primary role based on priority
+  const getPrimaryRole = (userRoles: any[]): string => {
+    const rolePriority: Record<string, number> = {
+      'tenant_owner': 4,
+      'admin_clinic': 3,
+      'receptionist': 2,
+      'health_pro': 1
+    };
+
+    const sortedRoles = [...userRoles].sort((a, b) => 
+      (rolePriority[b.role_id] || 0) - (rolePriority[a.role_id] || 0)
+    );
+
+    return sortedRoles[0]?.role_id || '';
+  };
+
   const handleEditUser = (user: UserWithRole) => {
     setSelectedUser(user);
     setEditUserDialogOpen(true);
@@ -222,15 +247,15 @@ export default function UserManagement() {
 
   const handleToggleActive = async (user: UserWithRole) => {
     try {
-      const newStatus = !user.is_active;
+      const currentActive = user.user_roles[0]?.active ?? true;
+      const newStatus = !currentActive;
       
-      const { error } = await supabase.functions.invoke('update-user', {
-        body: {
-          action: 'toggle_active',
-          userId: user.id,
-          isActive: newStatus,
-        },
-      });
+      // Update active status in user_roles for this clinic
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ active: newStatus })
+        .eq('user_id', user.id)
+        .eq('clinic_id', state.currentClinicId!);
 
       if (error) throw error;
 
@@ -448,26 +473,24 @@ export default function UserManagement() {
                       <TableCell className="font-medium">{user.email}</TableCell>
                       <TableCell>{user.full_name}</TableCell>
                       <TableCell>
-                        {user.user_roles.map((ur, idx) => (
-                          <Badge
-                            key={idx}
-                            variant={getRoleBadgeVariant(ur.role_id)}
-                            className="mr-1"
-                          >
-                            {getRoleLabel(ur.role_id)}
-                          </Badge>
-                        ))}
+                        {(() => {
+                          const primaryRole = getPrimaryRole(user.user_roles);
+                          return (
+                            <Badge
+                              variant={getRoleBadgeVariant(primaryRole)}
+                              className="mr-1"
+                            >
+                              {getRoleLabel(primaryRole)}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
-                        {user.user_roles.map((ur, idx) => (
-                          <div key={idx} className="text-sm">
-                            {ur.clinics.name}
-                          </div>
-                        ))}
+                        {user.user_roles[0]?.clinics?.name || state.currentClinicName}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                          {user.is_active ? 'Activo' : 'Inactivo'}
+                        <Badge variant={user.user_roles[0]?.active ? 'default' : 'secondary'}>
+                          {user.user_roles[0]?.active ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -481,7 +504,7 @@ export default function UserManagement() {
                           </Button>
                           <Button
                             size="sm"
-                            variant={user.is_active ? 'outline' : 'default'}
+                            variant={user.user_roles[0]?.active ? 'outline' : 'default'}
                             onClick={() => handleToggleActive(user)}
                           >
                             <Power className="h-4 w-4" />

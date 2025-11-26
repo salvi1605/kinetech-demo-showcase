@@ -13,10 +13,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel } from '@/utils/formatters';
-import { Search, User, Clock, AlertCircle, Copy, AlertTriangle } from 'lucide-react';
+import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2 } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -123,7 +124,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       return;
     }
 
-    // Validación
+    // Validación de paciente
     if (!patientId) {
       toast({
         title: "Datos incompletos",
@@ -175,18 +176,28 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         description: "No puedes realizar cambios en días anteriores",
         variant: "destructive",
       });
-      return; // No crear nada
+      return;
     }
 
     setIsCreating(true);
 
     try {
-      const successfulAppointments: Appointment[] = [];
+      const appointmentsToCreate = [];
       const failed: string[] = [];
+      const conflictingSlots: string[] = [];
 
-      // Crear citas para cada slot válido
+      // Mapeo de tratamientos a IDs
+      const treatmentTypeMapping: Record<TreatmentType, string> = {
+        fkt: 'fkt',
+        atm: 'atm',
+        drenaje: 'drenaje',
+        drenaje_ultra: 'drenaje_ultra',
+        masaje: 'masaje',
+        vestibular: 'vestibular',
+        otro: 'otro',
+      };
+
       for (const slot of allowedSlots) {
-        // Calcular practitionerId y treatmentType para este slot
         const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
         const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
         
@@ -200,85 +211,95 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           continue;
         }
 
-        // Verificar conflictos solo en el mismo subSlot con solapamiento
-        if (hasAppointmentConflict(slot)) {
-          failed.push(slot.displayText);
+        // Check if appointment already exists at this exact time and practitioner
+        const { data: existingAppts, error: checkError } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('practitioner_id', slotPractitionerId)
+          .eq('date', slot.dateISO)
+          .eq('start_time', slot.hour)
+          .eq('sub_slot', slot.subSlot + 1)
+          .eq('clinic_id', state.currentClinicId!);
+
+        if (checkError) {
+          console.error('Error checking conflicts:', checkError);
+          failed.push(`${slot.displayText} - Error al verificar conflictos`);
           continue;
         }
 
-        // Crear la cita
-        const primaryId = `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const appointment: Appointment = {
-          id: primaryId,
-          patientId,
-          practitionerId: slotPractitionerId,
+        if (existingAppts && existingAppts.length > 0) {
+          conflictingSlots.push(`${slot.displayText} - Ya existe una cita en este horario`);
+          continue;
+        }
+
+        // Get treatment type ID
+        const { data: treatmentData } = await supabase
+          .from('treatment_types')
+          .select('id')
+          .eq('name', slotTreatmentType)
+          .eq('clinic_id', state.currentClinicId!)
+          .maybeSingle();
+
+        appointmentsToCreate.push({
+          clinic_id: state.currentClinicId!,
+          practitioner_id: slotPractitionerId,
+          patient_id: patientId,
           date: slot.dateISO,
-          startTime: slot.hour,
-          type: 'consultation',
+          start_time: slot.hour,
+          duration_minutes: 30,
+          sub_slot: slot.subSlot + 1,
           status: 'scheduled',
-          notes: notes || undefined,
-          subSlot: (slot.subSlot + 1) as 1 | 2 | 3 | 4 | 5,
-          treatmentType: slotTreatmentType,
-        };
-
-        // Validación en DEV
-        if (import.meta.env.DEV && (appointment.subSlot == null || appointment.subSlot < 1 || appointment.subSlot > 5)) {
-          console.warn('subSlot inválido en payload', appointment);
-        }
-
-        successfulAppointments.push(appointment);
+          mode: 'in_person',
+          treatment_type_id: treatmentData?.id || null,
+          notes: notes || null,
+        });
       }
 
-      // RE-VALIDAR contra estado actual antes del dispatch final (Opción 1)
-      const finalValidAppointments: Appointment[] = [];
-      
-      for (const apt of successfulAppointments) {
-        // Verificar si este slot ya está ocupado en state.appointments (cualquier doctor)
-        const hasConflictInState = state.appointments.some(existingApt => 
-          existingApt.date === apt.date &&
-          existingApt.startTime === apt.startTime &&
-          existingApt.subSlot === apt.subSlot
-        );
-        
-        if (hasConflictInState) {
-          // Este slot ya está ocupado, no agregar y marcar como fallido
-          const slotInfo = `${apt.date} ${apt.startTime} (Slot ${apt.subSlot})`;
-          failed.push(`${slotInfo} - Ya existe una cita en este slot`);
-        } else {
-          finalValidAppointments.push(apt);
+      // Insert appointments in batch
+      if (appointmentsToCreate.length > 0) {
+        const { error: insertError } = await supabase
+          .from('appointments')
+          .insert(appointmentsToCreate);
+
+        if (insertError) {
+          throw insertError;
         }
       }
-      
-      // Agregar solo las citas que pasaron la re-validación
-      if (finalValidAppointments.length > 0) {
-        dispatch({ type: 'ADD_MULTIPLE_APPOINTMENTS', payload: finalValidAppointments });
-      }
 
-      // Limpiar selección
+      // Clear selection
       dispatch({ type: 'CLEAR_SLOT_SELECTION' });
 
-      // Mostrar resultado
-      if (failed.length > 0) {
-        setFailedSlots(failed);
+      // Trigger refresh
+      window.dispatchEvent(new Event('appointmentUpdated'));
+
+      // Show results
+      const createdCount = appointmentsToCreate.length;
+      const failedCount = failed.length + conflictingSlots.length;
+
+      if (failedCount > 0) {
+        setFailedSlots([...failed, ...conflictingSlots]);
         setShowFailureDialog(true);
-      }
-
-      toast({
-        title: "Citas creadas",
-        description: `${successfulAppointments.length} turnos creados exitosamente`,
-      });
-
-      // Cerrar modal solo si no hay fallos o después de cerrar el diálogo de fallos
-      if (failed.length === 0) {
+        
+        if (createdCount > 0) {
+          toast({
+            title: 'Citas creadas parcialmente',
+            description: `Se crearon ${createdCount} citas. ${failedCount} citas se omitieron por conflictos.`,
+          });
+        }
+      } else {
+        toast({
+          title: 'Citas creadas exitosamente',
+          description: `Se crearon ${createdCount} citas para ${state.patients.find(p => p.id === patientId)?.name}`,
+        });
         onOpenChange(false);
         resetForm();
       }
-
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating appointments:', error);
       toast({
-        title: "Error",
-        description: "Ocurrió un error al crear las citas",
-        variant: "destructive",
+        title: 'Error al crear citas',
+        description: error.message || 'No se pudieron crear las citas',
+        variant: 'destructive',
       });
     } finally {
       setIsCreating(false);
@@ -545,6 +566,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
               onClick={handleConfirm} 
               disabled={isCreating || !patientId || hasAnyExclusiveConflict}
             >
+              {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isCreating ? 'Creando...' : 'Confirmar selección'}
             </Button>
           </DialogFooter>
