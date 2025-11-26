@@ -38,9 +38,11 @@ export const Patients = () => {
   const itemsPerPage = 10;
 
   const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.phone.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = patient.name.toLowerCase().includes(searchLower) ||
+                         (patient.email && patient.email.toLowerCase().includes(searchLower)) ||
+                         (patient.phone && patient.phone.toLowerCase().includes(searchLower)) ||
+                         (patient.identificacion?.documentId && patient.identificacion.documentId.toLowerCase().includes(searchLower));
     
     const matchesFilter = filterCondition === 'all' || 
                          patient.conditions.some(condition => 
@@ -130,7 +132,7 @@ export const Patients = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre, email o teléfono..."
+                placeholder="Buscar por nombre, email, teléfono o documento..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
