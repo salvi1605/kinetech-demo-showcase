@@ -15,6 +15,8 @@ import { toast } from '@/hooks/use-toast';
 import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -51,6 +53,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
   const { dispatch, state } = useApp();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityDay[]>(initialDays);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Obtener colores ya usados
   const usedColors = state.practitioners.map(p => p.color).filter(Boolean) as string[];
@@ -82,7 +85,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
   const status = watch('status');
   const currentColor = watch('color');
 
-  const onSubmit = (data: ProfessionalFormData) => {
+  const onSubmit = async (data: ProfessionalFormData) => {
     // Validar disponibilidad
     const activeDays = availability.filter(d => d.active);
     for (const day of activeDays) {
@@ -113,44 +116,96 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
       }
     }
 
-    // Convertir availability al formato schedule existente
-    const dayKeyToNumber: Record<DayKey, number> = {
-      lun: 1,
-      mar: 2,
-      mié: 3,
-      jue: 4,
-      vie: 5,
-      sáb: 6,
-      dom: 0,
-    };
+    if (!state.currentClinicId) {
+      toast({
+        title: 'Error',
+        description: 'No hay clínica seleccionada',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const schedule = activeDays.flatMap(day =>
-      day.slots.map(slot => ({
-        dayOfWeek: dayKeyToNumber[day.day],
-        startTime: slot.from,
-        endTime: slot.to,
-        isAvailable: true,
-      }))
-    );
+    setIsSubmitting(true);
 
-    const newPractitioner = {
-      id: crypto.randomUUID(),
-      name: `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim(),
-      specialty: data.specialty,
-      email: data.email || '',
-      phone: data.mobile || '',
-      schedule,
-      color: data.color || '#3b82f6',
-    };
+    try {
+      // Convertir availability al formato de BD
+      const dayKeyToNumber: Record<DayKey, number> = {
+        lun: 1,
+        mar: 2,
+        mié: 3,
+        jue: 4,
+        vie: 5,
+        sáb: 6,
+        dom: 0,
+      };
 
-    dispatch({ type: 'ADD_PRACTITIONER', payload: newPractitioner });
+      const displayName = data.displayName || 
+        `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim();
 
-    toast({
-      title: 'Profesional creado',
-      description: `${newPractitioner.name} ha sido agregado exitosamente`,
-    });
+      // Insertar en practitioners
+      const { data: newPractitioner, error: practitionerError } = await supabase
+        .from('practitioners')
+        .insert({
+          clinic_id: state.currentClinicId,
+          display_name: displayName,
+          prefix: data.prefix !== 'none' ? data.prefix : null,
+          specialties: [data.specialty],
+          color: data.color || '#3b82f6',
+          is_active: data.status === 'active',
+          notes: data.notes || null,
+        })
+        .select()
+        .single();
 
-    onClose();
+      if (practitionerError) {
+        throw practitionerError;
+      }
+
+      // Insertar disponibilidad si hay días activos
+      if (activeDays.length > 0 && newPractitioner) {
+        const availabilityRows = activeDays.flatMap(day =>
+          day.slots.map(slot => ({
+            clinic_id: state.currentClinicId!,
+            practitioner_id: newPractitioner.id,
+            weekday: dayKeyToNumber[day.day],
+            from_time: slot.from,
+            to_time: slot.to,
+            slot_minutes: 30,
+            capacity: 1,
+          }))
+        );
+
+        if (availabilityRows.length > 0) {
+          const { error: availError } = await supabase
+            .from('practitioner_availability')
+            .insert(availabilityRows);
+
+          if (availError) {
+            console.error('Error inserting availability:', availError);
+            // No es crítico, continuamos
+          }
+        }
+      }
+
+      // Disparar evento para refrescar listas
+      window.dispatchEvent(new Event('practitionerUpdated'));
+
+      toast({
+        title: 'Profesional creado',
+        description: `${displayName} ha sido agregado exitosamente`,
+      });
+
+      onClose();
+    } catch (error: any) {
+      console.error('Error creating practitioner:', error);
+      toast({
+        title: 'Error al crear profesional',
+        description: error.message || 'Ocurrió un error inesperado',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -292,10 +347,12 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
           </Tabs>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button type="submit">Guardar</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</> : 'Guardar'}
+            </Button>
           </DialogFooter>
         </form>
 
