@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import type { Practitioner } from '@/contexts/AppContext';
 import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -38,8 +39,10 @@ interface EditProfessionalDialogProps {
   onClose: () => void;
 }
 
-// Convertir schedule existente a AvailabilityDay[]
-const scheduleToAvailability = (schedule: { dayOfWeek: number; startTime: string; endTime: string; isAvailable: boolean }[]): AvailabilityDay[] => {
+// Convertir availability de BD a AvailabilityDay[]
+const dbAvailabilityToEditor = (
+  dbAvailability: { weekday: number; from_time: string; to_time: string }[]
+): AvailabilityDay[] => {
   const numberToDayKey: Record<number, DayKey> = {
     0: 'dom',
     1: 'lun',
@@ -61,10 +64,13 @@ const scheduleToAvailability = (schedule: { dayOfWeek: number; startTime: string
     dom: [],
   };
 
-  schedule.forEach(s => {
-    const dayKey = numberToDayKey[s.dayOfWeek];
-    if (dayKey && s.isAvailable) {
-      daySlots[dayKey].push({ from: s.startTime, to: s.endTime });
+  dbAvailability.forEach(s => {
+    const dayKey = numberToDayKey[s.weekday];
+    if (dayKey) {
+      daySlots[dayKey].push({ 
+        from: s.from_time.substring(0, 5), 
+        to: s.to_time.substring(0, 5) 
+      });
     }
   });
 
@@ -76,8 +82,11 @@ const scheduleToAvailability = (schedule: { dayOfWeek: number; startTime: string
 };
 
 export const EditProfessionalDialog = ({ professional, onClose }: EditProfessionalDialogProps) => {
-  const { dispatch, state } = useApp();
+  const { state } = useApp();
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [availability, setAvailability] = useState<AvailabilityDay[]>([]);
 
   // Obtener colores ya usados (excluyendo el del profesional actual)
   const usedColors = state.practitioners
@@ -85,44 +94,107 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
     .map(p => p.color)
     .filter(Boolean) as string[];
 
-  // Parse existing data
-  const nameParts = professional.name.split(' ');
-  const prefixMatch = nameParts[0] === 'Dr.' || nameParts[0] === 'Lic.' ? nameParts[0] : 'none';
-  const firstName = prefixMatch !== 'none' ? nameParts.slice(1, -1).join(' ') : nameParts.slice(0, -1).join(' ');
-  const lastName = nameParts[nameParts.length - 1];
-
-  const [availability, setAvailability] = useState<AvailabilityDay[]>(
-    scheduleToAvailability(professional.schedule)
-  );
-
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<ProfessionalFormData>({
     resolver: zodResolver(professionalSchema),
     defaultValues: {
-      prefix: prefixMatch as any,
-      firstName,
-      lastName,
+      prefix: 'none',
+      firstName: '',
+      lastName: '',
       displayName: '',
-      mobile: professional.phone,
-      email: professional.email,
-      specialty: professional.specialty,
+      mobile: '',
+      email: '',
+      specialty: '',
       licenseId: '',
-      color: professional.color,
+      color: PROFESSIONAL_COLORS[0],
       status: 'active',
       notes: '',
     },
   });
 
+  // Cargar datos del profesional desde la BD
+  useEffect(() => {
+    const loadPractitionerData = async () => {
+      try {
+        // Cargar datos del practitioner
+        const { data: practitionerData, error: practError } = await supabase
+          .from('practitioners')
+          .select('*')
+          .eq('id', professional.id)
+          .single();
+
+        if (practError) throw practError;
+
+        // Cargar disponibilidad
+        const { data: availabilityData, error: availError } = await supabase
+          .from('practitioner_availability')
+          .select('weekday, from_time, to_time')
+          .eq('practitioner_id', professional.id);
+
+        if (availError) throw availError;
+
+        // Parsear nombre para extraer prefijo
+        const displayName = practitionerData.display_name || '';
+        const prefix = practitionerData.prefix as 'Dr.' | 'Lic.' | 'none' || 'none';
+        
+        // Intentar extraer nombre y apellido del display_name
+        let firstName = '';
+        let lastName = '';
+        
+        if (displayName) {
+          const cleanName = displayName.replace(/^(Dr\.|Lic\.)\s*/, '').trim();
+          const parts = cleanName.split(' ');
+          if (parts.length >= 2) {
+            lastName = parts.pop() || '';
+            firstName = parts.join(' ');
+          } else {
+            firstName = cleanName;
+          }
+        }
+
+        // Actualizar formulario
+        reset({
+          prefix: prefix !== null && ['Dr.', 'Lic.'].includes(prefix) ? prefix as 'Dr.' | 'Lic.' : 'none',
+          firstName,
+          lastName,
+          displayName: practitionerData.display_name || '',
+          mobile: '',
+          email: '',
+          specialty: practitionerData.specialties?.[0] || '',
+          licenseId: '',
+          color: practitionerData.color || PROFESSIONAL_COLORS[0],
+          status: practitionerData.is_active ? 'active' : 'inactive',
+          notes: practitionerData.notes || '',
+        });
+
+        // Actualizar disponibilidad
+        setAvailability(dbAvailabilityToEditor(availabilityData || []));
+      } catch (error) {
+        console.error('Error loading practitioner:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar los datos del profesional',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPractitionerData();
+  }, [professional.id, reset]);
+
   const prefix = watch('prefix');
   const status = watch('status');
   const currentColor = watch('color');
 
-  const onSubmit = (data: ProfessionalFormData) => {
+  const onSubmit = async (data: ProfessionalFormData) => {
     // Validar disponibilidad
     const activeDays = availability.filter(d => d.active);
     for (const day of activeDays) {
@@ -153,45 +225,110 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
       }
     }
 
-    // Convertir availability al formato schedule existente
-    const dayKeyToNumber: Record<DayKey, number> = {
-      lun: 1,
-      mar: 2,
-      mié: 3,
-      jue: 4,
-      vie: 5,
-      sáb: 6,
-      dom: 0,
-    };
+    if (!state.currentClinicId) {
+      toast({
+        title: 'Error',
+        description: 'No hay clínica seleccionada',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const schedule = activeDays.flatMap(day =>
-      day.slots.map(slot => ({
-        dayOfWeek: dayKeyToNumber[day.day],
-        startTime: slot.from,
-        endTime: slot.to,
-        isAvailable: true,
-      }))
-    );
+    setIsSubmitting(true);
 
-    const updatedPractitioner = {
-      ...professional,
-      name: `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim(),
-      specialty: data.specialty,
-      email: data.email || '',
-      phone: data.mobile || '',
-      schedule,
-      color: data.color || '#3b82f6',
-    };
+    try {
+      const dayKeyToNumber: Record<DayKey, number> = {
+        lun: 1,
+        mar: 2,
+        mié: 3,
+        jue: 4,
+        vie: 5,
+        sáb: 6,
+        dom: 0,
+      };
 
-    dispatch({ type: 'UPDATE_PRACTITIONER', payload: updatedPractitioner });
+      const displayName = data.displayName || 
+        `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim();
 
-    toast({
-      title: 'Profesional actualizado',
-      description: `${updatedPractitioner.name} ha sido actualizado exitosamente`,
-    });
+      // Actualizar practitioner
+      const { error: updateError } = await supabase
+        .from('practitioners')
+        .update({
+          display_name: displayName,
+          prefix: data.prefix !== 'none' ? data.prefix : null,
+          specialties: [data.specialty],
+          color: data.color || '#3b82f6',
+          is_active: data.status === 'active',
+          notes: data.notes || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', professional.id);
 
-    onClose();
+      if (updateError) throw updateError;
+
+      // Eliminar disponibilidad existente
+      await supabase
+        .from('practitioner_availability')
+        .delete()
+        .eq('practitioner_id', professional.id);
+
+      // Insertar nueva disponibilidad
+      if (activeDays.length > 0) {
+        const availabilityRows = activeDays.flatMap(day =>
+          day.slots.map(slot => ({
+            clinic_id: state.currentClinicId!,
+            practitioner_id: professional.id,
+            weekday: dayKeyToNumber[day.day],
+            from_time: slot.from,
+            to_time: slot.to,
+            slot_minutes: 30,
+            capacity: 1,
+          }))
+        );
+
+        if (availabilityRows.length > 0) {
+          const { error: availError } = await supabase
+            .from('practitioner_availability')
+            .insert(availabilityRows);
+
+          if (availError) {
+            console.error('Error updating availability:', availError);
+          }
+        }
+      }
+
+      // Disparar evento para refrescar listas
+      window.dispatchEvent(new Event('practitionerUpdated'));
+
+      toast({
+        title: 'Profesional actualizado',
+        description: `${displayName} ha sido actualizado exitosamente`,
+      });
+
+      onClose();
+    } catch (error: any) {
+      console.error('Error updating practitioner:', error);
+      toast({
+        title: 'Error al actualizar profesional',
+        description: error.message || 'Ocurrió un error inesperado',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="max-w-3xl">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -332,10 +469,12 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
           </Tabs>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button type="submit">Guardar Cambios</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</> : 'Guardar Cambios'}
+            </Button>
           </DialogFooter>
         </form>
 
