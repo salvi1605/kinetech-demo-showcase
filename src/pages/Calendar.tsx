@@ -39,6 +39,7 @@ import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
 import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 import { useAppointmentsForClinic } from '@/hooks/useAppointmentsForClinic';
+import { usePractitioners } from '@/hooks/usePractitioners';
 import { updateAppointmentStatus } from '@/lib/appointmentService';
 import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 
@@ -75,6 +76,16 @@ export const Calendar = () => {
   
   // Cargar configuración dinámica de la clínica
   const { settings: clinicSettings, isLoading: loadingSettings } = useClinicSettings();
+  
+  // Cargar profesionales de la clínica desde BD y sincronizar con AppContext
+  const { practitioners: dbPractitioners, loading: loadingPractitioners } = usePractitioners(state.currentClinicId);
+  
+  // Sincronizar profesionales de BD con AppContext
+  useEffect(() => {
+    if (dbPractitioners.length > 0) {
+      dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
+    }
+  }, [dbPractitioners, dispatch]);
   
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Para mobile
