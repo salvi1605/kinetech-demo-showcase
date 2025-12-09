@@ -1,28 +1,43 @@
 import { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, User, Phone, CreditCard } from 'lucide-react';
-import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
+import { ChevronLeft, ChevronRight, User, Phone, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
-import { 
-  PatientForm, 
-  Lateralidad, 
-  ObraSocial,
-  ReminderPref, 
-  normalizePatientForm, 
-  toPatientFromForm 
-} from '@/utils/patientForm.normalize';
+import { supabase } from '@/integrations/supabase/client';
+type ObraSocial = '' | 'osde' | 'luis_pasteur' | 'particular';
+type ReminderPref = '24h' | 'none';
+
+interface PatientFormData {
+  identificacion: {
+    fullName: string;
+    preferredName: string;
+    documentId: string;
+    dateOfBirth: string;
+    mobilePhone: string;
+    email: string;
+  };
+  emergencia: {
+    contactName: string;
+    relationship: string;
+    emergencyPhone: string;
+  };
+  seguro: {
+    obraSocial: ObraSocial;
+    numeroAfiliado: string;
+    sesionesAutorizadas?: number;
+    copago?: number;
+    contactAuth: { whatsapp: boolean; email: boolean };
+    reminderPref: ReminderPref;
+  };
+}
 
 interface NewPatientDialogV2Props {
   open: boolean;
@@ -43,10 +58,11 @@ const obraSocialLabels: Record<Exclude<ObraSocial, ''>, string> = {
 
 export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Props) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const { dispatch } = useApp();
+  const [isSaving, setIsSaving] = useState(false);
+  const { state, dispatch } = useApp();
   const { toast } = useToast();
 
-  const [form, setForm] = useState<PatientForm>({
+  const [form, setForm] = useState<PatientFormData>({
     identificacion: {
       fullName: '',
       preferredName: '',
@@ -130,7 +146,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate all steps
     let allValid = true;
     for (let i = 1; i <= 3; i++) {
@@ -143,42 +159,76 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
 
     if (!allValid) return;
 
-    const normalizedForm = normalizePatientForm(form);
-    const newPatient = toPatientFromForm(Date.now().toString(), normalizedForm);
+    if (!state.currentClinicId) {
+      toast({
+        title: "Error",
+        description: "No hay clínica seleccionada",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    dispatch({ type: 'ADD_PATIENT', payload: newPatient });
-    toast({
-      title: "Paciente creado",
-      description: "El nuevo paciente se ha registrado correctamente.",
-    });
+    setIsSaving(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .insert({
+          clinic_id: state.currentClinicId,
+          full_name: form.identificacion.fullName.trim(),
+          document_id: form.identificacion.documentId.trim() || null,
+          email: form.identificacion.email.trim() || null,
+          phone: form.identificacion.mobilePhone.trim() || null,
+          emergency_contact_name: form.emergencia.contactName.trim() || null,
+          emergency_contact_phone: form.emergencia.emergencyPhone.trim() || null,
+        })
+        .select()
+        .single();
 
-    // Reset and close
-    onOpenChange(false);
-    setCurrentStep(1);
-    setForm({
-      identificacion: {
-        fullName: '',
-        preferredName: '',
-        documentId: '',
-        dateOfBirth: '',
-        mobilePhone: '',
-        email: '',
-      },
-      emergencia: {
-        contactName: '',
-        relationship: '',
-        emergencyPhone: '',
-      },
-      seguro: {
-        obraSocial: '',
-        numeroAfiliado: '',
-        sesionesAutorizadas: undefined,
-        copago: undefined,
-        contactAuth: { whatsapp: false, email: false },
-        reminderPref: 'none',
-      },
-    });
-    setErrors({});
+      if (error) throw error;
+
+      toast({
+        title: "Paciente creado",
+        description: "El nuevo paciente se ha registrado correctamente.",
+      });
+
+      // Reset and close
+      onOpenChange(false);
+      setCurrentStep(1);
+      setForm({
+        identificacion: {
+          fullName: '',
+          preferredName: '',
+          documentId: '',
+          dateOfBirth: '',
+          mobilePhone: '',
+          email: '',
+        },
+        emergencia: {
+          contactName: '',
+          relationship: '',
+          emergencyPhone: '',
+        },
+        seguro: {
+          obraSocial: '',
+          numeroAfiliado: '',
+          sesionesAutorizadas: undefined,
+          copago: undefined,
+          contactAuth: { whatsapp: false, email: false },
+          reminderPref: 'none',
+        },
+      });
+      setErrors({});
+    } catch (error: any) {
+      console.error('Error creating patient:', error);
+      toast({
+        title: "Error al crear paciente",
+        description: error.message || "Ocurrió un error inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -469,8 +519,8 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} className="min-h-[44px]">
-              Guardar
+            <Button onClick={handleSubmit} disabled={isSaving} className="min-h-[44px]">
+              {isSaving ? 'Guardando...' : 'Guardar'}
             </Button>
           )}
         </div>
