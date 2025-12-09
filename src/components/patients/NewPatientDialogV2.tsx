@@ -97,7 +97,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
       // Los campos de emergencia ahora son opcionales
     }
 
-    if (step === 4) {
+    if (step === 3) {
       if (!form.seguro.obraSocial) {
         newErrors.obraSocial = 'Campo obligatorio';
       }
@@ -463,7 +463,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
             Anterior
           </Button>
 
-          {currentStep < 4 ? (
+          {currentStep < 3 ? (
             <Button onClick={nextStep} className="min-h-[44px]">
               Siguiente
               <ChevronRight className="h-4 w-4 ml-2" />
