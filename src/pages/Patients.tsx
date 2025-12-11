@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText } from 'lucide-react';
 import { parseSmartDOB } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 
 export const Patients = () => {
   const { state, dispatch } = useApp();
-  const { patients, loading: loadingPatients } = usePatients(state.currentClinicId);
+  const { patients: dbPatients, loading: loadingPatients } = usePatients(state.currentClinicId);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -36,6 +36,16 @@ export const Patients = () => {
   const [deletePatient, setDeletePatient] = useState<any>(null);
   const [historyPatient, setHistoryPatient] = useState<Patient | null>(null);
   const itemsPerPage = 10;
+
+  // Sincronizar pacientes de BD con AppContext
+  useEffect(() => {
+    if (dbPatients.length > 0) {
+      dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
+    }
+  }, [dbPatients, dispatch]);
+
+  // Usar pacientes del contexto para filtrado (sincronizados desde BD)
+  const patients = state.patients;
 
   const filteredPatients = patients.filter(patient => {
     const searchLower = searchTerm.toLowerCase();
