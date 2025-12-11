@@ -42,6 +42,7 @@ interface PatientFormData {
 interface NewPatientDialogV2Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 const steps = [
@@ -56,7 +57,7 @@ const obraSocialLabels: Record<Exclude<ObraSocial, ''>, string> = {
   particular: 'Particular',
 };
 
-export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Props) => {
+export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatientDialogV2Props) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const { state, dispatch } = useApp();
@@ -191,6 +192,9 @@ export const NewPatientDialogV2 = ({ open, onOpenChange }: NewPatientDialogV2Pro
         title: "Paciente creado",
         description: "El nuevo paciente se ha registrado correctamente.",
       });
+
+      // Notify parent to refresh list
+      onSuccess?.();
 
       // Reset and close
       onOpenChange(false);
