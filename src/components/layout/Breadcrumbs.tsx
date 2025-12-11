@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { useApp } from '@/contexts/AppContext';
 
 const routeNames: Record<string, string> = {
   '/': 'Inicio',
@@ -22,9 +23,25 @@ const routeNames: Record<string, string> = {
   '/settings': 'Configuración',
 };
 
+// Helper to convert name to URL-friendly slug
+const nameToSlug = (name: string) => name.replace(/\s+/g, '_');
+
 export const Breadcrumbs = () => {
   const location = useLocation();
+  const { state } = useApp();
   const pathnames = location.pathname.split('/').filter((x) => x);
+  
+  // Get display name for dynamic routes (patients/:id)
+  const getDisplayName = (segment: string, index: number): string => {
+    // If previous segment is 'patients' and this looks like a UUID, find patient name
+    if (index > 0 && pathnames[index - 1] === 'patients') {
+      const patient = state.patients.find(p => p.id === segment);
+      if (patient) {
+        return nameToSlug(patient.name);
+      }
+    }
+    return segment;
+  };
   
   // Don't show breadcrumbs on login page
   if (location.pathname === '/login') {
@@ -44,10 +61,10 @@ export const Breadcrumbs = () => {
             </BreadcrumbLink>
           </BreadcrumbItem>
           
-          {pathnames.map((pathname, index) => {
+        {pathnames.map((pathname, index) => {
             const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
             const isLast = index === pathnames.length - 1;
-            const displayName = routeNames[routeTo] || pathname;
+            const displayName = routeNames[routeTo] || getDisplayName(pathname, index);
             
             return (
               <div key={routeTo} className="flex items-center">

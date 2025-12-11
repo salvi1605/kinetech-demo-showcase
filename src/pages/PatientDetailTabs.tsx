@@ -62,8 +62,10 @@ export const PatientDetailTabs = () => {
   };
 
   const calculateAge = (birthDate: string) => {
+    if (!birthDate) return null;
     const today = new Date();
     const birth = parseSmartDOB(birthDate);
+    if (!birth || isNaN(birth.getTime())) return null;
     const age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     
@@ -165,7 +167,10 @@ export const PatientDetailTabs = () => {
             <div className="flex-1">
               <CardTitle className="text-2xl">{patient.name}</CardTitle>
               <CardDescription className="text-base">
-                {calculateAge(patient.birthDate)} años • ID: {patient.id}
+                {calculateAge(patient.birthDate) !== null 
+                  ? `${calculateAge(patient.birthDate)} años` 
+                  : <span className="text-muted-foreground">-</span>
+                } • DNI: {patient.identificacion?.documentId || <span className="text-muted-foreground">Sin documento</span>}
               </CardDescription>
               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">

@@ -265,13 +265,15 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
               </div>
 
               <div>
-                <Label htmlFor="documentId">DNI/Pasaporte</Label>
+                <Label htmlFor="documentId">DNI/Pasaporte *</Label>
                 <Input
                   id="documentId"
                   value={form.identificacion.documentId}
                   onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, documentId: e.target.value } }))}
                   placeholder="DNI, Pasaporte, etc."
+                  className={errors.documentId ? 'border-destructive' : ''}
                 />
+                {errors.documentId && <p className="text-sm text-destructive mt-1">{errors.documentId}</p>}
               </div>
 
               <div className="col-span-2">
