@@ -30,7 +30,7 @@ export const usePatients = (clinicId?: string) => {
         name: p.full_name,
         email: p.email || '',
         phone: p.phone || '',
-        birthDate: '',
+        birthDate: p.date_of_birth || '',
         conditions: [],
         identificacion: {
           fullName: p.full_name,
