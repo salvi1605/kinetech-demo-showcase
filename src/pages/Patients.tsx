@@ -98,8 +98,10 @@ export const Patients = () => {
   };
 
   const calculateAge = (birthDate: string) => {
+    if (!birthDate) return null;
     const today = new Date();
     const birth = parseSmartDOB(birthDate);
+    if (!birth || isNaN(birth.getTime())) return null;
     const age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     
@@ -229,7 +231,12 @@ export const Patients = () => {
                           </div>
                         </TableCell>
                       )}
-                      <TableCell>{calculateAge(patient.birthDate)} años</TableCell>
+                      <TableCell>
+                        {calculateAge(patient.birthDate) !== null 
+                          ? `${calculateAge(patient.birthDate)} años` 
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
                       <TableCell>
                         {patient.lastVisit ? (
                           <span className="text-sm">

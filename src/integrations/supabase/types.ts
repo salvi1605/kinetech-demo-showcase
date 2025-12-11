@@ -614,6 +614,7 @@ export type Database = {
         Row: {
           clinic_id: string
           created_at: string | null
+          date_of_birth: string | null
           deleted_at: string | null
           document_id: string | null
           email: string | null
@@ -628,6 +629,7 @@ export type Database = {
         Insert: {
           clinic_id: string
           created_at?: string | null
+          date_of_birth?: string | null
           deleted_at?: string | null
           document_id?: string | null
           email?: string | null
@@ -642,6 +644,7 @@ export type Database = {
         Update: {
           clinic_id?: string
           created_at?: string | null
+          date_of_birth?: string | null
           deleted_at?: string | null
           document_id?: string | null
           email?: string | null

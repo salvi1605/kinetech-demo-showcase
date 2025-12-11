@@ -180,6 +180,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
           document_id: form.identificacion.documentId.trim() || null,
           email: form.identificacion.email.trim() || null,
           phone: form.identificacion.mobilePhone.trim() || null,
+          date_of_birth: form.identificacion.dateOfBirth || null,
           emergency_contact_name: form.emergencia.contactName.trim() || null,
           emergency_contact_phone: form.emergencia.emergencyPhone.trim() || null,
         })
