@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 
 export const Patients = () => {
   const { state, dispatch } = useApp();
-  const { patients: dbPatients, loading: loadingPatients } = usePatients(state.currentClinicId);
+  const { patients: dbPatients, loading: loadingPatients, refetch: refetchPatients } = usePatients(state.currentClinicId);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -39,9 +39,7 @@ export const Patients = () => {
 
   // Sincronizar pacientes de BD con AppContext
   useEffect(() => {
-    if (dbPatients.length > 0) {
-      dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
-    }
+    dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
   }, [dbPatients, dispatch]);
 
   // Usar pacientes del contexto para filtrado (sincronizados desde BD)
@@ -573,6 +571,7 @@ export const Patients = () => {
         <NewPatientDialogV2 
           open={showWizard} 
           onOpenChange={setShowWizard}
+          onSuccess={refetchPatients}
         />
       )}
 
