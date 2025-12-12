@@ -137,7 +137,9 @@ export const Calendar = () => {
       ? appointment.date
       : format(parseISO(appointment.date), 'yyyy-MM-dd');
     const subSlot0 = ((appointment.subSlot ?? 1) - 1); // Convertir 1-5 a 0-4
-    const key = getSlotKey({ dateISO, hour: appointment.startTime, subSlot: subSlot0 });
+    // Normalizar startTime a HH:MM (sin segundos) para coincidir con TIME_SLOTS
+    const hourNormalized = appointment.startTime.substring(0, 5);
+    const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
     appointmentsBySlotKey.set(key, appointment);
   });
 
