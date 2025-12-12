@@ -298,14 +298,14 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
                   <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
                 ) : (
                   <Select
-                    value={selectedUserId}
-                    onValueChange={setSelectedUserId}
+                    value={selectedUserId || '__none__'}
+                    onValueChange={(val) => setSelectedUserId(val === '__none__' ? '' : val)}
                   >
                     <SelectTrigger id="linkedUser">
                       <SelectValue placeholder="Sin usuario vinculado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin usuario vinculado</SelectItem>
+                      <SelectItem value="__none__">Sin usuario vinculado</SelectItem>
                       {availableUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.full_name} ({user.email})
