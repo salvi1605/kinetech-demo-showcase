@@ -54,7 +54,7 @@ serve(async (req) => {
       .eq('user_id', currentUser.id)
       .eq('active', true);
 
-    const isAdmin = adminRoles?.some(r => r.role_id === 'admin_clinic');
+    const isAdmin = adminRoles?.some(r => r.role_id === 'admin_clinic' || r.role_id === 'tenant_owner');
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
