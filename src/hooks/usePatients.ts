@@ -42,6 +42,17 @@ export const usePatients = (clinicId?: string) => {
           contactName: p.emergency_contact_name,
           emergencyPhone: p.emergency_contact_phone || '',
         } : undefined,
+        seguro: {
+          obraSocial: p.obra_social || '',
+          numeroAfiliado: p.numero_afiliado || '',
+          sesionesAutorizadas: p.sesiones_autorizadas || 0,
+          copago: p.copago || 0,
+          contactAuth: {
+            whatsapp: p.contact_auth_whatsapp || false,
+            email: p.contact_auth_email || false,
+          },
+          reminderPref: p.reminder_preference || 'none',
+        },
       }));
 
       setPatients(mapped);

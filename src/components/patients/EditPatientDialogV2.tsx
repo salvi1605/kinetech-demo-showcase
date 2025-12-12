@@ -256,6 +256,14 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
           email: normalizedForm.identificacion.email || null,
           emergency_contact_name: normalizedForm.emergencia.contactName || null,
           emergency_contact_phone: normalizedForm.emergencia.emergencyPhone || null,
+          // Campos de seguro
+          obra_social: normalizedForm.seguro.obraSocial || null,
+          numero_afiliado: normalizedForm.seguro.numeroAfiliado?.trim() || null,
+          sesiones_autorizadas: normalizedForm.seguro.sesionesAutorizadas || 0,
+          copago: normalizedForm.seguro.copago || 0,
+          contact_auth_whatsapp: normalizedForm.seguro.contactAuth.whatsapp,
+          contact_auth_email: normalizedForm.seguro.contactAuth.email,
+          reminder_preference: normalizedForm.seguro.reminderPref || 'none',
           updated_at: new Date().toISOString(),
         })
         .eq('id', patient.id);

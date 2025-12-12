@@ -613,6 +613,9 @@ export type Database = {
       patients: {
         Row: {
           clinic_id: string
+          contact_auth_email: boolean | null
+          contact_auth_whatsapp: boolean | null
+          copago: number | null
           created_at: string | null
           date_of_birth: string | null
           deleted_at: string | null
@@ -623,11 +626,18 @@ export type Database = {
           full_name: string
           id: string
           is_deleted: boolean | null
+          numero_afiliado: string | null
+          obra_social: string | null
           phone: string | null
+          reminder_preference: string | null
+          sesiones_autorizadas: number | null
           updated_at: string | null
         }
         Insert: {
           clinic_id: string
+          contact_auth_email?: boolean | null
+          contact_auth_whatsapp?: boolean | null
+          copago?: number | null
           created_at?: string | null
           date_of_birth?: string | null
           deleted_at?: string | null
@@ -638,11 +648,18 @@ export type Database = {
           full_name: string
           id?: string
           is_deleted?: boolean | null
+          numero_afiliado?: string | null
+          obra_social?: string | null
           phone?: string | null
+          reminder_preference?: string | null
+          sesiones_autorizadas?: number | null
           updated_at?: string | null
         }
         Update: {
           clinic_id?: string
+          contact_auth_email?: boolean | null
+          contact_auth_whatsapp?: boolean | null
+          copago?: number | null
           created_at?: string | null
           date_of_birth?: string | null
           deleted_at?: string | null
@@ -653,7 +670,11 @@ export type Database = {
           full_name?: string
           id?: string
           is_deleted?: boolean | null
+          numero_afiliado?: string | null
+          obra_social?: string | null
           phone?: string | null
+          reminder_preference?: string | null
+          sesiones_autorizadas?: number | null
           updated_at?: string | null
         }
         Relationships: [
