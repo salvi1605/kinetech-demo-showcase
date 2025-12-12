@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, UserPlus, Shield, Pencil, Power } from 'lucide-react';
+import { Loader2, UserPlus, Shield, Pencil, Power, Link2 } from 'lucide-react';
 import { z } from 'zod';
 import { EditUserDialog } from '@/components/dialogs/EditUserDialog';
+import { LinkPractitionerModal } from '@/components/dialogs/LinkPractitionerModal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -68,6 +69,14 @@ export default function UserManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  
+  // Para vincular usuario a profesional
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkUserId, setLinkUserId] = useState<string>('');
+  const [linkUserName, setLinkUserName] = useState<string>('');
+  
+  // Mapa de usuarios vinculados a practitioners
+  const [userPractitionerMap, setUserPractitionerMap] = useState<Record<string, string>>({});
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -146,6 +155,23 @@ export default function UserManagement() {
 
       if (clinicsError) throw clinicsError;
       setClinics(clinicsData || []);
+
+      // Cargar mapa de usuarios vinculados a practitioners
+      const { data: practitionersData, error: practError } = await supabase
+        .from('practitioners')
+        .select('user_id, display_name')
+        .eq('clinic_id', state.currentClinicId)
+        .not('user_id', 'is', null);
+
+      if (!practError && practitionersData) {
+        const map: Record<string, string> = {};
+        practitionersData.forEach(p => {
+          if (p.user_id) {
+            map[p.user_id] = p.display_name;
+          }
+        });
+        setUserPractitionerMap(map);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar datos');
@@ -243,6 +269,17 @@ export default function UserManagement() {
   const handleEditUser = (user: UserWithRole) => {
     setSelectedUser(user);
     setEditUserDialogOpen(true);
+  };
+
+  const handleOpenLinkModal = (user: UserWithRole) => {
+    setLinkUserId(user.id);
+    setLinkUserName(user.full_name);
+    setLinkModalOpen(true);
+  };
+
+  // Verificar si un usuario tiene rol health_pro
+  const isHealthPro = (user: UserWithRole): boolean => {
+    return user.user_roles.some(ur => ur.role_id === 'health_pro');
   };
 
   const handleToggleActive = async (user: UserWithRole) => {
@@ -462,6 +499,7 @@ export default function UserManagement() {
                     <TableHead>Email</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Rol</TableHead>
+                    <TableHead>Profesional</TableHead>
                     <TableHead>Clínica</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -484,50 +522,89 @@ export default function UserManagement() {
                             </Badge>
                           );
                         })()}
-                      </TableCell>
-                      <TableCell>
-                        {user.user_roles[0]?.clinics?.name || state.currentClinicName}
-                      </TableCell>
+                        </TableCell>
+                        <TableCell>
+                          {/* Mostrar estado de vínculo solo para health_pro */}
+                          {isHealthPro(user) ? (
+                            userPractitionerMap[user.id] ? (
+                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                Vinculado: {userPractitionerMap[user.id]}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                No vinculado
+                              </Badge>
+                            )
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {user.user_roles[0]?.clinics?.name || state.currentClinicName}
+                        </TableCell>
                       <TableCell>
                         <Badge variant={user.user_roles[0]?.active ? 'default' : 'secondary'}>
                           {user.user_roles[0]?.active ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={user.user_roles[0]?.active ? 'outline' : 'default'}
-                            onClick={() => handleToggleActive(user)}
-                          >
-                            <Power className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {/* Botón vincular solo para health_pro no vinculados */}
+                            {isHealthPro(user) && !userPractitionerMap[user.id] && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenLinkModal(user)}
+                                title="Vincular a profesional"
+                              >
+                                <Link2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditUser(user)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={user.user_roles[0]?.active ? 'outline' : 'default'}
+                              onClick={() => handleToggleActive(user)}
+                            >
+                              <Power className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      <EditUserDialog
-        open={editUserDialogOpen}
-        onOpenChange={setEditUserDialogOpen}
-        user={selectedUser}
-        roles={roles}
-        clinics={clinics}
-        onSuccess={loadData}
-      />
-    </div>
-  );
-}
+        <EditUserDialog
+          open={editUserDialogOpen}
+          onOpenChange={setEditUserDialogOpen}
+          user={selectedUser}
+          roles={roles}
+          clinics={clinics}
+          onSuccess={loadData}
+        />
+
+        {/* Modal para vincular usuario a profesional */}
+        {state.currentClinicId && (
+          <LinkPractitionerModal
+            open={linkModalOpen}
+            onOpenChange={setLinkModalOpen}
+            userId={linkUserId}
+            userName={linkUserName}
+            clinicId={state.currentClinicId}
+            onSuccess={loadData}
+          />
+        )}
+      </div>
+    );
+  }

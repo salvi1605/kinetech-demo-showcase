@@ -17,6 +17,7 @@ import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { useAvailableUsersForPractitioner } from '@/hooks/useAvailableUsersForPractitioner';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -54,6 +55,12 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityDay[]>(initialDays);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+
+  // Obtener usuarios disponibles para vincular
+  const { users: availableUsers, loading: loadingUsers } = useAvailableUsersForPractitioner(
+    state.currentClinicId
+  );
 
   // Obtener colores ya usados
   const usedColors = state.practitioners.map(p => p.color).filter(Boolean) as string[];
@@ -153,6 +160,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
           color: data.color || '#3b82f6',
           is_active: data.status === 'active',
           notes: data.notes || null,
+          user_id: selectedUserId || null,
         })
         .select()
         .single();
@@ -278,6 +286,34 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
                     <p className="text-sm text-destructive">{errors.email.message}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Usuario asociado (login) */}
+              <div className="space-y-2 pt-2 border-t">
+                <Label htmlFor="linkedUser">Usuario asociado (login)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Opcional. Vincula este profesional a un usuario con rol "Profesional" para que pueda iniciar sesión.
+                </p>
+                {loadingUsers ? (
+                  <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+                ) : (
+                  <Select
+                    value={selectedUserId}
+                    onValueChange={setSelectedUserId}
+                  >
+                    <SelectTrigger id="linkedUser">
+                      <SelectValue placeholder="Sin usuario vinculado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin usuario vinculado</SelectItem>
+                      {availableUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </TabsContent>
 
