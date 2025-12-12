@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 import { addMinutesStr } from '@/utils/dateUtils';
 import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
 import { treatmentLabel } from '@/utils/formatters';
@@ -94,29 +95,64 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     patient.phone.includes(patientSearch)
   );
 
-  // Crear paciente rápido
-  const handleQuickCreatePatient = () => {
+  // Crear paciente rápido - CONECTADO A BD
+  const handleQuickCreatePatient = async () => {
     if (!quickPatientName.trim()) return;
+    
+    if (!state.currentClinicId) {
+      toast({
+        title: "Error",
+        description: "No hay clínica seleccionada",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const newPatient = {
-      id: Date.now().toString(),
-      name: quickPatientName.trim(),
-      phone: '',
-      email: '',
-      birthDate: '',
-      conditions: []
-    };
+    try {
+      // Insertar en BD real
+      const { data: newPatientData, error: insertError } = await supabase
+        .from('patients')
+        .insert({
+          clinic_id: state.currentClinicId,
+          full_name: quickPatientName.trim(),
+          phone: '',
+          email: '',
+          is_deleted: false,
+        })
+        .select('id, full_name')
+        .single();
 
-    dispatch({ type: 'ADD_PATIENT', payload: newPatient });
-    form.setValue('patientId', newPatient.id);
-    setPatientSearch(quickPatientName);
-    setQuickPatientName('');
-    setShowQuickCreatePatient(false);
+      if (insertError) throw insertError;
 
-    toast({
-      title: "Paciente creado",
-      description: `${newPatient.name} ha sido creado y seleccionado`,
-    });
+      // Crear objeto para estado local
+      const newPatient = {
+        id: newPatientData.id,
+        name: newPatientData.full_name,
+        phone: '',
+        email: '',
+        birthDate: '',
+        conditions: [],
+      };
+
+      // Actualizar estado local
+      dispatch({ type: 'ADD_PATIENT', payload: newPatient });
+      form.setValue('patientId', newPatient.id);
+      setPatientSearch(quickPatientName);
+      setQuickPatientName('');
+      setShowQuickCreatePatient(false);
+
+      toast({
+        title: "Paciente creado",
+        description: `${newPatient.name} ha sido creado y seleccionado`,
+      });
+    } catch (error) {
+      console.error('Error creating quick patient:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear el paciente",
+        variant: "destructive",
+      });
+    }
   };
 
   // Verificar campos requeridos
