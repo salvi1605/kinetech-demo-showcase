@@ -46,11 +46,6 @@ export const Settings = () => {
     });
   };
 
-  const mockUsers = [
-    { id: '1', name: 'Admin Principal', email: 'admin@clinic.com', role: 'admin' as const },
-    { id: '2', name: 'Recepcionista María', email: 'maria@clinic.com', role: 'recep' as const },
-    { id: '3', name: 'Dr. Juan Pérez', email: 'juan@clinic.com', role: 'kinesio' as const },
-  ];
 
   return (
     <div className="p-6 space-y-6 pb-20 lg:pb-6">
@@ -135,26 +130,10 @@ export const Settings = () => {
                 </Button>
               </div>
               <Separator />
-              <div className="space-y-3">
-                {mockUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'recep' ? 'secondary' : 'default'}>
-                        {user.role === 'admin' ? 'Admin' : user.role === 'recep' ? 'Recep' : 'Kinesio'}
-                      </Badge>
-                      <Button variant="ghost" size="sm" aria-label={`Editar usuario ${user.name}`}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" aria-label={`Eliminar usuario ${user.name}`}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="p-4 text-center text-muted-foreground border rounded-lg bg-muted/30">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Gestión de usuarios próximamente</p>
+                <p className="text-xs mt-1">Esta funcionalidad estará disponible en una próxima versión.</p>
               </div>
             </CardContent>
           </Card>

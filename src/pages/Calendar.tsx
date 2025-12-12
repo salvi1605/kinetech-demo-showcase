@@ -52,17 +52,6 @@ type Status = 'scheduled' | 'completed' | 'cancelled';
 const statusToChecked = (s: Status) => s === 'completed' ? true : s === 'cancelled' ? 'indeterminate' : false;
 const nextStatus = (s: Status): Status => s === 'scheduled' ? 'completed' : s === 'completed' ? 'cancelled' : 'scheduled';
 
-// Mock appointment status for available slots
-const mockAvailableSlots = [
-  { day: 1, time: '09:00', practitionerId: '1' },
-  { day: 1, time: '09:30', practitionerId: '1' },
-  { day: 1, time: '10:00', practitionerId: '2' },
-  { day: 2, time: '14:00', practitionerId: '1' },
-  { day: 3, time: '11:00', practitionerId: '2' },
-  { day: 4, time: '15:30', practitionerId: '1' },
-  { day: 5, time: '16:00', practitionerId: '2' },
-];
-
 // Crear clave única para cada sub-slot
 const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string; subSlot: number }) => {
   return `${dateISO}_${hour}_${subSlot}`;

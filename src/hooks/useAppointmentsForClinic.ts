@@ -72,7 +72,7 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
         status: mapDbStatusToInternal(apt.status),
         notes: apt.notes || '',
         type: 'consultation' as const,
-        treatmentType: mapTreatmentTypeToInternal(apt.treatment_type_id),
+        treatmentType: mapTreatmentTypeToInternal(apt.treatment_type_id, apt.treatment_types?.name),
       }));
 
       setAppointments(mappedAppointments);
@@ -107,9 +107,23 @@ const mapDbStatusToInternal = (dbStatus: string): 'scheduled' | 'completed' | 'c
   }
 };
 
-// Mapeo de treatment_type_id a TreatmentType interno (provisional)
-const mapTreatmentTypeToInternal = (treatmentTypeId: string | null): TreatmentType => {
-  // Por ahora retornamos 'fkt' por defecto
-  // Más adelante se puede hacer un fetch de treatment_types y mapear correctamente
+// Mapeo de treatment_type_id a TreatmentType interno usando nombre de BD
+const mapTreatmentTypeToInternal = (
+  treatmentTypeId: string | null, 
+  treatmentTypeName?: string | null
+): TreatmentType => {
+  // Mapear por nombre del tratamiento si está disponible
+  if (treatmentTypeName) {
+    const normalizedName = treatmentTypeName.toLowerCase().trim();
+    if (normalizedName.includes('atm') || normalizedName.includes('temporomandibular')) return 'atm';
+    if (normalizedName.includes('drenaje') && normalizedName.includes('ultra')) return 'drenaje_ultra';
+    if (normalizedName.includes('drenaje')) return 'drenaje';
+    if (normalizedName.includes('masaje')) return 'masaje';
+    if (normalizedName.includes('vestibular')) return 'vestibular';
+    if (normalizedName.includes('fkt') || normalizedName.includes('fisio') || normalizedName.includes('kinesio')) return 'fkt';
+    if (normalizedName.includes('otro')) return 'otro';
+  }
+  
+  // Fallback seguro si no hay nombre o no coincide
   return 'fkt';
 };

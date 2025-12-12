@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, User, Phone, CreditCard, LifeBuoy, ShieldCheck } from 'lucide-react';
-import { PatientHistoryButton } from '@/components/patients/PatientHistoryButton';
+import { ChevronLeft, ChevronRight, User, LifeBuoy, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { usePatients } from '@/hooks/usePatients';
 import { 
   PatientForm, 
   Lateralidad, 
@@ -42,8 +41,10 @@ const sectionConfig = [
 
 export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatientDialogV2Props) => {
   const [section, setSection] = useState<Section>('identificacion');
-  const { dispatch } = useApp();
+  const [isSaving, setIsSaving] = useState(false);
+  const { state, dispatch } = useApp();
   const { toast } = useToast();
+  const { refetch: refetchPatients } = usePatients(state.currentClinicId);
 
   const [form, setForm] = useState<PatientForm>({
     identificacion: {
@@ -147,7 +148,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     }
   };
 
-  const handleGlobalSave = () => {
+  const handleGlobalSave = async () => {
     if (!patient) return;
 
     const { ok, errors: validationErrors } = validateExceptSeguro();
@@ -163,23 +164,53 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     }
 
     const normalizedForm = normalizePatientForm(form);
-    const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
     
-    // Preservar clinico del paciente original si existe (no se edita en este formulario)
-    if (patient.clinico) {
-      updatedPatient.clinico = patient.clinico;
+    setIsSaving(true);
+    try {
+      // UPDATE real en BD
+      const { error: updateError } = await supabase
+        .from('patients')
+        .update({
+          full_name: normalizedForm.identificacion.fullName,
+          document_id: normalizedForm.identificacion.documentId || null,
+          date_of_birth: normalizedForm.identificacion.dateOfBirth || null,
+          phone: normalizedForm.identificacion.mobilePhone || null,
+          email: normalizedForm.identificacion.email || null,
+          emergency_contact_name: normalizedForm.emergencia.contactName || null,
+          emergency_contact_phone: normalizedForm.emergencia.emergencyPhone || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', patient.id);
+
+      if (updateError) throw updateError;
+
+      // Refrescar lista de pacientes desde BD
+      await refetchPatients();
+      
+      // También actualizar estado local para reactividad inmediata
+      const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
+      if (patient.clinico) updatedPatient.clinico = patient.clinico;
+      dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
+      
+      toast({
+        title: "Paciente actualizado",
+        description: "Los datos del paciente se han guardado correctamente.",
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating patient:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el paciente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
-
-    dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
-    toast({
-      title: "Paciente actualizado",
-      description: "Los datos del paciente se han actualizado correctamente.",
-    });
-
-    onOpenChange(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!patient) return;
 
     // Validate all sections
@@ -203,20 +234,50 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     }
 
     const normalizedForm = normalizePatientForm(form);
-    const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
     
-    // Preservar clinico del paciente original si existe (no se edita en este formulario)
-    if (patient.clinico) {
-      updatedPatient.clinico = patient.clinico;
+    setIsSaving(true);
+    try {
+      // UPDATE real en BD
+      const { error: updateError } = await supabase
+        .from('patients')
+        .update({
+          full_name: normalizedForm.identificacion.fullName,
+          document_id: normalizedForm.identificacion.documentId || null,
+          date_of_birth: normalizedForm.identificacion.dateOfBirth || null,
+          phone: normalizedForm.identificacion.mobilePhone || null,
+          email: normalizedForm.identificacion.email || null,
+          emergency_contact_name: normalizedForm.emergencia.contactName || null,
+          emergency_contact_phone: normalizedForm.emergencia.emergencyPhone || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', patient.id);
+
+      if (updateError) throw updateError;
+
+      // Refrescar lista de pacientes desde BD
+      await refetchPatients();
+      
+      // También actualizar estado local para reactividad inmediata
+      const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
+      if (patient.clinico) updatedPatient.clinico = patient.clinico;
+      dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
+      
+      toast({
+        title: "Paciente actualizado",
+        description: "Los datos del paciente se han guardado correctamente.",
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating patient:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el paciente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
-
-    dispatch({ type: 'UPDATE_PATIENT', payload: { id: patient.id, updates: updatedPatient } });
-    toast({
-      title: "Paciente actualizado",
-      description: "Los datos del paciente se han actualizado correctamente.",
-    });
-
-    onOpenChange(false);
   };
 
   const renderStepContent = () => {
