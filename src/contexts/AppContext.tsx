@@ -5,7 +5,7 @@ import type { EvolutionEntry } from '@/types/patient';
 import { supabase } from '@/integrations/supabase/client';
 
 // Types
-export type UserRole = 'admin' | 'recep' | 'kinesio';
+export type UserRole = 'admin' | 'recep' | 'kinesio' | 'tenant_owner';
 
 export interface Preferences {
   timezone: string;

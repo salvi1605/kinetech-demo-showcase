@@ -18,7 +18,7 @@ interface ClinicalHistoryBlockProps {
   historyByAppointment?: EvolutionEntry[];
   currentUserId: string;
   currentUserName: string;
-  currentUserRole: 'admin' | 'recep' | 'kinesio';
+  currentUserRole: 'admin' | 'tenant_owner' | 'recep' | 'kinesio';
   tempPrefill: any;
   onHistoryChange: (entries: EvolutionEntry[]) => void;
   onPatientChange: (patient: Patient) => void;
