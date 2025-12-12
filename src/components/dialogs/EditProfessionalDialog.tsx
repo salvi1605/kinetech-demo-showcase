@@ -17,6 +17,7 @@ import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { useAvailableUsersForPractitioner } from '@/hooks/useAvailableUsersForPractitioner';
 
 const professionalSchema = z.object({
   prefix: z.enum(['Dr.', 'Lic.', 'none']),
@@ -87,6 +88,14 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [availability, setAvailability] = useState<AvailabilityDay[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [currentLinkedUserName, setCurrentLinkedUserName] = useState<string | null>(null);
+
+  // Obtener usuarios disponibles para vincular (excluyendo el practitioner actual)
+  const { users: availableUsers, loading: loadingUsers } = useAvailableUsersForPractitioner(
+    state.currentClinicId,
+    professional.id
+  );
 
   // Obtener colores ya usados (excluyendo el del profesional actual)
   const usedColors = state.practitioners
@@ -122,10 +131,10 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
   useEffect(() => {
     const loadPractitionerData = async () => {
       try {
-        // Cargar datos del practitioner
+        // Cargar datos del practitioner incluyendo user_id
         const { data: practitionerData, error: practError } = await supabase
           .from('practitioners')
-          .select('*')
+          .select('*, users:user_id(id, full_name, email)')
           .eq('id', professional.id)
           .single();
 
@@ -138,6 +147,14 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
           .eq('practitioner_id', professional.id);
 
         if (availError) throw availError;
+
+        // Configurar usuario vinculado si existe
+        if (practitionerData.user_id) {
+          setSelectedUserId(practitionerData.user_id);
+          if (practitionerData.users) {
+            setCurrentLinkedUserName(practitionerData.users.full_name);
+          }
+        }
 
         // Parsear nombre para extraer prefijo
         const displayName = practitionerData.display_name || '';
@@ -250,7 +267,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
       const displayName = data.displayName || 
         `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim();
 
-      // Actualizar practitioner
+      // Actualizar practitioner (incluyendo user_id)
       const { error: updateError } = await supabase
         .from('practitioners')
         .update({
@@ -260,6 +277,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
           color: data.color || '#3b82f6',
           is_active: data.status === 'active',
           notes: data.notes || null,
+          user_id: selectedUserId || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', professional.id);
@@ -400,6 +418,40 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
                     <p className="text-sm text-destructive">{errors.email.message}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Usuario asociado (login) */}
+              <div className="space-y-2 pt-2 border-t">
+                <Label htmlFor="linkedUser">Usuario asociado (login)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Opcional. Vincula este profesional a un usuario con rol "Profesional" para que pueda iniciar sesión.
+                </p>
+                {loadingUsers ? (
+                  <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+                ) : (
+                  <Select
+                    value={selectedUserId}
+                    onValueChange={setSelectedUserId}
+                  >
+                    <SelectTrigger id="linkedUser">
+                      <SelectValue placeholder="Sin usuario vinculado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin usuario vinculado</SelectItem>
+                      {/* Mostrar usuario actualmente vinculado si existe */}
+                      {currentLinkedUserName && selectedUserId && (
+                        <SelectItem key={selectedUserId} value={selectedUserId}>
+                          {currentLinkedUserName} (actual)
+                        </SelectItem>
+                      )}
+                      {availableUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </TabsContent>
 
