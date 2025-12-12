@@ -233,7 +233,7 @@ export const Calendar = () => {
   };
 
   // Verificar si multi-selección está habilitada
-  const isMultiSelectEnabled = state.userRole === 'admin' || state.userRole === 'recep';
+  const isMultiSelectEnabled = state.userRole === 'admin' || state.userRole === 'tenant_owner' || state.userRole === 'recep';
 
   // Función para alternar selección de slot
   const toggleSelect = (key: string) => {
@@ -397,7 +397,7 @@ export const Calendar = () => {
               const patient = state.patients.find(p => p.id === appointment.patientId);
               const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
               const styles = getPractitionerStyles(appointment.practitionerId);
-              const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
+              const hasPermission = ['admin', 'tenant_owner', 'recep', 'kinesio'].includes(state.userRole);
               const stateAttr = statusToChecked(appointment.status as Status);
               const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
               
