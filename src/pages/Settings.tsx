@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Settings as SettingsIcon, User, Shield, Database, Users, Plus, FlaskConical, Loader2, Trash2, Upload } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, User, Shield, Database, FlaskConical, Loader2, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
 import { seedDemoData, clearDemoData, getDemoClinicId } from '@/lib/demoDataService';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { UserManagementCard } from '@/components/settings/UserManagementCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,14 +26,32 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+interface ClinicOption {
+  id: string;
+  name: string;
+}
+
 export const Settings = () => {
   const { state, dispatch } = useApp();
+  const [clinics, setClinics] = useState<ClinicOption[]>([]);
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
   const navigate = useNavigate();
 
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
   const [isClearingDemo, setIsClearingDemo] = useState(false);
+
+  // Fetch clinics for user management
+  useEffect(() => {
+    const fetchClinics = async () => {
+      const { data } = await supabase
+        .from('clinics')
+        .select('id, name')
+        .eq('is_active', true);
+      if (data) setClinics(data);
+    };
+    fetchClinics();
+  }, []);
 
   const handleExportData = async () => {
     try {
@@ -205,35 +225,13 @@ export const Settings = () => {
 
         {/* Gestión de Usuarios - Solo Admin */}
         <RoleGuard allowedRoles={['admin']}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Gestión de Usuarios
-              </CardTitle>
-              <CardDescription>
-                Administra los usuarios del sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <Label>Usuarios registrados</Label>
-                  <p className="text-sm text-muted-foreground">Gestiona accesos y roles</p>
-                </div>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nuevo usuario
-                </Button>
-              </div>
-              <Separator />
-              <div className="p-4 text-center text-muted-foreground border rounded-lg bg-muted/30">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Gestión de usuarios próximamente</p>
-                <p className="text-xs mt-1">Esta funcionalidad estará disponible en una próxima versión.</p>
-              </div>
-            </CardContent>
-          </Card>
+          {state.currentClinicId && (
+            <UserManagementCard
+              clinicId={state.currentClinicId}
+              clinicName={state.currentClinicName || 'Clínica'}
+              clinics={clinics}
+            />
+          )}
         </RoleGuard>
 
         {/* Configuración del Sistema - Solo Admin */}
