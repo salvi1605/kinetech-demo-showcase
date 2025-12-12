@@ -669,9 +669,11 @@ const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise
       return null;
     }
 
-    // Map database role to app role (prioritize tenant_owner and admin_clinic)
+    // Map database role to app role
     let appRole: UserRole = 'recep';
-    if (roleData.role_id === 'tenant_owner' || roleData.role_id === 'admin_clinic') {
+    if (roleData.role_id === 'tenant_owner') {
+      appRole = 'tenant_owner';
+    } else if (roleData.role_id === 'admin_clinic') {
       appRole = 'admin';
     } else if (roleData.role_id === 'receptionist') {
       appRole = 'recep';
