@@ -430,14 +430,14 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
                   <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
                 ) : (
                   <Select
-                    value={selectedUserId}
-                    onValueChange={setSelectedUserId}
+                    value={selectedUserId || '__none__'}
+                    onValueChange={(val) => setSelectedUserId(val === '__none__' ? '' : val)}
                   >
                     <SelectTrigger id="linkedUser">
                       <SelectValue placeholder="Sin usuario vinculado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin usuario vinculado</SelectItem>
+                      <SelectItem value="__none__">Sin usuario vinculado</SelectItem>
                       {/* Mostrar usuario actualmente vinculado si existe */}
                       {currentLinkedUserName && selectedUserId && (
                         <SelectItem key={selectedUserId} value={selectedUserId}>
