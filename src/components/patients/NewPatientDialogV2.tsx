@@ -191,6 +191,14 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
           date_of_birth: dobForDb,
           emergency_contact_name: form.emergencia.contactName.trim() || null,
           emergency_contact_phone: form.emergencia.emergencyPhone.trim() || null,
+          // Campos de seguro
+          obra_social: form.seguro.obraSocial || null,
+          numero_afiliado: form.seguro.numeroAfiliado?.trim() || null,
+          sesiones_autorizadas: form.seguro.sesionesAutorizadas || 0,
+          copago: form.seguro.copago || 0,
+          contact_auth_whatsapp: form.seguro.contactAuth.whatsapp,
+          contact_auth_email: form.seguro.contactAuth.email,
+          reminder_preference: form.seguro.reminderPref || 'none',
         })
         .select()
         .single();

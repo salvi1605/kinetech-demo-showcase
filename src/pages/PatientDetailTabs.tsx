@@ -501,7 +501,6 @@ export const PatientDetailTabs = () => {
                     <SelectValue placeholder="Seleccionar método" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Ninguno</SelectItem>
                     <SelectItem value="24h">24 horas antes</SelectItem>
                     <SelectItem value="none">Sin recordatorios</SelectItem>
                   </SelectContent>
