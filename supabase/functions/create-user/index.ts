@@ -74,59 +74,129 @@ serve(async (req) => {
     // Obtener datos del request
     const { email, password, fullName, roleId, clinicId } = await req.json()
 
-    // Crear usuario en Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    })
+    console.log(`Creating/adding user: ${email} with role ${roleId} for clinic ${clinicId}`)
 
-    if (authError) {
-      return new Response(
-        JSON.stringify({ error: authError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Verificar si ya existe usuario en public.users
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single()
-
+    let authUserId: string | null = null
     let userId: string
 
-    if (existingUser) {
-      // Actualizar auth_user_id
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({
-          auth_user_id: authData.user.id,
-          full_name: fullName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingUser.id)
+    // Check if user already exists in public.users by email
+    const { data: existingPublicUser } = await supabaseAdmin
+      .from('users')
+      .select('id, auth_user_id')
+      .eq('email', email)
+      .maybeSingle()
 
-      if (updateError) throw updateError
-      userId = existingUser.id
+    if (existingPublicUser) {
+      // User already exists in public.users
+      userId = existingPublicUser.id
+      authUserId = existingPublicUser.auth_user_id
+
+      console.log(`Found existing public user: ${userId}`)
+
+      // Check if user already has a role in this clinic
+      const { data: existingRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('clinic_id', clinicId)
+        .maybeSingle()
+
+      if (existingRole) {
+        return new Response(
+          JSON.stringify({ error: 'Este usuario ya tiene acceso a esta clínica' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // If user exists but doesn't have auth_user_id, try to create auth user
+      if (!authUserId) {
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+        })
+
+        if (authError) {
+          // Check if it's because user already exists in auth
+          if (authError.message.includes('already been registered')) {
+            // Get auth user by email
+            const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
+            const existingAuthUser = authUsers?.users?.find(u => u.email === email)
+            if (existingAuthUser) {
+              authUserId = existingAuthUser.id
+              // Update public.users with auth_user_id
+              await supabaseAdmin
+                .from('users')
+                .update({ auth_user_id: authUserId })
+                .eq('id', userId)
+            }
+          } else {
+            throw authError
+          }
+        } else {
+          authUserId = authData.user.id
+          // Update public.users with auth_user_id
+          await supabaseAdmin
+            .from('users')
+            .update({ 
+              auth_user_id: authUserId,
+              full_name: fullName,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId)
+        }
+      }
     } else {
-      // Crear nuevo usuario
+      // User doesn't exist, create new
+      // First try to create auth user
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      })
+
+      if (authError) {
+        // If user already exists in auth but not in public.users
+        if (authError.message.includes('already been registered')) {
+          const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
+          const existingAuthUser = authUsers?.users?.find(u => u.email === email)
+          if (existingAuthUser) {
+            authUserId = existingAuthUser.id
+          } else {
+            return new Response(
+              JSON.stringify({ error: authError.message }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        } else {
+          return new Response(
+            JSON.stringify({ error: authError.message }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } else {
+        authUserId = authData.user.id
+      }
+
+      // Create public.users record
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('users')
         .insert({
-          auth_user_id: authData.user.id,
+          auth_user_id: authUserId,
           email,
           full_name: fullName,
         })
         .select('id')
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('Error creating public.users record:', insertError)
+        throw insertError
+      }
       userId = newUser.id
     }
 
-    // Asignar rol
+    // Asignar rol para esta clínica
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
@@ -136,7 +206,12 @@ serve(async (req) => {
         active: true,
       })
 
-    if (roleError) throw roleError
+    if (roleError) {
+      console.error('Error assigning role:', roleError)
+      throw roleError
+    }
+
+    console.log(`Successfully created/added user ${email} with role ${roleId}`)
 
     return new Response(
       JSON.stringify({ 
@@ -151,6 +226,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error in create-user function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
