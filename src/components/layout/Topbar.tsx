@@ -55,14 +55,16 @@ export const Topbar = () => {
 
   const getRoleDisplayName = (role: UserRole) => {
     switch (role) {
+      case 'tenant_owner': return 'Propietario';
       case 'admin': return 'Administrador';
       case 'recep': return 'Recepcionista';
       case 'kinesio': return 'Kinesiólogo';
     }
   };
 
-  const getRoleBadgeVariant = (role: UserRole) => {
+  const getRoleBadgeVariant = (role: UserRole): "default" | "destructive" | "outline" | "secondary" => {
     switch (role) {
+      case 'tenant_owner': return 'outline';
       case 'admin': return 'destructive';
       case 'recep': return 'secondary';
       case 'kinesio': return 'default';
@@ -178,6 +180,7 @@ export const Topbar = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="tenant_owner">Propietario</SelectItem>
               <SelectItem value="admin">Administrador</SelectItem>
               <SelectItem value="recep">Recepcionista</SelectItem>
               <SelectItem value="kinesio">Kinesiólogo</SelectItem>
@@ -206,7 +209,7 @@ export const Topbar = () => {
         </div>
 
         {/* Day Change Simulator */}
-        {state.userRole === 'admin' && (
+        {(state.userRole === 'admin' || state.userRole === 'tenant_owner') && (
           <Button
             size="sm"
             className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"

@@ -43,37 +43,37 @@ const navigationItems = [
     title: 'Agenda',
     url: '/calendar',
     icon: Calendar,
-    roles: ['admin', 'recep', 'kinesio'] as UserRole[],
+    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'] as UserRole[],
   },
   {
     title: 'Pacientes',
     url: '/patients',
     icon: Users,
-    roles: ['admin', 'recep', 'kinesio'] as UserRole[],
+    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'] as UserRole[],
   },
   {
     title: 'Profesionales',
     url: '/practitioners',
     icon: UserCheck,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Disponibilidad',
     url: '/availability',
     icon: Clock,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Excepciones',
     url: '/exceptions',
     icon: Calendar1,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Copiar Horario',
     url: '/copy-schedule',
     icon: Copy,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
 ];
 
@@ -82,19 +82,19 @@ const authItems = [
     title: 'Usuarios',
     url: '/users',
     icon: Shield,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Clínicas',
     url: '/clinics',
     icon: Building2,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Configuración',
     url: '/settings',
     icon: Settings,
-    roles: ['admin'] as UserRole[],
+    roles: ['admin', 'tenant_owner'] as UserRole[],
   },
 ];
 
@@ -275,7 +275,7 @@ export function AppSidebar() {
                     title: 'Iniciar Sesión',
                     url: '/login',
                     icon: LogIn,
-                    roles: ['admin', 'recep', 'kinesio'],
+                    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'],
                   }}
                 />
               </SidebarMenu>
@@ -331,7 +331,7 @@ export function AppSidebar() {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <div className="w-8 h-8 bg-white/20 text-white rounded-md flex items-center justify-center"> {/* ★ */}
               <span className="text-xs font-medium">
-                {state.userRole === 'admin' ? 'A' : state.userRole === 'recep' ? 'R' : 'K'}
+                {state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin' ? 'A' : state.userRole === 'recep' ? 'R' : 'K'}
               </span>
             </div>
           </div>

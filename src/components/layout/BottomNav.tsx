@@ -8,31 +8,31 @@ const mobileNavItems = [
     title: 'Agenda',
     url: '/calendar',
     icon: Calendar,
-    roles: ['admin', 'recep', 'kinesio'],
+    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'],
   },
   {
     title: 'Pacientes',
     url: '/patients',
     icon: Users,
-    roles: ['admin', 'recep', 'kinesio'],
+    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'],
   },
   {
     title: 'Profesionales',
     url: '/practitioners',
     icon: UserCheck,
-    roles: ['admin', 'recep'],
+    roles: ['admin', 'tenant_owner', 'recep'],
   },
   {
     title: 'Disponibilidad',
     url: '/availability',
     icon: Clock,
-    roles: ['admin', 'kinesio'],
+    roles: ['admin', 'tenant_owner', 'kinesio'],
   },
   {
     title: 'Config',
     url: '/settings',
     icon: Settings,
-    roles: ['admin'],
+    roles: ['admin', 'tenant_owner'],
   },
 ];
 
