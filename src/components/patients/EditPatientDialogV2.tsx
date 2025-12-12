@@ -237,13 +237,21 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     
     setIsSaving(true);
     try {
+      // Convertir fecha DD-MM-YYYY a YYYY-MM-DD para PostgreSQL
+      const dobForDb = normalizedForm.identificacion.dateOfBirth 
+        ? (() => {
+            const [d, m, y] = normalizedForm.identificacion.dateOfBirth.split('-');
+            return `${y}-${m}-${d}`;
+          })()
+        : null;
+      
       // UPDATE real en BD
       const { error: updateError } = await supabase
         .from('patients')
         .update({
           full_name: normalizedForm.identificacion.fullName,
           document_id: normalizedForm.identificacion.documentId || null,
-          date_of_birth: normalizedForm.identificacion.dateOfBirth || null,
+          date_of_birth: dobForDb,
           phone: normalizedForm.identificacion.mobilePhone || null,
           email: normalizedForm.identificacion.email || null,
           emergency_contact_name: normalizedForm.emergencia.contactName || null,

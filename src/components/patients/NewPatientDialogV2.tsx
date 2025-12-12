@@ -172,6 +172,14 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
     setIsSaving(true);
     
     try {
+      // Convertir fecha DD-MM-YYYY a YYYY-MM-DD para PostgreSQL
+      const dobForDb = form.identificacion.dateOfBirth 
+        ? (() => {
+            const [d, m, y] = form.identificacion.dateOfBirth.split('-');
+            return `${y}-${m}-${d}`;
+          })()
+        : null;
+      
       const { data, error } = await supabase
         .from('patients')
         .insert({
@@ -180,7 +188,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
           document_id: form.identificacion.documentId.trim() || null,
           email: form.identificacion.email.trim() || null,
           phone: form.identificacion.mobilePhone.trim() || null,
-          date_of_birth: form.identificacion.dateOfBirth || null,
+          date_of_birth: dobForDb,
           emergency_contact_name: form.emergencia.contactName.trim() || null,
           emergency_contact_phone: form.emergencia.emergencyPhone.trim() || null,
         })
