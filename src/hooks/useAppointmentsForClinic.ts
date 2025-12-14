@@ -89,6 +89,32 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  // Suscribirse a cambios en tiempo real de appointments
+  useEffect(() => {
+    if (!state.currentClinicId) return;
+
+    const channel = supabase
+      .channel('calendar-appointments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `clinic_id=eq.${state.currentClinicId}`
+        },
+        (payload) => {
+          console.log('Realtime calendar update:', payload);
+          fetchAppointments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [state.currentClinicId, fetchAppointments]);
+
   return { appointments, isLoading, error, refetch: fetchAppointments };
 };
 
