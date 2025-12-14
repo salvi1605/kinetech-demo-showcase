@@ -128,11 +128,16 @@ export const Calendar = () => {
     return () => window.removeEventListener('appointmentUpdated', handleRefetch);
   }, [refetch]);
 
-  // Índice de citas por clave de sub-slot (usar dbAppointments en lugar de state.appointments)
+  // Filtrar citas por profesional si hay filtro activo
+  const filteredAppointments = state.filterPractitionerId
+    ? dbAppointments.filter(apt => apt.practitionerId === state.filterPractitionerId)
+    : dbAppointments;
+
+  // Índice de citas por clave de sub-slot (usar filteredAppointments)
   const appointmentsBySlotKey = new Map<string, Appointment>();
 
   // Construir índice de citas (convertir subSlot 1-5 a índice 0-4 para el Map)
-  dbAppointments.forEach(appointment => {
+  filteredAppointments.forEach(appointment => {
     const dateISO = appointment.date.length === 10
       ? appointment.date
       : format(parseISO(appointment.date), 'yyyy-MM-dd');
@@ -510,14 +515,58 @@ export const Calendar = () => {
     );
   };
 
+  // Obtener nombre del profesional filtrado
+  const filteredPractitionerName = state.filterPractitionerId 
+    ? state.practitioners.find(p => p.id === state.filterPractitionerId)?.name 
+    : undefined;
+
   return (
     <div className="p-4 lg:p-6 space-y-6 pb-20 lg:pb-6">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <CalendarIcon className="h-6 w-6 text-primary" />
-          Agenda
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <CalendarIcon className="h-6 w-6 text-primary" />
+            Agenda
+          </h1>
+          
+          {/* Filtro de profesional */}
+          <div className="flex items-center gap-2">
+            <Select
+              value={state.filterPractitionerId ?? 'all'}
+              onValueChange={(value) => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: value === 'all' ? undefined : value })}
+            >
+              <SelectTrigger className="h-9 w-[200px]">
+                <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Todos los profesionales" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los profesionales</SelectItem>
+                {state.practitioners.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {state.filterPractitionerId && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: undefined })}
+                className="h-9 px-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* Badge de filtro activo */}
+        {filteredPractitionerName && (
+          <Badge variant="secondary" className="mt-1">
+            Mostrando agenda de: {filteredPractitionerName}
+          </Badge>
+        )}
+        
         {agendaBanner?.type === 'error' && (
           <div className="w-full mt-2 text-sm font-medium text-red-600">
             {agendaBanner.text}

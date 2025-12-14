@@ -22,8 +22,8 @@ export const Practitioners = () => {
   const [editingProfessional, setEditingProfessional] = useState<Practitioner | null>(null);
 
   const handleViewAgenda = (practitionerId: string) => {
-    // Establecer el filtro de profesional y navegar al calendario
-    dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId });
+    // Establecer el filtro de visualización y navegar al calendario
+    dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: practitionerId });
     navigate('/calendar');
   };
 

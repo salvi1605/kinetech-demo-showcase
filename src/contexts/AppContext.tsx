@@ -57,6 +57,7 @@ export interface AppState {
   selectedSlots: Set<string>;
   selectedPractitionerId?: string;
   selectedTreatmentType?: TreatmentType;
+  filterPractitionerId?: string; // Para filtrar visualización del calendario
   currentUserId: string;
   currentUserName: string;
   testCurrentDate?: string; // YYYY-MM-DD - For testing purposes only
@@ -213,6 +214,7 @@ export type AppAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_SELECTED_PRACTITIONER'; payload: string | undefined }
   | { type: 'SET_SELECTED_TREATMENT_TYPE'; payload: TreatmentType | undefined }
+  | { type: 'SET_FILTER_PRACTITIONER'; payload: string | undefined }
   | { type: 'SEED_DEMO_DATA' }
   | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOGIN'; payload: User }
@@ -327,6 +329,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'SET_SELECTED_TREATMENT_TYPE':
       return { ...state, selectedTreatmentType: action.payload };
+    
+    case 'SET_FILTER_PRACTITIONER':
+      return { ...state, filterPractitionerId: action.payload };
     
 case 'SEED_DEMO_DATA': {
       // Demo data eliminado - ahora todo viene de BD
