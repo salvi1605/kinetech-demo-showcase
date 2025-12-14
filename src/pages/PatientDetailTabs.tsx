@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
 import { format, subMonths, addMonths } from 'date-fns';
-import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
+import { parseSmartDOB, formatDisplayDate, parseLocalDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -314,13 +314,13 @@ export const PatientDetailTabs = () => {
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-accent">
-                          {lastVisit ? new Date(lastVisit.date).toLocaleDateString('es-ES') : '-'}
+                          {lastVisit ? parseLocalDate(lastVisit.date).toLocaleDateString('es-ES') : '-'}
                         </p>
                         <p className="text-sm text-muted-foreground">Última Visita</p>
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-warning">
-                          {nextAppointment ? new Date(nextAppointment.date).toLocaleDateString('es-ES') : '-'}
+                          {nextAppointment ? parseLocalDate(nextAppointment.date).toLocaleDateString('es-ES') : '-'}
                         </p>
                         <p className="text-sm text-muted-foreground">Próxima Cita</p>
                       </div>
@@ -351,7 +351,7 @@ export const PatientDetailTabs = () => {
                     return futureAppointments.map(apt => (
                       <div key={apt.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div>
-                          <p className="font-medium">{new Date(apt.date).toLocaleDateString('es-ES')}</p>
+                          <p className="font-medium">{parseLocalDate(apt.date).toLocaleDateString('es-ES')}</p>
                           <p className="text-sm text-muted-foreground">{apt.startTime.substring(0, 5)}</p>
                         </div>
                         <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
