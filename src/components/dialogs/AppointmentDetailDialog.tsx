@@ -129,7 +129,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   // Check if appointment is in past day
   const appointmentDateISO = appointment.date.length === 10 ? appointment.date : format(parseISO(appointment.date), 'yyyy-MM-dd');
   const isPast = isPastDay(appointmentDateISO);
-  const canEdit = state.userRole === 'admin' || !isPast;
+  const canEdit = state.userRole === 'admin' || state.userRole === 'tenant_owner' || !isPast;
 
   // Calcular duración estándar (30 min)
   const durationLabel = '30 min';
@@ -252,7 +252,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     if (!appointment) return;
     
     // Check permissions for past day appointments
-    if (state.userRole !== 'admin' && isPast) {
+    if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner' && isPast) {
       toast({
         title: "Acceso denegado",
         description: "No puedes realizar cambios en días anteriores",
