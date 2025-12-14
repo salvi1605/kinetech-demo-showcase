@@ -54,41 +54,54 @@ export const PatientDetailTabs = () => {
     }
   }, [dbPractitioners, dispatch]);
 
-  // Cargar citas del paciente desde la BD
+  // Función para cargar citas del paciente desde la BD
+  const fetchPatientAppointments = async () => {
+    if (!id || !state.currentClinicId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, date, start_time, sub_slot, status, notes, patient_id, practitioner_id, treatment_type_id')
+        .eq('clinic_id', state.currentClinicId)
+        .eq('patient_id', id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      const mapped: Appointment[] = (data || []).map(apt => ({
+        id: apt.id,
+        patientId: apt.patient_id || '',
+        practitionerId: apt.practitioner_id,
+        date: apt.date,
+        startTime: apt.start_time.substring(0, 5), // Normalize to HH:MM
+        subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
+        status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
+        notes: apt.notes || '',
+        type: 'consultation' as const,
+        treatmentType: 'fkt' as const,
+      }));
+
+      setPatientAppointments(mapped);
+    } catch (err) {
+      console.error('Error fetching patient appointments:', err);
+    }
+  };
+
+  // Cargar citas al montar y cuando cambia el paciente/clínica
   useEffect(() => {
-    const fetchPatientAppointments = async () => {
-      if (!id || !state.currentClinicId) return;
+    fetchPatientAppointments();
+  }, [id, state.currentClinicId]);
 
-      try {
-        const { data, error } = await supabase
-          .from('appointments')
-          .select('id, date, start_time, sub_slot, status, notes, patient_id, practitioner_id, treatment_type_id')
-          .eq('clinic_id', state.currentClinicId)
-          .eq('patient_id', id)
-          .order('date', { ascending: false });
-
-        if (error) throw error;
-
-        const mapped: Appointment[] = (data || []).map(apt => ({
-          id: apt.id,
-          patientId: apt.patient_id || '',
-          practitionerId: apt.practitioner_id,
-          date: apt.date,
-          startTime: apt.start_time,
-          subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
-          status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
-          notes: apt.notes || '',
-          type: 'consultation' as const,
-          treatmentType: 'fkt' as const,
-        }));
-
-        setPatientAppointments(mapped);
-      } catch (err) {
-        console.error('Error fetching patient appointments:', err);
-      }
+  // Escuchar evento de actualización de citas para refrescar automáticamente
+  useEffect(() => {
+    const handleAppointmentUpdated = () => {
+      fetchPatientAppointments();
     };
 
-    fetchPatientAppointments();
+    window.addEventListener('appointmentUpdated', handleAppointmentUpdated);
+    return () => {
+      window.removeEventListener('appointmentUpdated', handleAppointmentUpdated);
+    };
   }, [id, state.currentClinicId]);
 
   const patient = state.patients.find(p => p.id === id);
