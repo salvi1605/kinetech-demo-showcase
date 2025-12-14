@@ -276,30 +276,44 @@ export const PatientDetailTabs = () => {
                 <CardTitle>Estadísticas</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{patientAppointments.length}</p>
-                    <p className="text-sm text-muted-foreground">Total Sesiones</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-destructive">
-                      {patientAppointments.filter(a => a.status === 'cancelled').length}
-                    </p>
-                    <p className="text-sm text-muted-foreground">No-shows</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-accent">
-                      {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString('es-ES') : '-'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Última Visita</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-warning">
-                      {patient.nextAppointment ? new Date(patient.nextAppointment).toLocaleDateString('es-ES') : '-'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Próxima Cita</p>
-                  </div>
-                </div>
+                {(() => {
+                  const today = format(new Date(), 'yyyy-MM-dd');
+                  const futureAppointments = patientAppointments
+                    .filter(a => a.date >= today && a.status === 'scheduled')
+                    .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+                  const pastAppointments = patientAppointments
+                    .filter(a => a.date < today || (a.date === today && a.status !== 'scheduled'))
+                    .sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
+                  const lastVisit = pastAppointments.find(a => a.status === 'completed');
+                  const nextAppointment = futureAppointments[0];
+
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-primary">{patientAppointments.length}</p>
+                        <p className="text-sm text-muted-foreground">Total Sesiones</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-destructive">
+                          {patientAppointments.filter(a => a.status === 'cancelled').length}
+                        </p>
+                        <p className="text-sm text-muted-foreground">No-shows</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-accent">
+                          {lastVisit ? new Date(lastVisit.date).toLocaleDateString('es-ES') : '-'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Última Visita</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-warning">
+                          {nextAppointment ? new Date(nextAppointment.date).toLocaleDateString('es-ES') : '-'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Próxima Cita</p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -310,21 +324,27 @@ export const PatientDetailTabs = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {patientAppointments
-                    .filter(apt => apt.status === 'scheduled' && !apt.isContinuation)
-                    .slice(0, 3)
-                    .map(apt => (
+                  {(() => {
+                    const today = format(new Date(), 'yyyy-MM-dd');
+                    const futureAppointments = patientAppointments
+                      .filter(apt => apt.date >= today && apt.status === 'scheduled')
+                      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+                      .slice(0, 3);
+
+                    if (futureAppointments.length === 0) {
+                      return <p className="text-muted-foreground text-center py-4">No hay turnos programados</p>;
+                    }
+
+                    return futureAppointments.map(apt => (
                       <div key={apt.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div>
                           <p className="font-medium">{new Date(apt.date).toLocaleDateString('es-ES')}</p>
-                          <p className="text-sm text-muted-foreground">{apt.startTime}</p>
+                          <p className="text-sm text-muted-foreground">{apt.startTime.substring(0, 5)}</p>
                         </div>
                         <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
                       </div>
-                    ))}
-                  {patientAppointments.filter(apt => apt.status === 'scheduled').length === 0 && (
-                    <p className="text-muted-foreground text-center py-4">No hay turnos programados</p>
-                  )}
+                    ));
+                  })()}
                 </div>
               </CardContent>
             </Card>
