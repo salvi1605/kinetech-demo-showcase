@@ -382,6 +382,61 @@ export const PatientDetailTabs = () => {
                   </div>
                 </div>
               </div>
+
+              <Separator className="my-4" />
+
+              <div>
+                <h4 className="font-medium mb-3">Autorizaciones de Contacto</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="auth-whatsapp-tabs"
+                      checked={patient.seguro?.contactAuth?.whatsapp || false}
+                      onCheckedChange={(checked) =>
+                        handleFieldUpdate('seguro', {
+                          ...patient.seguro,
+                          contactAuth: { ...patient.seguro?.contactAuth, whatsapp: !!checked }
+                        })
+                      }
+                      disabled={!editingData}
+                    />
+                    <label htmlFor="auth-whatsapp-tabs" className="font-normal text-sm">WhatsApp</label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="auth-email-tabs"
+                      checked={patient.seguro?.contactAuth?.email || false}
+                      onCheckedChange={(checked) =>
+                        handleFieldUpdate('seguro', {
+                          ...patient.seguro,
+                          contactAuth: { ...patient.seguro?.contactAuth, email: !!checked }
+                        })
+                      }
+                      disabled={!editingData}
+                    />
+                    <label htmlFor="auth-email-tabs" className="font-normal text-sm">E-mail</label>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+
+              <div>
+                <Label>Preferencia de Recordatorio</Label>
+                <Select
+                  value={patient.seguro?.reminderPref || 'none'}
+                  onValueChange={(value) => handleFieldUpdate('seguro', { ...patient.seguro, reminderPref: value })}
+                  disabled={!editingData}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">24 horas antes</SelectItem>
+                    <SelectItem value="none">Sin recordatorios</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -450,61 +505,6 @@ export const PatientDetailTabs = () => {
                     disabled={!editingInsurance}
                   />
                 </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="font-medium mb-3">Autorizaciones de Contacto</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="auth-whatsapp-tabs"
-                      checked={patient.seguro?.contactAuth?.whatsapp || false}
-                      onCheckedChange={(checked) =>
-                        handleFieldUpdate('seguro', {
-                          ...patient.seguro,
-                          contactAuth: { ...patient.seguro?.contactAuth, whatsapp: !!checked }
-                        })
-                      }
-                      disabled={!editingInsurance}
-                    />
-                    <label htmlFor="auth-whatsapp-tabs" className="font-normal text-sm">WhatsApp</label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="auth-email-tabs"
-                      checked={patient.seguro?.contactAuth?.email || false}
-                      onCheckedChange={(checked) =>
-                        handleFieldUpdate('seguro', {
-                          ...patient.seguro,
-                          contactAuth: { ...patient.seguro?.contactAuth, email: !!checked }
-                        })
-                      }
-                      disabled={!editingInsurance}
-                    />
-                    <label htmlFor="auth-email-tabs" className="font-normal text-sm">E-mail</label>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label>Preferencia de Recordatorio</Label>
-                <Select
-                  value={patient.seguro?.reminderPref || 'none'}
-                  onValueChange={(value) => handleFieldUpdate('seguro', { ...patient.seguro, reminderPref: value })}
-                  disabled={!editingInsurance}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar método" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24h">24 horas antes</SelectItem>
-                    <SelectItem value="none">Sin recordatorios</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </CardContent>
           </Card>
