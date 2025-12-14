@@ -92,15 +92,29 @@ export const PatientDetailTabs = () => {
     fetchPatientAppointments();
   }, [id, state.currentClinicId]);
 
-  // Escuchar evento de actualización de citas para refrescar automáticamente
+  // Suscribirse a cambios en tiempo real de appointments
   useEffect(() => {
-    const handleAppointmentUpdated = () => {
-      fetchPatientAppointments();
-    };
+    if (!id || !state.currentClinicId) return;
 
-    window.addEventListener('appointmentUpdated', handleAppointmentUpdated);
+    const channel = supabase
+      .channel('patient-appointments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `patient_id=eq.${id}`
+        },
+        (payload) => {
+          console.log('Realtime appointment update:', payload);
+          fetchPatientAppointments();
+        }
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener('appointmentUpdated', handleAppointmentUpdated);
+      supabase.removeChannel(channel);
     };
   }, [id, state.currentClinicId]);
 
