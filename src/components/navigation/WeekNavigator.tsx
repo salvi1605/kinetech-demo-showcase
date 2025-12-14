@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useApp } from '@/contexts/AppContext';
+import { parseLocalDate } from '@/utils/dateUtils';
 
 export const WeekNavigator = () => {
   const { state, dispatch } = useApp();
 
   const currentWeek = state.calendarWeekStart 
-    ? new Date(state.calendarWeekStart + 'T00:00:00') 
+    ? parseLocalDate(state.calendarWeekStart) 
     : new Date();
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
