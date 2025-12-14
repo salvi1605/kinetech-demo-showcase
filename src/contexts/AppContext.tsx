@@ -57,7 +57,8 @@ export interface AppState {
   selectedSlots: Set<string>;
   selectedPractitionerId?: string;
   selectedTreatmentType?: TreatmentType;
-  filterPractitionerId?: string; // Para filtrar visualización del calendario
+  filterPractitionerId?: string; // Para filtrar visualización del calendario por profesional
+  filterPatientSearch?: string; // Para filtrar visualización del calendario por paciente
   currentUserId: string;
   currentUserName: string;
   testCurrentDate?: string; // YYYY-MM-DD - For testing purposes only
@@ -215,6 +216,7 @@ export type AppAction =
   | { type: 'SET_SELECTED_PRACTITIONER'; payload: string | undefined }
   | { type: 'SET_SELECTED_TREATMENT_TYPE'; payload: TreatmentType | undefined }
   | { type: 'SET_FILTER_PRACTITIONER'; payload: string | undefined }
+  | { type: 'SET_FILTER_PATIENT_SEARCH'; payload: string | undefined }
   | { type: 'SEED_DEMO_DATA' }
   | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOGIN'; payload: User }
@@ -265,6 +267,16 @@ const getStoredFilterPractitionerId = (): string | undefined => {
   }
 };
 
+// Helper para leer filtro de paciente de localStorage
+const getStoredFilterPatientSearch = (): string | undefined => {
+  try {
+    const stored = localStorage.getItem('filterPatientSearch');
+    return stored || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 // Initial State
 const initialState: AppState = {
   currentWeek: new Date(),
@@ -294,6 +306,7 @@ const initialState: AppState = {
   currentUserName: '',
   testCurrentDate: undefined,
   filterPractitionerId: getStoredFilterPractitionerId(),
+  filterPatientSearch: getStoredFilterPatientSearch(),
 };
 
 // Reducer
@@ -318,14 +331,16 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, selectedClinic: action.payload };
     
     case 'SET_CURRENT_CLINIC':
-      // Limpiar filtro de profesional al cambiar de clínica
+      // Limpiar ambos filtros al cambiar de clínica
       try { localStorage.removeItem('filterPractitionerId'); } catch {}
+      try { localStorage.removeItem('filterPatientSearch'); } catch {}
       return { 
         ...state, 
         currentClinicId: action.payload.id,
         currentClinicName: action.payload.name,
         selectedClinic: action.payload.id,
-        filterPractitionerId: undefined, // Resetear filtro
+        filterPractitionerId: undefined,
+        filterPatientSearch: undefined,
       };
     
     case 'SET_SEARCH_QUERY':
@@ -346,7 +361,16 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       }
       return { ...state, filterPractitionerId: action.payload };
     
-case 'SEED_DEMO_DATA': {
+    case 'SET_FILTER_PATIENT_SEARCH':
+      // Persistir en localStorage
+      if (action.payload) {
+        try { localStorage.setItem('filterPatientSearch', action.payload); } catch {}
+      } else {
+        try { localStorage.removeItem('filterPatientSearch'); } catch {}
+      }
+      return { ...state, filterPatientSearch: action.payload };
+    
+    case 'SEED_DEMO_DATA': {
       // Demo data eliminado - ahora todo viene de BD
       return state;
     }
