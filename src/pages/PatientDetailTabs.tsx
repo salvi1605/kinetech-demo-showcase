@@ -618,7 +618,7 @@ export const PatientDetailTabs = () => {
                                       appointment.type === 'therapy' ? 'Terapia' : 'Seguimiento'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(appointment.date).toLocaleDateString('es-ES')} • {appointment.startTime}
+                            {parseLocalDate(appointment.date).toLocaleDateString('es-ES')} • {appointment.startTime}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {getPractitionerName(appointment.practitionerId)}
