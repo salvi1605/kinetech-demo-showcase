@@ -75,8 +75,8 @@ export const ClinicalHistoryBlock = ({
   const canEdit = (entry: EvolutionEntry): boolean => {
     const today = todayYMD(testCurrentDate);
     
-    // Solo admin puede editar días pasados
-    if (currentUserRole === 'admin') {
+    // Solo admin o tenant_owner puede editar días pasados
+    if (currentUserRole === 'admin' || currentUserRole === 'tenant_owner') {
       return true;
     }
     
@@ -108,7 +108,7 @@ export const ClinicalHistoryBlock = ({
   };
 
   const handleRemove = (appointmentId: string) => {
-    if (currentUserRole !== 'admin') return;
+    if (currentUserRole !== 'admin' && currentUserRole !== 'tenant_owner') return;
     
     setEntries((prev) => prev.filter((e) => e.appointmentId !== appointmentId));
     setDrafts((prev) => {
@@ -164,12 +164,12 @@ export const ClinicalHistoryBlock = ({
   };
 
   const canEditSnapshot = (date: string): boolean => {
-    if (currentUserRole === 'admin') return true;
+    if (currentUserRole === 'admin' || currentUserRole === 'tenant_owner') return true;
     if (currentUserRole === 'kinesio') return date === today;
     return false;
   };
 
-  const canDeleteSnapshot = currentUserRole === 'admin';
+  const canDeleteSnapshot = currentUserRole === 'admin' || currentUserRole === 'tenant_owner';
 
   const handleEditSnapshot = (date: string) => {
     setEditingSnapshotDate(date);
@@ -273,7 +273,7 @@ export const ClinicalHistoryBlock = ({
                             </Badge>
                           )}
                         </div>
-                        {canEdit(entry) && currentUserRole === 'admin' && entry.date < today && (
+                        {canEdit(entry) && (currentUserRole === 'admin' || currentUserRole === 'tenant_owner') && entry.date < today && (
                           <Button
                             variant="ghost"
                             size="sm"

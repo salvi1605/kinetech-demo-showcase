@@ -151,11 +151,11 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     }
 
     // Salvaguarda por rol para días pasados
-    const allowedSlots = state.userRole === 'admin' 
+    const allowedSlots = (state.userRole === 'admin' || state.userRole === 'tenant_owner')
       ? sortedSlots 
       : sortedSlots.filter(slot => !isPastDay(slot.dateISO));
     
-    if (allowedSlots.length === 0 && sortedSlots.length > 0 && state.userRole !== 'admin') {
+    if (allowedSlots.length === 0 && sortedSlots.length > 0 && state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
       toast({
         title: "Acceso denegado",
         description: "No puedes realizar cambios en días anteriores",

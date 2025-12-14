@@ -249,7 +249,7 @@ export const Patients = () => {
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <TooltipProvider>
                           <div className="flex items-center justify-end gap-1">
-                            <RoleGuard allowedRoles={['admin', 'kinesio']}>
+                            <RoleGuard allowedRoles={['admin', 'tenant_owner', 'kinesio']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -268,7 +268,7 @@ export const Patients = () => {
                               </Tooltip>
                             </RoleGuard>
                             
-                            <RoleGuard allowedRoles={['admin', 'recep']}>
+                            <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -287,7 +287,7 @@ export const Patients = () => {
                               </Tooltip>
                             </RoleGuard>
                             
-                            <RoleGuard allowedRoles={['admin', 'recep']}>
+                            <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -380,7 +380,7 @@ export const Patients = () => {
                       </div>
                     </div>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <RoleGuard allowedRoles={['admin', 'kinesio']}>
+                      <RoleGuard allowedRoles={['admin', 'tenant_owner', 'kinesio']}>
                         <Button 
                           variant="ghost" 
                           size="icon"
@@ -390,7 +390,7 @@ export const Patients = () => {
                           <ScrollText className="h-4 w-4" />
                         </Button>
                       </RoleGuard>
-                      <RoleGuard allowedRoles={['admin', 'recep']}>
+                      <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
                         <Button 
                           variant="ghost" 
                           size="icon"
@@ -400,7 +400,7 @@ export const Patients = () => {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </RoleGuard>
-                      <RoleGuard allowedRoles={['admin', 'recep']}>
+                      <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
                         <Button 
                           variant="ghost" 
                           size="icon"

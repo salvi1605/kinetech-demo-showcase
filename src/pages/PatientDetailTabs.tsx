@@ -204,7 +204,7 @@ export const PatientDetailTabs = () => {
   };
 
   const canEdit = (section: string) => {
-    if (state.userRole === 'admin') return true;
+    if (state.userRole === 'admin' || state.userRole === 'tenant_owner') return true;
     if (state.userRole === 'kinesio') {
       return section === 'clinical';
     }

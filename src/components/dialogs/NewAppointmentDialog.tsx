@@ -280,7 +280,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
       const isPast = appointmentDate < format(new Date(), 'yyyy-MM-dd');
       
-      if (isPast && state.userRole !== 'admin') {
+      if (isPast && state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
         toast({
           title: "Acceso denegado",
           description: "No puedes realizar cambios en días anteriores",
