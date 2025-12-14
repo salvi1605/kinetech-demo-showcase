@@ -34,12 +34,14 @@ export const usePatients = (clinicId?: string) => {
         conditions: [],
         identificacion: {
           fullName: p.full_name,
+          preferredName: p.preferred_name || '',
           documentId: p.document_id || undefined,
           mobilePhone: p.phone || '',
           email: p.email || '',
         },
         emergencia: p.emergency_contact_name ? {
           contactName: p.emergency_contact_name,
+          relationship: p.emergency_contact_relationship || '',
           emergencyPhone: p.emergency_contact_phone || '',
         } : undefined,
         seguro: {

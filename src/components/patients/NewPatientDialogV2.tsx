@@ -185,12 +185,14 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
         .insert({
           clinic_id: state.currentClinicId,
           full_name: form.identificacion.fullName.trim(),
+          preferred_name: form.identificacion.preferredName.trim() || null,
           document_id: form.identificacion.documentId.trim() || null,
           email: form.identificacion.email.trim() || null,
           phone: form.identificacion.mobilePhone.trim() || null,
           date_of_birth: dobForDb,
           emergency_contact_name: form.emergencia.contactName.trim() || null,
           emergency_contact_phone: form.emergencia.emergencyPhone.trim() || null,
+          emergency_contact_relationship: form.emergencia.relationship.trim() || null,
           // Campos de seguro
           obra_social: form.seguro.obraSocial || null,
           numero_afiliado: form.seguro.numeroAfiliado?.trim() || null,
