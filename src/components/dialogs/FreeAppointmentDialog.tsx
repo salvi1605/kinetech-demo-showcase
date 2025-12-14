@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, type Appointment } from '@/contexts/AppContext';
+import { deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
 
 interface FreeAppointmentDialogProps {
   open: boolean;
@@ -112,11 +113,11 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
   };
 
   // Eliminar turno actual
-  const handleDeleteCurrent = () => {
+  const handleDeleteCurrent = async () => {
     setIsLoading(true);
     
-    // Simular delay
-    setTimeout(() => {
+    try {
+      await deleteAppointmentInDb(appointment.id);
       dispatch({ type: 'DELETE_APPOINTMENT', payload: appointment.id });
       
       // Limpiar selección si existe
@@ -129,46 +130,55 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
         description: "1 turno eliminado",
       });
       
-      setIsLoading(false);
+      window.dispatchEvent(new Event('appointmentUpdated'));
       onOpenChange(false);
-    }, 500);
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el turno",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Eliminar turnos seleccionados
-  const handleDeleteAll = () => {
+  const handleDeleteAll = async () => {
     setIsLoading(true);
     
-    // Simular delay
-    setTimeout(() => {
-      let deletedCount = 0;
-      let failedCount = 0;
-      
-      selectedAppointments.forEach(apt => {
-        try {
-          dispatch({ type: 'DELETE_APPOINTMENT', payload: apt.id });
-          deletedCount++;
-        } catch (error) {
-          failedCount++;
-        }
-      });
-      
-      // Limpiar selección si existe
-      if (state.selectedSlots.size > 0) {
-        dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+    let deletedCount = 0;
+    let failedCount = 0;
+    
+    for (const apt of selectedAppointments) {
+      try {
+        await deleteAppointmentInDb(apt.id);
+        dispatch({ type: 'DELETE_APPOINTMENT', payload: apt.id });
+        deletedCount++;
+      } catch (error) {
+        console.error('Error deleting appointment:', error);
+        failedCount++;
       }
-      
-      const message = failedCount > 0 
-        ? `${deletedCount} turnos eliminados (${failedCount} fallidos)`
-        : `${deletedCount} turnos eliminados`;
-      
-      toast({
-        title: "Turnos liberados",
-        description: message,
-      });
-      
-      setIsLoading(false);
-      onOpenChange(false);
-    }, 800);
+    }
+    
+    // Limpiar selección si existe
+    if (state.selectedSlots.size > 0) {
+      dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+    }
+    
+    const message = failedCount > 0 
+      ? `${deletedCount} turnos eliminados (${failedCount} fallidos)`
+      : `${deletedCount} turnos eliminados`;
+    
+    toast({
+      title: "Turnos liberados",
+      description: message,
+    });
+    
+    window.dispatchEvent(new Event('appointmentUpdated'));
+    setIsLoading(false);
+    onOpenChange(false);
   };
 
   return (

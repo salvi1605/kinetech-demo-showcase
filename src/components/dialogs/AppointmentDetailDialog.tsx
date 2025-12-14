@@ -230,6 +230,9 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     try {
       await deleteAppointmentInDb(appt.id);
       
+      // Actualizar estado local inmediatamente para reflejar la eliminación
+      dispatch({ type: 'DELETE_APPOINTMENT', payload: appt.id });
+      
       toast({
         title: "Turno eliminado",
         description: `El turno de ${patient?.name || 'Sin paciente'} ha sido eliminado`,
