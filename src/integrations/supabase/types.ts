@@ -623,12 +623,14 @@ export type Database = {
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
           full_name: string
           id: string
           is_deleted: boolean | null
           numero_afiliado: string | null
           obra_social: string | null
           phone: string | null
+          preferred_name: string | null
           reminder_preference: string | null
           sesiones_autorizadas: number | null
           updated_at: string | null
@@ -645,12 +647,14 @@ export type Database = {
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           full_name: string
           id?: string
           is_deleted?: boolean | null
           numero_afiliado?: string | null
           obra_social?: string | null
           phone?: string | null
+          preferred_name?: string | null
           reminder_preference?: string | null
           sesiones_autorizadas?: number | null
           updated_at?: string | null
@@ -667,12 +671,14 @@ export type Database = {
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           full_name?: string
           id?: string
           is_deleted?: boolean | null
           numero_afiliado?: string | null
           obra_social?: string | null
           phone?: string | null
+          preferred_name?: string | null
           reminder_preference?: string | null
           sesiones_autorizadas?: number | null
           updated_at?: string | null
