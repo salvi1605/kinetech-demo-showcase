@@ -128,6 +128,11 @@ export const Calendar = () => {
     window.addEventListener('appointmentUpdated', handleRefetch);
     return () => window.removeEventListener('appointmentUpdated', handleRefetch);
   }, [refetch]);
+  
+  // Sincronizar citas de BD con AppContext para que AppointmentDetailDialog las encuentre
+  useEffect(() => {
+    dispatch({ type: 'SET_APPOINTMENTS', payload: dbAppointments });
+  }, [dbAppointments, dispatch]);
 
   // Índice de TODAS las citas (para verificar ocupación por otros profesionales)
   const allAppointmentsBySlotKey = new Map<string, Appointment>();

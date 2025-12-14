@@ -238,7 +238,8 @@ export type AppAction =
   | { type: 'ADD_MULTIPLE_APPOINTMENTS'; payload: Appointment[] }
   | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } }
   | { type: 'AUTO_NO_ASISTIO'; payload: string[] }
-  | { type: 'SET_TEST_DATE'; payload: string | undefined };
+  | { type: 'SET_TEST_DATE'; payload: string | undefined }
+  | { type: 'SET_APPOINTMENTS'; payload: Appointment[] };
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
@@ -614,6 +615,16 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         testCurrentDate: action.payload,
       };
+    
+    case 'SET_APPOINTMENTS': {
+      const indexes = buildAppointmentIndexes(action.payload);
+      return {
+        ...state,
+        appointments: action.payload,
+        appointmentsById: indexes.appointmentsById,
+        appointmentsBySlotKey: indexes.appointmentsBySlotKey,
+      };
+    }
     
     default:
       return state;
