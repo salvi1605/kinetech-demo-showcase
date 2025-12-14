@@ -9,7 +9,8 @@ import {
   Clock,
   X,
   Plus,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -140,10 +141,25 @@ export const Calendar = () => {
     allAppointmentsBySlotKey.set(key, appointment);
   });
 
-  // Filtrar citas por profesional si hay filtro activo
-  const filteredAppointments = state.filterPractitionerId
-    ? dbAppointments.filter(apt => apt.practitionerId === state.filterPractitionerId)
-    : dbAppointments;
+  // Filtrar citas por profesional Y/O paciente
+  const filteredAppointments = dbAppointments.filter(apt => {
+    // Filtro por profesional
+    if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) {
+      return false;
+    }
+    
+    // Filtro por paciente (búsqueda en nombre)
+    if (state.filterPatientSearch) {
+      const patient = state.patients.find(p => p.id === apt.patientId);
+      const patientName = patient?.name?.toLowerCase() ?? '';
+      const searchLower = state.filterPatientSearch.toLowerCase();
+      if (!patientName.includes(searchLower)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 
   // Índice de citas filtradas por clave de sub-slot (para mostrar)
   const appointmentsBySlotKey = new Map<string, Appointment>();
@@ -583,8 +599,9 @@ export const Calendar = () => {
             Agenda
           </h1>
           
-          {/* Filtro de profesional */}
-          <div className="flex items-center gap-2">
+          {/* Filtros de profesional y paciente */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filtro de profesional */}
             <Select
               value={state.filterPractitionerId ?? 'all'}
               onValueChange={(value) => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: value === 'all' ? undefined : value })}
@@ -600,6 +617,29 @@ export const Calendar = () => {
                 ))}
               </SelectContent>
             </Select>
+            
+            {/* Buscador de paciente */}
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar paciente..."
+                value={state.filterPatientSearch ?? ''}
+                onChange={(e) => dispatch({ type: 'SET_FILTER_PATIENT_SEARCH', payload: e.target.value || undefined })}
+                className="pl-8 h-9 w-[180px]"
+              />
+              {state.filterPatientSearch && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => dispatch({ type: 'SET_FILTER_PATIENT_SEARCH', payload: undefined })}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Botón limpiar filtro profesional */}
             {state.filterPractitionerId && (
               <Button 
                 variant="ghost" 
@@ -613,12 +653,19 @@ export const Calendar = () => {
           </div>
         </div>
         
-        {/* Badge de filtro activo */}
-        {filteredPractitionerName && (
-          <Badge variant="secondary" className="mt-1">
-            Mostrando agenda de: {filteredPractitionerName}
-          </Badge>
-        )}
+        {/* Badges de filtros activos */}
+        <div className="flex gap-2 flex-wrap">
+          {filteredPractitionerName && (
+            <Badge variant="secondary">
+              Profesional: {filteredPractitionerName}
+            </Badge>
+          )}
+          {state.filterPatientSearch && (
+            <Badge variant="secondary">
+              Paciente: "{state.filterPatientSearch}"
+            </Badge>
+          )}
+        </div>
         
         {agendaBanner?.type === 'error' && (
           <div className="w-full mt-2 text-sm font-medium text-red-600">
