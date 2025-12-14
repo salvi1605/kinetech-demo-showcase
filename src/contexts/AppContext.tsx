@@ -318,18 +318,14 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, selectedClinic: action.payload };
     
     case 'SET_CURRENT_CLINIC':
+      // Limpiar filtro de profesional al cambiar de clínica
+      try { localStorage.removeItem('filterPractitionerId'); } catch {}
       return { 
         ...state, 
         currentClinicId: action.payload.id,
         currentClinicName: action.payload.name,
-      };
-    
-    case 'SET_CURRENT_CLINIC':
-      return { 
-        ...state, 
-        currentClinicId: action.payload.id,
-        currentClinicName: action.payload.name,
-        selectedClinic: action.payload.id
+        selectedClinic: action.payload.id,
+        filterPractitionerId: undefined, // Resetear filtro
       };
     
     case 'SET_SEARCH_QUERY':
