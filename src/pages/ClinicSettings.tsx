@@ -47,7 +47,7 @@ export default function ClinicSettings() {
       navigate('/login');
       return;
     }
-    if (state.userRole !== 'admin') {
+    if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
       toast.error('No tienes permisos para acceder a esta sección');
       navigate('/calendar');
       return;
@@ -88,7 +88,7 @@ export default function ClinicSettings() {
         .from('user_roles')
         .select('clinic_id, clinics(id, name, country_code, timezone, default_locale, default_currency, is_active)')
         .eq('user_id', userData.id)
-        .eq('role_id', 'admin_clinic')
+        .in('role_id', ['admin_clinic', 'tenant_owner'])
         .eq('active', true);
 
       if (userRoles && userRoles.length > 0) {

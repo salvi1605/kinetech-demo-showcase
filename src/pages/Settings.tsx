@@ -224,7 +224,7 @@ export const Settings = () => {
         </Card>
 
         {/* Gestión de Usuarios - Solo Admin */}
-        <RoleGuard allowedRoles={['admin']}>
+        <RoleGuard allowedRoles={['admin', 'tenant_owner']}>
           {state.currentClinicId && (
             <UserManagementCard
               clinicId={state.currentClinicId}
@@ -235,7 +235,7 @@ export const Settings = () => {
         </RoleGuard>
 
         {/* Configuración del Sistema - Solo Admin */}
-        <RoleGuard allowedRoles={['admin']}>
+        <RoleGuard allowedRoles={['admin', 'tenant_owner']}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -275,7 +275,7 @@ export const Settings = () => {
         </RoleGuard>
 
         {/* Gestión de Datos - Solo Admin */}
-        <RoleGuard allowedRoles={['admin']}>
+        <RoleGuard allowedRoles={['admin', 'tenant_owner']}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
