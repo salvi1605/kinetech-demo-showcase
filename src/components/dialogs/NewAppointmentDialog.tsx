@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { addMinutesStr } from '@/utils/dateUtils';
-import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
+import { checkConflictInDb, checkSlotConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { treatmentLabel } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
 import { createAppointment as createAppointmentInDb } from '@/lib/appointmentService';
@@ -163,24 +163,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     return missing;
   };
 
-  // Función para detectar solapamiento de rangos horarios
-  const overlap = (a: {start: string, end: string}, b: {start: string, end: string}) => 
-    a.start < b.end && b.start < a.end;
-
-  // Función para verificar choques en el mismo subSlot con misma hora de inicio
-  const collidesSameSlotSameStart = (practitionerId: string, date: string, startTime: string, subSlot: number) => {
-    return state.appointments.some(appointment => {
-      const appointmentSubSlot = appointment.subSlot;
-      
-      return (
-        appointment.practitionerId === practitionerId &&
-        appointmentSubSlot === subSlot &&
-        appointment.date === date &&
-        appointment.startTime === startTime
-      );
-    });
-  };
-
   // Crear cita segura - CONECTADO A BD
   const createAppointment = async (data: NewAppointmentForm) => {
     if (!selectedSlot) return;
@@ -195,11 +177,28 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       return;
     }
 
-    // Verificar conflictos en el mismo subSlot con misma hora de inicio
+    if (!state.currentClinicId) {
+      toast({
+        title: "Error",
+        description: "No hay clínica seleccionada",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
     const subSlot = selectedSlot.subSlot ?? 1;
     
-    if (collidesSameSlotSameStart(data.practitionerId, appointmentDate, data.startTime, subSlot)) {
+    // Verificar conflictos en el mismo subSlot desde BD
+    const slotConflict = await checkSlotConflictInDb(
+      state.currentClinicId,
+      data.practitionerId,
+      appointmentDate,
+      data.startTime,
+      subSlot
+    );
+    
+    if (slotConflict) {
       toast({
         title: "Conflicto de horario",
         description: "El doctor ya tiene un turno en este Slot y horario.",
@@ -208,29 +207,20 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       return;
     }
     
-    // Validar conflicto de tratamiento exclusivo
-    const candidate = {
+    // Validar conflicto de tratamiento exclusivo desde BD
+    const validation = await checkConflictInDb({
       date: appointmentDate,
       startTime: data.startTime,
       practitionerId: data.practitionerId,
-      treatmentType: 'fkt', // Tratamiento por defecto en nueva cita
-    };
+      treatmentType: 'fkt', // Tratamiento por defecto
+      clinicId: state.currentClinicId,
+    });
     
-    const validation = hasExclusiveConflict(state.appointments, candidate);
     if (!validation.ok && validation.conflict) {
       const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
       toast({
         title: "Conflicto de disponibilidad",
-        description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${data.startTime}. No puede tomar otra cita en este horario.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!state.currentClinicId) {
-      toast({
-        title: "Error",
-        description: "No hay clínica seleccionada",
+        description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${validation.conflict.startTime}. No puede tomar otra cita en este horario.`,
         variant: "destructive"
       });
       return;

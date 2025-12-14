@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePatients } from '@/hooks/usePatients';
+import { usePractitioners } from '@/hooks/usePractitioners';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { PatientUploadDocumentDialog } from '@/components/patients/PatientUploadDocumentDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +33,7 @@ export const PatientDetailTabs = () => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const { patients: dbPatients, loading: loadingPatients, refetch: refetchPatients } = usePatients(state.currentClinicId);
+  const { practitioners: dbPractitioners } = usePractitioners(state.currentClinicId);
   const [showWizard, setShowWizard] = useState(false);
   const [editingData, setEditingData] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState(false);
@@ -44,6 +46,13 @@ export const PatientDetailTabs = () => {
       dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
     }
   }, [dbPatients, dispatch]);
+
+  // Sincronizar practitioners de BD con AppContext
+  useEffect(() => {
+    if (dbPractitioners.length > 0) {
+      dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
+    }
+  }, [dbPractitioners, dispatch]);
 
   // Cargar citas del paciente desde la BD
   useEffect(() => {

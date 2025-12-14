@@ -40,6 +40,9 @@ export const Settings = () => {
 
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
   const [isClearingDemo, setIsClearingDemo] = useState(false);
+  
+  // Estadísticas desde BD
+  const [stats, setStats] = useState({ patients: 0, practitioners: 0, appointments: 0 });
 
   // Fetch clinics for user management
   useEffect(() => {
@@ -52,6 +55,26 @@ export const Settings = () => {
     };
     fetchClinics();
   }, []);
+
+  // Fetch stats from DB
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!state.currentClinicId) return;
+
+      const [patientsRes, practitionersRes, appointmentsRes] = await Promise.all([
+        supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', state.currentClinicId).eq('is_deleted', false),
+        supabase.from('practitioners').select('id', { count: 'exact', head: true }).eq('clinic_id', state.currentClinicId).eq('is_active', true),
+        supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('clinic_id', state.currentClinicId),
+      ]);
+
+      setStats({
+        patients: patientsRes.count || 0,
+        practitioners: practitionersRes.count || 0,
+        appointments: appointmentsRes.count || 0,
+      });
+    };
+    fetchStats();
+  }, [state.currentClinicId]);
 
   const handleExportData = async () => {
     try {
@@ -311,9 +334,9 @@ export const Settings = () => {
                 <div>
                   <Label>Estadísticas del sistema</Label>
                   <p className="text-sm text-muted-foreground">
-                    Pacientes: {state.patients.length} | 
-                    Profesionales: {state.practitioners.length} | 
-                    Turnos: {state.appointments.length}
+                    Pacientes: {stats.patients} | 
+                    Profesionales: {stats.practitioners} | 
+                    Turnos: {stats.appointments}
                   </p>
                 </div>
                 <Badge variant="outline">UI-Only</Badge>

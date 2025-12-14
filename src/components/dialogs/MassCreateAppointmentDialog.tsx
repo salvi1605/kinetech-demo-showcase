@@ -16,7 +16,7 @@ import { treatmentLabel } from '@/utils/formatters';
 import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2 } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
-import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
+import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MassCreateAppointmentDialogProps {
@@ -63,25 +63,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       };
     });
 
-  // Calcular si hay algún conflicto de tratamiento exclusivo
-  const hasAnyExclusiveConflict = useMemo(() => {
-    return sortedSlots.some(slot => {
-      const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-      const currentTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
-      
-      if (!currentPractitionerId || !currentTreatmentType) return false;
-      
-      const candidate = {
-        date: slot.dateISO,
-        startTime: slot.hour,
-        practitionerId: currentPractitionerId,
-        treatmentType: currentTreatmentType,
-      };
-      
-      const validation = hasExclusiveConflict(state.appointments, candidate);
-      return !validation.ok;
-    });
-  }, [sortedSlots, perItemPractitioner, perItemTreatment, state.appointments, state.selectedPractitionerId]);
+  // Flag para conflictos (se validan al confirmar)
+  const hasAnyExclusiveConflict = false; // Se valida directamente en handleConfirm desde BD
 
   // Filtrar pacientes por búsqueda
   const filteredPatients = state.patients.filter(p =>
@@ -134,35 +117,37 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       return;
     }
 
-    // Validar conflictos de tratamientos exclusivos
-    const conflictsExclusive: string[] = [];
-    for (const slot of sortedSlots) {
-      const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-      const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
-      
-      if (slotPractitionerId && slotTreatmentType) {
-        const candidate = {
-          date: slot.dateISO,
-          startTime: slot.hour,
-          practitionerId: slotPractitionerId,
-          treatmentType: slotTreatmentType,
-        };
+    // Validar conflictos de tratamientos exclusivos desde BD
+    if (state.currentClinicId) {
+      const conflictsExclusive: string[] = [];
+      for (const slot of sortedSlots) {
+        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+        const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
         
-        const validation = hasExclusiveConflict(state.appointments, candidate);
-        if (!validation.ok && validation.conflict) {
-          const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
-          conflictsExclusive.push(`${slot.displayText} - ${practitionerName} ya tiene ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${slot.hour}`);
+        if (slotPractitionerId && slotTreatmentType) {
+          const validation = await checkConflictInDb({
+            date: slot.dateISO,
+            startTime: slot.hour,
+            practitionerId: slotPractitionerId,
+            treatmentType: slotTreatmentType,
+            clinicId: state.currentClinicId,
+          });
+          
+          if (!validation.ok && validation.conflict) {
+            const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
+            conflictsExclusive.push(`${slot.displayText} - ${practitionerName} ya tiene ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${slot.hour}`);
+          }
         }
       }
-    }
-    
-    if (conflictsExclusive.length > 0) {
-      toast({
-        title: "Conflictos de disponibilidad",
-        description: "No se pudo confirmar: hay conflictos por Drenaje/Masaje. El profesional ya tiene una cita en ese horario.",
-        variant: "destructive",
-      });
-      return;
+      
+      if (conflictsExclusive.length > 0) {
+        toast({
+          title: "Conflictos de disponibilidad",
+          description: "No se pudo confirmar: hay conflictos por Drenaje/Masaje. El profesional ya tiene una cita en ese horario.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Salvaguarda por rol para días pasados
@@ -379,22 +364,8 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                   const currentPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
                   const currentTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
                   
-                  // Verificar conflicto de tratamiento exclusivo
-                  let exclusiveWarning: string | null = null;
-                  if (currentPractitionerId && currentTreatmentType) {
-                    const candidate = {
-                      date: slot.dateISO,
-                      startTime: slot.hour,
-                      practitionerId: currentPractitionerId,
-                      treatmentType: currentTreatmentType,
-                    };
-                    
-                    const validation = hasExclusiveConflict(state.appointments, candidate);
-                    if (!validation.ok && validation.conflict) {
-                      const practitionerName = state.practitioners.find(p => p.id === currentPractitionerId)?.name || 'Profesional';
-                      exclusiveWarning = `⚠️ ${practitionerName} no disponible: ya tiene ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${slot.hour}`;
-                    }
-                  }
+                  // Los conflictos se validan al confirmar desde BD
+                  const exclusiveWarning: string | null = null;
                   
                   return (
                     <div key={slot.key} className="bg-muted/50 p-3 rounded space-y-2">

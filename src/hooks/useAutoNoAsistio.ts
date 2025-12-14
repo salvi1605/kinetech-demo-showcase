@@ -1,27 +1,58 @@
 import { useEffect, useRef } from 'react';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
-import { runAutoNoAsistio } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 
 const todayISO = () => format(new Date(), 'yyyy-MM-dd');
 
+/**
+ * Hook que marca automáticamente como "no_show" las citas pasadas con status "scheduled".
+ * Opera directamente sobre la base de datos.
+ */
 export const useAutoNoAsistio = () => {
-  const { state, dispatch } = useApp();
+  const { state } = useApp();
   const lastCheckedDateRef = useRef<string>(todayISO());
 
-  const executeAutoNoAsistio = (refISO?: string) => {
-    const count = runAutoNoAsistio(dispatch, state.appointments, refISO);
-    if (count > 0) {
-      toast({
-        title: "Actualización automática",
-        description: `Se marcaron ${count} turnos como No Asistió`,
-      });
+  const executeAutoNoAsistio = async () => {
+    if (!state.currentClinicId) return;
+
+    try {
+      const today = todayISO();
+      
+      // Actualizar citas pasadas con status 'scheduled' a 'no_show'
+      const { data, error } = await supabase
+        .from('appointments')
+        .update({ status: 'no_show', updated_at: new Date().toISOString() })
+        .eq('clinic_id', state.currentClinicId)
+        .eq('status', 'scheduled')
+        .lt('date', today)
+        .select('id');
+
+      if (error) {
+        console.error('Error executing auto no-show:', error);
+        return;
+      }
+
+      const count = data?.length || 0;
+      if (count > 0) {
+        toast({
+          title: "Actualización automática",
+          description: `Se marcaron ${count} turnos como No Asistió`,
+        });
+        
+        // Trigger refresh en Calendar
+        window.dispatchEvent(new Event('appointmentUpdated'));
+      }
+    } catch (err) {
+      console.error('Error in executeAutoNoAsistio:', err);
     }
   };
 
   useEffect(() => {
-    // Backfill al cargar
+    if (!state.currentClinicId) return;
+
+    // Ejecutar al cargar
     executeAutoNoAsistio();
 
     // Detectar rollover de día (cada 60s)
@@ -33,7 +64,7 @@ export const useAutoNoAsistio = () => {
       }
     }, 60_000);
 
-    // Backfill al volver a la pestaña
+    // Ejecutar al volver a la pestaña
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         executeAutoNoAsistio();
@@ -46,5 +77,5 @@ export const useAutoNoAsistio = () => {
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [state.currentClinicId]);
 };
