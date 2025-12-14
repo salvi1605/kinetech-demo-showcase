@@ -880,6 +880,21 @@ export const Calendar = () => {
                                 } else {
                                   const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
                                   const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+                                  
+                                  // Verificar si está ocupado por otro profesional
+                                  if (isOccupiedByOtherPractitioner(key)) {
+                                    return (
+                                      <Card
+                                        key={`${time}-${subIndex}`}
+                                        className="p-3 border-dashed bg-muted cursor-not-allowed"
+                                      >
+                                        <div className="flex items-center justify-center">
+                                          <X className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                      </Card>
+                                    );
+                                  }
+                                  
                                   const isSelected = state.selectedSlots.has(key);
                                   
                                   return (
