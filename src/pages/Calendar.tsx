@@ -128,25 +128,41 @@ export const Calendar = () => {
     return () => window.removeEventListener('appointmentUpdated', handleRefetch);
   }, [refetch]);
 
+  // Índice de TODAS las citas (para verificar ocupación por otros profesionales)
+  const allAppointmentsBySlotKey = new Map<string, Appointment>();
+  dbAppointments.forEach(appointment => {
+    const dateISO = appointment.date.length === 10
+      ? appointment.date
+      : format(parseISO(appointment.date), 'yyyy-MM-dd');
+    const subSlot0 = ((appointment.subSlot ?? 1) - 1);
+    const hourNormalized = appointment.startTime.substring(0, 5);
+    const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
+    allAppointmentsBySlotKey.set(key, appointment);
+  });
+
   // Filtrar citas por profesional si hay filtro activo
   const filteredAppointments = state.filterPractitionerId
     ? dbAppointments.filter(apt => apt.practitionerId === state.filterPractitionerId)
     : dbAppointments;
 
-  // Índice de citas por clave de sub-slot (usar filteredAppointments)
+  // Índice de citas filtradas por clave de sub-slot (para mostrar)
   const appointmentsBySlotKey = new Map<string, Appointment>();
-
-  // Construir índice de citas (convertir subSlot 1-5 a índice 0-4 para el Map)
   filteredAppointments.forEach(appointment => {
     const dateISO = appointment.date.length === 10
       ? appointment.date
       : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot0 = ((appointment.subSlot ?? 1) - 1); // Convertir 1-5 a 0-4
-    // Normalizar startTime a HH:MM (sin segundos) para coincidir con TIME_SLOTS
+    const subSlot0 = ((appointment.subSlot ?? 1) - 1);
     const hourNormalized = appointment.startTime.substring(0, 5);
     const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
     appointmentsBySlotKey.set(key, appointment);
   });
+
+  // Verificar si un slot está ocupado por otro profesional (cuando hay filtro activo)
+  const isOccupiedByOtherPractitioner = (key: string): boolean => {
+    if (!state.filterPractitionerId) return false;
+    const apt = allAppointmentsBySlotKey.get(key);
+    return apt !== undefined && apt.practitionerId !== state.filterPractitionerId;
+  };
 
   // Effect to update loading when week changes and clean past selections
   useEffect(() => {
@@ -297,6 +313,15 @@ export const Calendar = () => {
     const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
     const appointment = appointmentsBySlotKey.get(key);
     const isPast = isPastDay(dateISO);
+    
+    // Verificar si está ocupado por otro profesional
+    if (isOccupiedByOtherPractitioner(key)) {
+      toast({
+        title: "Slot no disponible",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (appointment) {
       // Abrir detalle de turno existente (siempre permitido)
@@ -454,6 +479,20 @@ export const Calendar = () => {
             } else if (subIndex < capacity) {
               const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
               const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+              
+              // Verificar si está ocupado por otro profesional
+              if (isOccupiedByOtherPractitioner(key)) {
+                return (
+                  <div
+                    key={`${dayIndex}-${time}-${subIndex}`}
+                    className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
+                    aria-label="Slot no disponible"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                );
+              }
+              
               const isSelected = state.selectedSlots.has(key);
               
               return (
@@ -491,6 +530,20 @@ export const Calendar = () => {
            
            const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
            const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+           
+           // Verificar si está ocupado por otro profesional
+           if (isOccupiedByOtherPractitioner(key)) {
+             return (
+               <div
+                 key={`${dayIndex}-${time}-${subIndex}`}
+                 className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
+                 aria-label="Slot no disponible"
+               >
+                 <X className="h-3 w-3 text-muted-foreground" />
+               </div>
+             );
+           }
+           
            const isSelected = state.selectedSlots.has(key);
            
             return (

@@ -255,6 +255,16 @@ const buildAppointmentIndexes = (appointments: Appointment[]) => {
   return { appointmentsById, appointmentsBySlotKey };
 };
 
+// Helper para leer filtro de localStorage
+const getStoredFilterPractitionerId = (): string | undefined => {
+  try {
+    const stored = localStorage.getItem('filterPractitionerId');
+    return stored || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 // Initial State
 const initialState: AppState = {
   currentWeek: new Date(),
@@ -283,6 +293,7 @@ const initialState: AppState = {
   currentUserId: '',
   currentUserName: '',
   testCurrentDate: undefined,
+  filterPractitionerId: getStoredFilterPractitionerId(),
 };
 
 // Reducer
@@ -331,6 +342,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, selectedTreatmentType: action.payload };
     
     case 'SET_FILTER_PRACTITIONER':
+      // Persistir en localStorage
+      if (action.payload) {
+        try { localStorage.setItem('filterPractitionerId', action.payload); } catch {}
+      } else {
+        try { localStorage.removeItem('filterPractitionerId'); } catch {}
+      }
       return { ...state, filterPractitionerId: action.payload };
     
 case 'SEED_DEMO_DATA': {
