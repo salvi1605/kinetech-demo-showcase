@@ -39,7 +39,7 @@ import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePat
 import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
-import { hasExclusiveConflict } from '@/utils/appointments/validateExclusiveTreatment';
+import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
 
 const editAppointmentSchema = z.object({
@@ -261,24 +261,26 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return; // Impedir persistencia
     }
     
-    // Validar conflicto de tratamiento exclusivo
-    const candidate = {
-      id: appointment.id,
-      date: data.date,
-      startTime: data.startTime,
-      practitionerId: data.practitionerId,
-      treatmentType: data.treatmentType,
-    };
-    
-    const validation = hasExclusiveConflict(state.appointments, candidate);
-    if (!validation.ok && validation.conflict) {
-      const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-      toast({
-        title: "Conflicto de disponibilidad",
-        description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${data.startTime}. No puede tomar otra cita en este horario.`,
-        variant: "destructive",
+    // Validar conflicto de tratamiento exclusivo desde BD
+    if (state.currentClinicId) {
+      const validation = await checkConflictInDb({
+        date: data.date,
+        startTime: data.startTime,
+        practitionerId: data.practitionerId,
+        treatmentType: data.treatmentType,
+        excludeId: appointment.id,
+        clinicId: state.currentClinicId,
       });
-      return;
+      
+      if (!validation.ok && validation.conflict) {
+        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+        toast({
+          title: "Conflicto de disponibilidad",
+          description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${validation.conflict.startTime}. No puede tomar otra cita en este horario.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     try {
