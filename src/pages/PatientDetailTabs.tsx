@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subMonths, addMonths } from 'date-fns';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,11 +18,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useApp } from '@/contexts/AppContext';
+import { useApp, Appointment } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePatients } from '@/hooks/usePatients';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { PatientUploadDocumentDialog } from '@/components/patients/PatientUploadDocumentDialog';
+import { supabase } from '@/integrations/supabase/client';
 import type { PatientDocument } from '@/contexts/AppContext';
 
 export const PatientDetailTabs = () => {
@@ -35,6 +36,7 @@ export const PatientDetailTabs = () => {
   const [editingData, setEditingData] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState(false);
   const [showUploadDocument, setShowUploadDocument] = useState(false);
+  const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
 
   // Sincronizar pacientes de BD con AppContext
   useEffect(() => {
@@ -43,9 +45,44 @@ export const PatientDetailTabs = () => {
     }
   }, [dbPatients, dispatch]);
 
+  // Cargar citas del paciente desde la BD
+  useEffect(() => {
+    const fetchPatientAppointments = async () => {
+      if (!id || !state.currentClinicId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('id, date, start_time, sub_slot, status, notes, patient_id, practitioner_id, treatment_type_id')
+          .eq('clinic_id', state.currentClinicId)
+          .eq('patient_id', id)
+          .order('date', { ascending: false });
+
+        if (error) throw error;
+
+        const mapped: Appointment[] = (data || []).map(apt => ({
+          id: apt.id,
+          patientId: apt.patient_id || '',
+          practitionerId: apt.practitioner_id,
+          date: apt.date,
+          startTime: apt.start_time,
+          subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
+          status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
+          notes: apt.notes || '',
+          type: 'consultation' as const,
+          treatmentType: 'fkt' as const,
+        }));
+
+        setPatientAppointments(mapped);
+      } catch (err) {
+        console.error('Error fetching patient appointments:', err);
+      }
+    };
+
+    fetchPatientAppointments();
+  }, [id, state.currentClinicId]);
+
   const patient = state.patients.find(p => p.id === id);
-  // Filtrar citas del paciente, excluyendo continuaciones
-  const patientAppointments = state.appointments.filter(apt => apt.patientId === id && !apt.isContinuation);
 
   if (!patient) {
     return (
