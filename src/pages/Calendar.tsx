@@ -186,7 +186,7 @@ export const Calendar = () => {
       // El loading ahora viene de loadingAppointments
       
       // Clean past day selections only for non-admin users
-      if (state.userRole !== 'admin') {
+      if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
         const filteredSlots = [...state.selectedSlots].filter(key => {
           const [dateISO] = key.split('_');
           return !isPastDay(dateISO);
@@ -282,7 +282,7 @@ export const Calendar = () => {
   // Handler para toggle tri-estado - CONECTADO A BD
   const onTriToggle = async (apt: Appointment) => {
     const dateISO = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
-    if (isPastDay(dateISO) && state.userRole !== 'admin') {
+    if (isPastDay(dateISO) && state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
       toast({
         title: "Acceso denegado",
         description: "No puedes realizar cambios en días anteriores",

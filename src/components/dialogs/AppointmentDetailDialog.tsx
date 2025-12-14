@@ -595,7 +595,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 Copiar resumen
               </Button>
 
-              <RoleGuard allowedRoles={['admin', 'recep']}>
+              <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
                 <Button
                   variant="outline"
                   onClick={() => setShowFreeDialog(true)}
@@ -648,7 +648,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                       </Select>
                     </FormControl>
                     <FormMessage />
-                    {state.userRole !== 'admin' && isPast && (
+                    {state.userRole !== 'admin' && state.userRole !== 'tenant_owner' && isPast && (
                       <p className="text-sm text-red-600 mt-2">No se puede cambiar el estado de citas de días anteriores</p>
                     )}
                   </FormItem>
