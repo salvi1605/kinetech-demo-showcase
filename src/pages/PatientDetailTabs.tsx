@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
 import { format } from 'date-fns';
@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePatients } from '@/hooks/usePatients';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { PatientUploadDocumentDialog } from '@/components/patients/PatientUploadDocumentDialog';
 import type { PatientDocument } from '@/contexts/AppContext';
@@ -29,10 +30,18 @@ export const PatientDetailTabs = () => {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
   const { toast } = useToast();
+  const { patients: dbPatients, loading: loadingPatients, refetch: refetchPatients } = usePatients(state.currentClinicId);
   const [showWizard, setShowWizard] = useState(false);
   const [editingData, setEditingData] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState(false);
   const [showUploadDocument, setShowUploadDocument] = useState(false);
+
+  // Sincronizar pacientes de BD con AppContext
+  useEffect(() => {
+    if (dbPatients.length > 0) {
+      dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
+    }
+  }, [dbPatients, dispatch]);
 
   const patient = state.patients.find(p => p.id === id);
   // Filtrar citas del paciente, excluyendo continuaciones
