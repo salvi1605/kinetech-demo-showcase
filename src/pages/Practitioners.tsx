@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserCheck, Plus, Search, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +14,18 @@ import { EditProfessionalDialog } from '@/components/dialogs/EditProfessionalDia
 import type { Practitioner } from '@/contexts/AppContext';
 
 export const Practitioners = () => {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
+  const navigate = useNavigate();
   const { practitioners, loading } = usePractitioners(state.currentClinicId);
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewProfessional, setShowNewProfessional] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Practitioner | null>(null);
+
+  const handleViewAgenda = (practitionerId: string) => {
+    // Establecer el filtro de profesional y navegar al calendario
+    dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId });
+    navigate('/calendar');
+  };
 
   const filteredPractitioners = practitioners.filter(practitioner =>
     practitioner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,7 +131,12 @@ export const Practitioners = () => {
 
               {/* Actions */}
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => handleViewAgenda(practitioner.id)}
+                >
                   Ver Agenda
                 </Button>
                 <Button variant="default" size="sm" className="flex-1" onClick={() => setEditingProfessional(practitioner)}>
