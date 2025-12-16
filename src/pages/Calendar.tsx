@@ -791,20 +791,21 @@ export const Calendar = () => {
             {(loadingAppointments || loadingSettings) ? (
               <LoadingSkeleton variant="calendar" />
             ) : (
-              <div className="overflow-x-auto">
-                {/* Navegador de semana compacto */}
-                <div className="sticky top-0 z-10 flex justify-end px-2 py-1 bg-background/80 backdrop-blur">
-                  <WeekNavigatorCompact />
-                </div>
-                <div 
-                  className="min-w-[800px]"
-                  style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '88px repeat(5, 1fr)',
-                    gap: '4px',
-                    width: '100%'
-                  }}
-                >
+              <div className="relative z-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                  {/* Navegador de semana compacto */}
+                  <div className="sticky top-0 z-10 flex justify-end px-2 py-1 bg-background/80 backdrop-blur">
+                    <WeekNavigatorCompact />
+                  </div>
+                  <div 
+                    className="w-full"
+                    style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'minmax(70px, 88px) repeat(5, minmax(100px, 1fr))',
+                      gap: '4px',
+                      width: '100%'
+                    }}
+                  >
                   {/* Header - 6 celdas directas del grid */}
                   <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center">
                     Hora
@@ -835,6 +836,7 @@ export const Calendar = () => {
                       ))}
                     </React.Fragment>
                   ))}
+                </div>
                 </div>
               </div>
             )}
