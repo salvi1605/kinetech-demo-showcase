@@ -796,14 +796,21 @@ export const Calendar = () => {
                 <div className="sticky top-0 z-10 flex justify-end px-2 py-1 bg-background/80 backdrop-blur">
                   <WeekNavigatorCompact />
                 </div>
-                <div className="min-w-[800px]">
-                  {/* Header */}
-                  <div className="grid grid-cols-[88px_repeat(5,1fr)] gap-1">
-                    <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center">
+                <div className="min-w-[800px]" style={{ display: 'table', tableLayout: 'fixed', width: '100%', borderCollapse: 'separate', borderSpacing: '4px' }}>
+                  {/* Header Row */}
+                  <div style={{ display: 'table-row' }}>
+                    <div 
+                      style={{ display: 'table-cell', width: '88px', verticalAlign: 'middle' }}
+                      className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10"
+                    >
                       Hora
                     </div>
                     {WEEKDAYS.map((day, index) => (
-                      <div key={day} className="p-1 border border-border/30 bg-muted/30 flex flex-col items-center justify-center">
+                      <div 
+                        key={day} 
+                        style={{ display: 'table-cell', verticalAlign: 'middle' }}
+                        className="p-1 border border-border/30 bg-muted/30 text-center"
+                      >
                         <div className="text-sm font-medium">{day}</div>
                         <div className="text-xs text-muted-foreground">
                           {format(weekDates[index], 'd MMM', { locale: es })}
@@ -816,13 +823,23 @@ export const Calendar = () => {
                   {TIME_SLOTS.map((time) => (
                     <div 
                       key={time} 
-                      className="grid grid-cols-[88px_repeat(5,1fr)] gap-1 relative after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1px] after:bg-[#60A5FA]/40 after:pointer-events-none after:z-0"
+                      style={{ display: 'table-row' }}
+                      className="relative after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1px] after:bg-[#60A5FA]/40 after:pointer-events-none after:z-0"
                     >
-                      <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {time}
+                      <div 
+                        style={{ display: 'table-cell', width: '88px', verticalAlign: 'top' }}
+                        className="p-2 text-sm text-muted-foreground border-r bg-muted/10"
+                      >
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {time}
+                        </div>
                       </div>
-                      {WEEKDAYS.map((_, dayIndex) => renderSlot(dayIndex, time))}
+                      {WEEKDAYS.map((_, dayIndex) => (
+                        <div key={dayIndex} style={{ display: 'table-cell', verticalAlign: 'top' }}>
+                          {renderSlot(dayIndex, time)}
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
