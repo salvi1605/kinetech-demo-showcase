@@ -324,44 +324,82 @@ export type Database = {
       }
       patient_clinical_notes: {
         Row: {
+          appointment_id: string | null
           body: string
           clinic_id: string
+          clinical_data: Json | null
           created_at: string | null
+          created_by: string | null
           id: string
+          is_completed: boolean | null
           note_date: string
+          note_type: string
           patient_id: string
-          practitioner_id: string
+          practitioner_id: string | null
+          start_time: string | null
+          status: string | null
           title: string | null
+          treatment_type: string | null
           updated_at: string | null
         }
         Insert: {
+          appointment_id?: string | null
           body: string
           clinic_id: string
+          clinical_data?: Json | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
+          is_completed?: boolean | null
           note_date: string
+          note_type?: string
           patient_id: string
-          practitioner_id: string
+          practitioner_id?: string | null
+          start_time?: string | null
+          status?: string | null
           title?: string | null
+          treatment_type?: string | null
           updated_at?: string | null
         }
         Update: {
+          appointment_id?: string | null
           body?: string
           clinic_id?: string
+          clinical_data?: Json | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
+          is_completed?: boolean | null
           note_date?: string
+          note_type?: string
           patient_id?: string
-          practitioner_id?: string
+          practitioner_id?: string | null
+          start_time?: string | null
+          status?: string | null
           title?: string | null
+          treatment_type?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "patient_clinical_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "patient_clinical_notes_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_clinical_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
