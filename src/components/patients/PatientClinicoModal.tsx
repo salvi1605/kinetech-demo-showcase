@@ -10,26 +10,35 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Patient } from '@/contexts/AppContext';
-import { getTodayISO, upsertSummaryFor } from '@/lib/clinicalSummaryHelpers';
+import { getTodayISO } from '@/lib/clinicalSummaryHelpers';
+import { upsertClinicalSnapshot } from '@/lib/clinicalNotesService';
 
 interface PatientClinicoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient;
   tempPrefill?: {
-    mainReason: string;
-    diagnosis: string;
-    laterality: string;
-    painLevel: number;
-    redFlags: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean };
-    redFlagsDetail: { alergias: string };
-    restricciones: { noMagnetoterapia: boolean; noElectroterapia: boolean };
+    mainReason?: string;
+    diagnosis?: string;
+    laterality?: string;
+    painLevel?: number;
+    redFlags?: { embarazo: boolean; cancer: boolean; marcapasos: boolean; alergias: boolean };
+    redFlagsDetail?: { alergias: string };
+    restricciones?: { noMagnetoterapia: boolean; noElectroterapia: boolean };
   } | null;
+  clinicId?: string;
 }
 
-export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }: PatientClinicoModalProps) => {
-  const { state, dispatch } = useApp();
+export const PatientClinicoModal = ({ 
+  open, 
+  onOpenChange, 
+  patient, 
+  tempPrefill,
+  clinicId,
+}: PatientClinicoModalProps) => {
+  const { state } = useApp();
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [form, setForm] = useState({
     mainReason: '',
@@ -43,10 +52,8 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }
 
   const [initialForm, setInitialForm] = useState(form);
 
-  // Load patient data when modal opens
   useEffect(() => {
     if (open) {
-      // Prioridad: 1) patient.clinico, 2) tempPrefill, 3) vacío
       const dataToLoad = patient?.clinico ? {
         mainReason: patient.clinico.mainReason || '',
         diagnosis: patient.clinico.diagnosis || '',
@@ -78,8 +85,7 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }
     }
   }, [open, patient, tempPrefill]);
 
-  const handleSave = useCallback(() => {
-    // Detectar si hubo cambios reales
+  const handleSave = useCallback(async () => {
     const hasChanges = 
       form.mainReason !== initialForm.mainReason ||
       form.diagnosis !== initialForm.diagnosis ||
@@ -90,7 +96,6 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }
       JSON.stringify(form.restricciones) !== JSON.stringify(initialForm.restricciones);
 
     if (!hasChanges) {
-      console.log('[PatientClinicoModal] Sin cambios detectados, no se guarda snapshot');
       toast({
         title: 'Sin cambios',
         description: 'No se detectaron cambios en el resumen clínico.',
@@ -99,52 +104,59 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }
       return;
     }
 
-    const today = getTodayISO(state.testCurrentDate);
+    const effectiveClinicId = clinicId || state.currentClinicId;
+    if (!effectiveClinicId) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo determinar la clínica actual.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    // Preparar datos clínicos
-    const clinicalData = {
-      mainReason: form.mainReason,
-      diagnosis: form.diagnosis,
-      laterality: form.laterality as 'Derecha' | 'Izquierda' | 'Bilateral' | '',
-      painLevel: form.painLevel,
-      redFlags: form.redFlags,
-      redFlagsDetail: form.redFlagsDetail,
-      restricciones: form.restricciones,
-    };
+    setIsSaving(true);
 
-    // Crear/actualizar snapshot para hoy
-    const updatedPatient = upsertSummaryFor(patient, today, clinicalData, state.currentUserId);
+    try {
+      const today = getTodayISO(state.testCurrentDate);
 
-    console.log('[PatientClinicoModal] Guardando snapshot editado manualmente para:', today);
+      const clinicalData = {
+        mainReason: form.mainReason,
+        diagnosis: form.diagnosis,
+        laterality: form.laterality as 'Derecha' | 'Izquierda' | 'Bilateral' | '',
+        painLevel: form.painLevel,
+        redFlags: form.redFlags,
+        redFlagsDetail: form.redFlagsDetail,
+        restricciones: form.restricciones,
+      };
 
-    // Dispatch update con clinico y history
-    dispatch({
-      type: 'UPDATE_PATIENT',
-      payload: {
-        id: patient.id,
-        updates: {
-          clinico: {
-            ...patient.clinico,
-            mainReason: form.mainReason,
-            diagnosis: form.diagnosis,
-            laterality: form.laterality,
-            painLevel: form.painLevel,
-            redFlags: form.redFlags,
-            redFlagsDetail: form.redFlagsDetail,
-            restricciones: form.restricciones,
-          },
-          history: updatedPatient.history,
-        },
-      },
-    });
+      const snapshot = {
+        date: today,
+        clinicalData,
+        authorId: state.currentUserId,
+        updatedAt: new Date().toISOString(),
+      };
 
-    toast({
-      title: 'Clínico actualizado',
-      description: 'Los cambios se han guardado correctamente.',
-    });
+      await upsertClinicalSnapshot(patient.id, effectiveClinicId, snapshot, state.currentUserId);
 
-    onOpenChange(false);
-  }, [state.testCurrentDate, state.currentUserId, patient, form, initialForm, dispatch, toast, onOpenChange]);
+      console.log('[PatientClinicoModal] Snapshot guardado en BD para:', today);
+
+      toast({
+        title: 'Clínico actualizado',
+        description: 'Los cambios se han guardado correctamente.',
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('[PatientClinicoModal] Error saving snapshot:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo guardar el resumen clínico.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [state.testCurrentDate, state.currentUserId, state.currentClinicId, clinicId, patient.id, form, initialForm, toast, onOpenChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -322,11 +334,11 @@ export const PatientClinicoModal = ({ open, onOpenChange, patient, tempPrefill }
         </div>
 
         <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
-            Guardar cambios
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </DialogFooter>
       </DialogContent>
