@@ -28,6 +28,7 @@ import { CopySchedule } from "@/pages/CopySchedule";
 import { Settings } from "@/pages/Settings";
 import UserManagement from "@/pages/UserManagement";
 import ClinicSettings from "@/pages/ClinicSettings";
+import Architecture from "@/pages/Architecture";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="settings" element={<Settings />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="clinics" element={<ClinicSettings />} />
+              <Route path="architecture" element={<Architecture />} />
             </Route>
             
             {/* 404 Route */}
