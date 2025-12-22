@@ -106,11 +106,15 @@ export const ClinicalHistoryDialog = ({
     console.log('[ClinicalHistoryDialog] History changed, entries count:', entries.length);
   }, []);
 
-  const handleClose = () => {
+  const handleSaveAndClose = () => {
     toast({
-      title: 'Historial cerrado',
-      description: 'Los cambios se guardan automáticamente.',
+      title: 'Cambios guardados',
+      description: 'El historial clínico ha sido guardado correctamente.',
     });
+    onOpenChange(false);
+  };
+
+  const handleClose = () => {
     onOpenChange(false);
   };
 
@@ -154,8 +158,9 @@ export const ClinicalHistoryDialog = ({
           />
         )}
         
-        <DialogFooter>
-          <Button onClick={handleClose}>Cerrar</Button>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button onClick={handleSaveAndClose}>Guardar Cambios</Button>
+          <Button variant="outline" onClick={handleClose}>Cerrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
