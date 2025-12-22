@@ -440,10 +440,26 @@ export const Calendar = () => {
     const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
-    // Calcular alturas dinámicas: 1fr con cita, 24px sin cita
+    // Calcular alturas dinámicas: 60px con cita, 24px sin cita
     const rowHeights = Array.from({ length: 5 }).map((_, i) => 
-      slotAppointments[i] ? '1fr' : '24px'
+      slotAppointments[i] ? '60px' : '24px'
     ).join(' ');
+
+    // Helper para obtener el badge de estado
+    const getStatusBadge = (status: string) => {
+      switch (status) {
+        case 'completed':
+          return { label: 'Asistió', className: 'bg-green-100 text-green-800' };
+        case 'no_show':
+        case 'cancelled':
+          return { label: 'No asistió', className: 'bg-red-100 text-red-800' };
+        case 'confirmed':
+          return { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' };
+        case 'scheduled':
+        default:
+          return { label: 'Reservado', className: 'bg-gray-100 text-gray-800' };
+      }
+    };
 
     if (hasAppointments) {
       return (
@@ -459,11 +475,12 @@ export const Calendar = () => {
               const hasPermission = ['admin', 'tenant_owner', 'recep', 'kinesio'].includes(state.userRole);
               const stateAttr = statusToChecked(appointment.status as Status);
               const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
+              const statusBadge = getStatusBadge(appointment.status);
               
               return (
                 <div key={`${dayIndex}-${time}-${subIndex}`} className="flex items-stretch h-full w-full">
                   <div 
-                    className="text-xs p-1 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-1 w-full h-full overflow-hidden relative z-[2]"
+                    className="text-xs p-1 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex gap-1.5 w-full h-full overflow-hidden relative z-[2]"
                     style={styles}
                     role="button"
                     tabIndex={0}
@@ -482,16 +499,19 @@ export const Calendar = () => {
                         role="checkbox"
                         aria-checked={aria}
                         onClick={(e) => { e.stopPropagation(); onTriToggle(appointment); }}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-sm border border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer bg-background"
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-sm border border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer bg-background shrink-0 mt-0.5"
                         data-state={stateAttr === true ? 'checked' : stateAttr === 'indeterminate' ? 'indeterminate' : 'unchecked'}
                       >
-                        {stateAttr === true && <Check className="h-4 w-4 text-green-600" />}
-                        {stateAttr === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
+                        {stateAttr === true && <Check className="h-3 w-3 text-green-600" />}
+                        {stateAttr === 'indeterminate' && <X className="h-3 w-3 text-red-600" />}
                       </button>
                     )}
-                    <div className="flex-1 min-w-0 flex items-center gap-1 overflow-hidden">
-                      <span className="font-medium truncate">{patient?.name || 'Paciente'}</span>
-                      <span className="truncate opacity-75 text-[10px]">• {practitioner?.name || 'Prof.'}</span>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
+                      <span className="font-medium text-xs truncate">{patient?.name || 'Paciente'}</span>
+                      <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
+                        {statusBadge.label}
+                      </span>
                     </div>
                   </div>
                 </div>
