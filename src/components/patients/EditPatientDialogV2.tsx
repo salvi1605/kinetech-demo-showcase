@@ -172,12 +172,14 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
         .from('patients')
         .update({
           full_name: normalizedForm.identificacion.fullName,
+          preferred_name: normalizedForm.identificacion.preferredName || null,
           document_id: normalizedForm.identificacion.documentId || null,
           date_of_birth: normalizedForm.identificacion.dateOfBirth || null,
           phone: normalizedForm.identificacion.mobilePhone || null,
           email: normalizedForm.identificacion.email || null,
           emergency_contact_name: normalizedForm.emergencia.contactName || null,
           emergency_contact_phone: normalizedForm.emergencia.emergencyPhone || null,
+          emergency_contact_relationship: normalizedForm.emergencia.relationship || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', patient.id);
@@ -250,12 +252,14 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
         .from('patients')
         .update({
           full_name: normalizedForm.identificacion.fullName,
+          preferred_name: normalizedForm.identificacion.preferredName || null,
           document_id: normalizedForm.identificacion.documentId || null,
           date_of_birth: dobForDb,
           phone: normalizedForm.identificacion.mobilePhone || null,
           email: normalizedForm.identificacion.email || null,
           emergency_contact_name: normalizedForm.emergencia.contactName || null,
           emergency_contact_phone: normalizedForm.emergencia.emergencyPhone || null,
+          emergency_contact_relationship: normalizedForm.emergencia.relationship || null,
           // Campos de seguro
           obra_social: normalizedForm.seguro.obraSocial || null,
           numero_afiliado: normalizedForm.seguro.numeroAfiliado?.trim() || null,

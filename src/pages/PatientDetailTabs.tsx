@@ -192,11 +192,49 @@ export const PatientDetailTabs = () => {
     });
   };
 
-  const handleSave = (tabName: string) => {
-    toast({
-      title: "Datos guardados",
-      description: `Los datos de ${tabName} se han actualizado correctamente.`,
-    });
+  const handleSave = async (tabName: string) => {
+    if (!patient) return;
+
+    try {
+      const { error } = await supabase
+        .from('patients')
+        .update({
+          full_name: patient.identificacion?.fullName || patient.name,
+          preferred_name: patient.identificacion?.preferredName || null,
+          document_id: patient.identificacion?.documentId || null,
+          date_of_birth: patient.identificacion?.dateOfBirth || patient.birthDate || null,
+          phone: patient.identificacion?.mobilePhone || patient.phone || null,
+          email: patient.identificacion?.email || patient.email || null,
+          emergency_contact_name: patient.emergencia?.contactName || null,
+          emergency_contact_phone: patient.emergencia?.emergencyPhone || null,
+          emergency_contact_relationship: patient.emergencia?.relationship || null,
+          obra_social: patient.seguro?.obraSocial || null,
+          numero_afiliado: patient.seguro?.numeroAfiliado || null,
+          sesiones_autorizadas: patient.seguro?.sesionesAutorizadas || 0,
+          copago: patient.seguro?.copago || 0,
+          contact_auth_whatsapp: patient.seguro?.contactAuth?.whatsapp || false,
+          contact_auth_email: patient.seguro?.contactAuth?.email || false,
+          reminder_preference: patient.seguro?.reminderPref || 'none',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', patient.id);
+
+      if (error) throw error;
+
+      await refetchPatients();
+
+      toast({
+        title: "Datos guardados",
+        description: `Los datos de ${tabName} se han actualizado correctamente.`,
+      });
+    } catch (error) {
+      console.error('Error saving patient:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los cambios.",
+        variant: "destructive",
+      });
+    }
     
     // Reset editing state
     setEditingData(false);
