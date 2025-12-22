@@ -443,7 +443,7 @@ export const Calendar = () => {
     if (hasAppointments) {
       return (
         <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1"
-             style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
+             style={{ gridTemplateRows: 'repeat(5, minmax(12px, 12px))' }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
             
@@ -456,9 +456,9 @@ export const Calendar = () => {
               const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
               
               return (
-                <div className="flex justify-center items-center px-1">
+                <div key={`${dayIndex}-${time}-${subIndex}`} className="flex items-stretch h-full w-full">
                   <div 
-                    className="mx-auto text-xs p-2 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-2 w-full max-w-full relative z-[2]"
+                    className="text-xs p-1 rounded border hover:opacity-80 transition-all text-left focus:outline-none focus:ring-1 focus:ring-ring flex items-center gap-1 w-full h-full overflow-hidden relative z-[2]"
                     style={styles}
                     role="button"
                     tabIndex={0}
@@ -484,16 +484,9 @@ export const Calendar = () => {
                         {stateAttr === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
                       </button>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{patient?.name || 'Paciente'}</div>
-                      <div className="truncate opacity-75">{practitioner?.name || 'Profesional'}</div>
-                      <div className={`text-xs px-2 py-1 rounded border mt-1 ${
-                        appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                        appointment.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
-                        'bg-red-100 text-red-800 border-red-200'
-                      }`}>
-                        {statusLabel(appointment.status)}
-                      </div>
+                    <div className="flex-1 min-w-0 flex items-center gap-1 overflow-hidden">
+                      <span className="font-medium truncate">{patient?.name || 'Paciente'}</span>
+                      <span className="truncate opacity-75 text-[10px]">• {practitioner?.name || 'Prof.'}</span>
                     </div>
                   </div>
                 </div>
@@ -555,7 +548,7 @@ export const Calendar = () => {
     // Slot completamente vacío - mostrar todos los sub-slots disponibles
     return (
       <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
-           style={{ gridTemplateRows: 'repeat(5, 1fr)' }}>
+           style={{ gridTemplateRows: 'repeat(5, minmax(12px, 12px))' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
              return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
