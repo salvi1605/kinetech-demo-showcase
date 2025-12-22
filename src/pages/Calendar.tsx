@@ -440,9 +440,9 @@ export const Calendar = () => {
     const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
-    // Calcular alturas dinámicas: 45px con cita, 18px sin cita
+    // Calcular alturas dinámicas: 60px con cita, 24px sin cita
     const rowHeights = Array.from({ length: 5 }).map((_, i) => 
-      slotAppointments[i] ? '45px' : '18px'
+      slotAppointments[i] ? '60px' : '24px'
     ).join(' ');
 
     if (hasAppointments) {
@@ -550,10 +550,10 @@ export const Calendar = () => {
       );
     }
 
-    // Slot completamente vacío - mostrar todos los sub-slots disponibles (18px cada uno)
+    // Slot completamente vacío - mostrar todos los sub-slots disponibles (24px cada uno)
     return (
       <div key={`${dayIndex}-${time}`} className="p-1 border border-border/30 grid gap-1" 
-           style={{ gridTemplateRows: 'repeat(5, 18px)' }}>
+           style={{ gridTemplateRows: 'repeat(5, 24px)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
              return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
