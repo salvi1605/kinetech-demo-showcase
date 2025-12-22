@@ -23,9 +23,9 @@ import { useToast } from '@/hooks/use-toast';
 import { usePatients } from '@/hooks/usePatients';
 import { usePractitioners } from '@/hooks/usePractitioners';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
-import { PatientUploadDocumentDialog } from '@/components/patients/PatientUploadDocumentDialog';
+import { PatientUploadDocumentDialog, type PatientDocument } from '@/components/patients/PatientUploadDocumentDialog';
 import { supabase } from '@/integrations/supabase/client';
-import type { PatientDocument } from '@/contexts/AppContext';
+import { usePatientDocuments } from '@/hooks/usePatientDocuments';
 
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +34,7 @@ export const PatientDetailTabs = () => {
   const { toast } = useToast();
   const { patients: dbPatients, loading: loadingPatients, refetch: refetchPatients } = usePatients(state.currentClinicId);
   const { practitioners: dbPractitioners } = usePractitioners(state.currentClinicId);
+  const { documents: patientDocuments, loading: loadingDocuments, refetch: refetchDocuments, deleteDocument, getSignedUrl } = usePatientDocuments(id, state.currentClinicId);
   const [showWizard, setShowWizard] = useState(false);
   const [editingData, setEditingData] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState(false);
@@ -714,19 +715,22 @@ export const PatientDetailTabs = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {patient.documents && patient.documents.length > 0 ? (
+              {loadingDocuments ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Cargando documentos...</p>
+                </div>
+              ) : patientDocuments && patientDocuments.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Tipo</TableHead>
-                      <TableHead>Tamaño</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {patient.documents.map((doc) => (
+                    {patientDocuments.map((doc) => (
                       <TableRow key={doc.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
@@ -734,8 +738,7 @@ export const PatientDetailTabs = () => {
                             <span className="truncate max-w-[300px]">{doc.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{doc.type || 'Archivo'}</TableCell>
-                        <TableCell>{(doc.size / 1024 / 1024).toFixed(2)} MB</TableCell>
+                        <TableCell>{doc.type?.split('/')[1]?.toUpperCase() || 'Archivo'}</TableCell>
                         <TableCell>
                           {format(new Date(doc.createdAt), 'dd/MM/yyyy')}
                         </TableCell>
@@ -744,7 +747,18 @@ export const PatientDetailTabs = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(doc.url, '_blank')}
+                              onClick={async () => {
+                                const signedUrl = await getSignedUrl(doc.url);
+                                if (signedUrl) {
+                                  window.open(signedUrl, '_blank');
+                                } else {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'No se pudo abrir el documento.',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
                               aria-label="Ver documento"
                             >
                               <Eye className="h-4 w-4" />
@@ -752,11 +766,21 @@ export const PatientDetailTabs = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = doc.url;
-                                link.download = doc.name;
-                                link.click();
+                              onClick={async () => {
+                                const signedUrl = await getSignedUrl(doc.url);
+                                if (signedUrl) {
+                                  const link = document.createElement('a');
+                                  link.href = signedUrl;
+                                  link.download = doc.name;
+                                  link.target = '_blank';
+                                  link.click();
+                                } else {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'No se pudo descargar el documento.',
+                                    variant: 'destructive',
+                                  });
+                                }
                               }}
                               aria-label="Descargar documento"
                             >
@@ -765,21 +789,9 @@ export const PatientDetailTabs = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
+                              onClick={async () => {
                                 if (confirm(`¿Eliminar "${doc.name}"?`)) {
-                                  const updatedDocs = patient.documents?.filter(d => d.id !== doc.id) || [];
-                                  dispatch({
-                                    type: 'UPDATE_PATIENT',
-                                    payload: {
-                                      id: patient.id,
-                                      updates: { documents: updatedDocs }
-                                    }
-                                  });
-                                  URL.revokeObjectURL(doc.url);
-                                  toast({
-                                    title: 'Documento eliminado',
-                                    description: `${doc.name} ha sido eliminado.`,
-                                  });
+                                  await deleteDocument(doc.id, doc.url);
                                 }
                               }}
                               className="text-destructive hover:text-destructive"
@@ -818,20 +830,10 @@ export const PatientDetailTabs = () => {
       <PatientUploadDocumentDialog
         open={showUploadDocument}
         onClose={() => setShowUploadDocument(false)}
-        onSave={(doc: PatientDocument) => {
-          dispatch({
-            type: 'UPDATE_PATIENT',
-            payload: {
-              id: patient.id,
-              updates: {
-                documents: [...(patient.documents || []), doc]
-              }
-            }
-          });
-          toast({
-            title: 'Documento subido',
-            description: `${doc.name} ha sido agregado correctamente.`,
-          });
+        patientId={patient.id}
+        clinicId={state.currentClinicId || ''}
+        onSave={() => {
+          refetchDocuments();
         }}
       />
     </div>
