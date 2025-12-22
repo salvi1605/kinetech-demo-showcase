@@ -440,10 +440,15 @@ export const Calendar = () => {
     const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
+    // Calcular alturas dinámicas: 45px con cita, 18px sin cita
+    const rowHeights = Array.from({ length: 5 }).map((_, i) => 
+      slotAppointments[i] ? '45px' : '18px'
+    ).join(' ');
+
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1"
-             style={{ gridTemplateRows: 'repeat(5, minmax(12px, 12px))' }}>
+        <div key={`${dayIndex}-${time}`} className="p-1 border border-border/30 grid gap-1"
+             style={{ gridTemplateRows: rowHeights }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
             
@@ -545,10 +550,10 @@ export const Calendar = () => {
       );
     }
 
-    // Slot completamente vacío - mostrar todos los sub-slots disponibles
+    // Slot completamente vacío - mostrar todos los sub-slots disponibles (18px cada uno)
     return (
-      <div key={`${dayIndex}-${time}`} className="min-h-[60px] p-1 border border-border/30 grid gap-1" 
-           style={{ gridTemplateRows: 'repeat(5, minmax(12px, 12px))' }}>
+      <div key={`${dayIndex}-${time}`} className="p-1 border border-border/30 grid gap-1" 
+           style={{ gridTemplateRows: 'repeat(5, 18px)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
              return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
