@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCheck, Plus, Search, Phone, Mail } from 'lucide-react';
+import { UserCheck, Plus, Search, Phone, Mail, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useApp } from '@/contexts/AppContext';
-import { usePractitioners } from '@/hooks/usePractitioners';
+import { usePractitioners, type PractitionerWithStatus } from '@/hooks/usePractitioners';
 import { NewProfessionalDialog } from '@/components/dialogs/NewProfessionalDialog';
 import { EditProfessionalDialog } from '@/components/dialogs/EditProfessionalDialog';
 import type { Practitioner } from '@/contexts/AppContext';
@@ -16,13 +18,13 @@ import type { Practitioner } from '@/contexts/AppContext';
 export const Practitioners = () => {
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
-  const { practitioners, loading } = usePractitioners(state.currentClinicId);
+  const [showInactive, setShowInactive] = useState(false);
+  const { practitioners, loading } = usePractitioners(state.currentClinicId, showInactive);
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewProfessional, setShowNewProfessional] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Practitioner | null>(null);
 
   const handleViewAgenda = (practitionerId: string) => {
-    // Establecer el filtro de visualización y navegar al calendario
     dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: practitionerId });
     navigate('/calendar');
   };
@@ -51,7 +53,17 @@ export const Practitioners = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="show-inactive"
+              checked={showInactive}
+              onCheckedChange={setShowInactive}
+            />
+            <Label htmlFor="show-inactive" className="text-sm text-muted-foreground cursor-pointer">
+              Mostrar inactivos
+            </Label>
+          </div>
           <Button onClick={() => setShowNewProfessional(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Profesional
@@ -100,17 +112,28 @@ export const Practitioners = () => {
       {/* Practitioners Grid */}
       {!loading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredPractitioners.map((practitioner) => (
-          <Card key={practitioner.id} className="hover:shadow-md transition-shadow">
+          {filteredPractitioners.map((practitioner: PractitionerWithStatus) => (
+          <Card 
+            key={practitioner.id} 
+            className={`hover:shadow-md transition-shadow ${!practitioner.isActive ? 'opacity-60 border-dashed' : ''}`}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
+                <Avatar className={`h-12 w-12 ${!practitioner.isActive ? 'grayscale' : ''}`}>
                   <AvatarFallback className="bg-accent text-accent-foreground">
                     {getInitials(practitioner.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <CardTitle className="text-lg">{practitioner.name}</CardTitle>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg truncate">{practitioner.name}</CardTitle>
+                    {!practitioner.isActive && (
+                      <Badge variant="secondary" className="shrink-0 bg-muted text-muted-foreground">
+                        <UserX className="h-3 w-3 mr-1" />
+                        Inactivo
+                      </Badge>
+                    )}
+                  </div>
                   <CardDescription>{practitioner.specialty}</CardDescription>
                 </div>
               </div>
@@ -121,11 +144,11 @@ export const Practitioners = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
-                  <span className="truncate">{practitioner.email}</span>
+                  <span className="truncate">{practitioner.email || 'Sin email'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4" />
-                  <span>{practitioner.phone}</span>
+                  <span>{practitioner.phone || 'Sin teléfono'}</span>
                 </div>
               </div>
 
@@ -136,11 +159,17 @@ export const Practitioners = () => {
                   size="sm" 
                   className="flex-1"
                   onClick={() => handleViewAgenda(practitioner.id)}
+                  disabled={!practitioner.isActive}
                 >
                   Ver Agenda
                 </Button>
-                <Button variant="default" size="sm" className="flex-1" onClick={() => setEditingProfessional(practitioner)}>
-                  Editar
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="flex-1" 
+                  onClick={() => setEditingProfessional(practitioner)}
+                >
+                  {practitioner.isActive ? 'Editar' : 'Reactivar'}
                 </Button>
               </div>
             </CardContent>
@@ -167,9 +196,14 @@ export const Practitioners = () => {
         <Card className="text-center p-8">
           <CardContent>
             <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <CardTitle className="mb-2">No hay profesionales registrados</CardTitle>
+            <CardTitle className="mb-2">
+              {showInactive ? 'No hay profesionales' : 'No hay profesionales activos'}
+            </CardTitle>
             <CardDescription className="mb-4">
-              Comienza agregando el primer profesional o activa el modo demo
+              {showInactive 
+                ? 'Comienza agregando el primer profesional'
+                : 'Activa el toggle "Mostrar inactivos" o agrega un nuevo profesional'
+              }
             </CardDescription>
             <Button onClick={() => setShowNewProfessional(true)}>
               <Plus className="h-4 w-4 mr-2" />
