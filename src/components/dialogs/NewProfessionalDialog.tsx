@@ -161,6 +161,9 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
           is_active: data.status === 'active',
           notes: data.notes || null,
           user_id: selectedUserId || null,
+          phone: data.mobile || null,
+          email: data.email || null,
+          license_id: data.licenseId || null,
         })
         .select()
         .single();

@@ -181,10 +181,10 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
           firstName,
           lastName,
           displayName: practitionerData.display_name || '',
-          mobile: '',
-          email: '',
+          mobile: practitionerData.phone || '',
+          email: practitionerData.email || '',
           specialty: practitionerData.specialties?.[0] || '',
-          licenseId: '',
+          licenseId: practitionerData.license_id || '',
           color: practitionerData.color || PROFESSIONAL_COLORS[0],
           status: practitionerData.is_active ? 'active' : 'inactive',
           notes: practitionerData.notes || '',
@@ -278,6 +278,9 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
           is_active: data.status === 'active',
           notes: data.notes || null,
           user_id: selectedUserId || null,
+          phone: data.mobile || null,
+          email: data.email || null,
+          license_id: data.licenseId || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', professional.id);

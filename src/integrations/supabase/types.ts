@@ -791,9 +791,12 @@ export type Database = {
           color: string | null
           created_at: string | null
           display_name: string
+          email: string | null
           id: string
           is_active: boolean | null
+          license_id: string | null
           notes: string | null
+          phone: string | null
           prefix: string | null
           specialties: string[] | null
           updated_at: string | null
@@ -804,9 +807,12 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           display_name: string
+          email?: string | null
           id?: string
           is_active?: boolean | null
+          license_id?: string | null
           notes?: string | null
+          phone?: string | null
           prefix?: string | null
           specialties?: string[] | null
           updated_at?: string | null
@@ -817,9 +823,12 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           display_name?: string
+          email?: string | null
           id?: string
           is_active?: boolean | null
+          license_id?: string | null
           notes?: string | null
+          phone?: string | null
           prefix?: string | null
           specialties?: string[] | null
           updated_at?: string | null
