@@ -440,9 +440,9 @@ export const Calendar = () => {
     const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
-    // Calcular alturas dinámicas: 60px con cita, 24px sin cita
+    // Calcular alturas dinámicas: 1fr con cita, 24px sin cita
     const rowHeights = Array.from({ length: 5 }).map((_, i) => 
-      slotAppointments[i] ? '60px' : '24px'
+      slotAppointments[i] ? '1fr' : '24px'
     ).join(' ');
 
     if (hasAppointments) {
