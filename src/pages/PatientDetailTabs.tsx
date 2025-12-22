@@ -362,7 +362,7 @@ export const PatientDetailTabs = () => {
                         <p className="text-2xl font-bold text-destructive">
                           {patientAppointments.filter(a => a.status === 'cancelled').length}
                         </p>
-                        <p className="text-sm text-muted-foreground">No-shows</p>
+                        <p className="text-sm text-muted-foreground">No asistió</p>
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-accent">
