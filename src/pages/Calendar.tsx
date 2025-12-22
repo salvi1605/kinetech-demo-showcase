@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
@@ -503,14 +504,25 @@ export const Calendar = () => {
               
               // Verificar si está ocupado por otro profesional
               if (isOccupiedByOtherPractitioner(key)) {
+                const occupyingApt = allAppointmentsBySlotKey.get(key);
+                const occupyingPractitioner = occupyingApt 
+                  ? state.practitioners.find(p => p.id === occupyingApt.practitionerId)
+                  : null;
+                
                 return (
-                  <div
-                    key={`${dayIndex}-${time}-${subIndex}`}
-                    className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
-                    aria-label="Slot no disponible"
-                  >
-                    <X className="h-3 w-3 text-muted-foreground" />
-                  </div>
+                  <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
+                        aria-label={`Ocupado por ${occupyingPractitioner?.name || 'otro profesional'}`}
+                      >
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ocupado por {occupyingPractitioner?.name || 'otro profesional'}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               }
               
@@ -554,14 +566,25 @@ export const Calendar = () => {
            
            // Verificar si está ocupado por otro profesional
            if (isOccupiedByOtherPractitioner(key)) {
+             const occupyingApt = allAppointmentsBySlotKey.get(key);
+             const occupyingPractitioner = occupyingApt 
+               ? state.practitioners.find(p => p.id === occupyingApt.practitionerId)
+               : null;
+             
              return (
-               <div
-                 key={`${dayIndex}-${time}-${subIndex}`}
-                 className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
-                 aria-label="Slot no disponible"
-               >
-                 <X className="h-3 w-3 text-muted-foreground" />
-               </div>
+               <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
+                 <TooltipTrigger asChild>
+                   <div
+                     className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
+                     aria-label={`Ocupado por ${occupyingPractitioner?.name || 'otro profesional'}`}
+                   >
+                     <X className="h-3 w-3 text-muted-foreground" />
+                   </div>
+                 </TooltipTrigger>
+                 <TooltipContent>
+                   <p>Ocupado por {occupyingPractitioner?.name || 'otro profesional'}</p>
+                 </TooltipContent>
+               </Tooltip>
              );
            }
            
