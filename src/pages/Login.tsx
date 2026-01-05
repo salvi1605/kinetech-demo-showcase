@@ -158,7 +158,6 @@ export const Login = () => {
           description: errorMessage,
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
@@ -176,6 +175,7 @@ export const Login = () => {
         description: "Ocurrió un error inesperado. Intenta nuevamente.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };

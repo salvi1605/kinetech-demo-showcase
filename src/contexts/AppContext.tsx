@@ -760,78 +760,101 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (session?.user) {
           // Defer database calls to avoid blocking
           setTimeout(async () => {
-            // Check user's clinics
-            const clinicsResult = await getUserClinicsFromDB(session.user.id);
-            
-            if (!clinicsResult || clinicsResult.clinics.length === 0) {
-              // No clinics - but still authenticated, will be redirected to create clinic page
-              // Create minimal user object for authentication
-              const { data: userData } = await supabase
-                .from('users')
-                .select('id, full_name, email')
-                .eq('auth_user_id', session.user.id)
-                .single();
-              
-              if (userData) {
-                dispatch({ 
-                  type: 'LOGIN', 
-                  payload: { 
-                    id: userData.id, 
-                    name: userData.full_name, 
-                    email: userData.email,
-                    role: 'admin', // Default role until clinic is selected
-                    clinicId: undefined
-                  } 
-                });
-              } else {
-                // User exists in auth but not in public.users - sign out
-                console.error('Usuario no encontrado en base de datos. Cerrando sesión...');
+            try {
+              // Ensure public.users exists for this auth user (new signups / deleted rows)
+              await supabase.functions.invoke('ensure-public-user', {
+                body: {
+                  fullName: (session.user.user_metadata as any)?.full_name ?? null,
+                },
+              });
+
+              // Check user's clinics
+              const clinicsResult = await getUserClinicsFromDB(session.user.id);
+
+              if (!clinicsResult) {
                 await supabase.auth.signOut();
+                dispatch({ type: 'LOGOUT' });
+                dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+                return;
               }
-              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            } else if (clinicsResult.clinics.length === 1) {
-              // Single clinic - auto-select it
-              const clinic = clinicsResult.clinics[0];
-              const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
-              
-              if (result) {
-                dispatch({ type: 'LOGIN', payload: result.user });
-                dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: result.clinicId, name: result.clinicName } });
+
+              if (clinicsResult.clinics.length === 0) {
+                // No clinics - authenticated, will be redirected to create clinic page
+                const { data: userData } = await supabase
+                  .from('users')
+                  .select('id, full_name, email')
+                  .eq('auth_user_id', session.user.id)
+                  .single();
+
+                if (userData) {
+                  dispatch({
+                    type: 'LOGIN',
+                    payload: {
+                      id: userData.id,
+                      name: userData.full_name,
+                      email: userData.email,
+                      role: 'admin',
+                      clinicId: undefined,
+                    },
+                  });
+                }
+
+                dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+                return;
               }
-              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            } else {
+
+              if (clinicsResult.clinics.length === 1) {
+                // Single clinic - auto-select it
+                const clinic = clinicsResult.clinics[0];
+                const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
+
+                if (result) {
+                  dispatch({ type: 'LOGIN', payload: result.user });
+                  dispatch({
+                    type: 'SET_CURRENT_CLINIC',
+                    payload: { id: result.clinicId, name: result.clinicName },
+                  });
+                }
+
+                dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+                return;
+              }
+
               // Multiple clinics - user authenticated but needs to select clinic
               const { data: userData } = await supabase
                 .from('users')
                 .select('id, full_name, email')
                 .eq('auth_user_id', session.user.id)
                 .single();
-              
+
               if (userData) {
-                dispatch({ 
-                  type: 'LOGIN', 
-                  payload: { 
-                    id: userData.id, 
-                    name: userData.full_name, 
+                dispatch({
+                  type: 'LOGIN',
+                  payload: {
+                    id: userData.id,
+                    name: userData.full_name,
                     email: userData.email,
-                    role: 'admin', // Temp role until clinic is selected
-                    clinicId: undefined
-                  } 
+                    role: 'admin',
+                    clinicId: undefined,
+                  },
                 });
-              } else {
-                // User exists in auth but not in public.users - sign out
-                console.error('Usuario no encontrado en base de datos. Cerrando sesión...');
-                await supabase.auth.signOut();
               }
+
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            } catch (error) {
+              console.error('Error during auth bootstrap:', error);
+              await supabase.auth.signOut();
+              dispatch({ type: 'LOGOUT' });
               dispatch({ type: 'SET_AUTH_LOADING', payload: false });
             }
           }, 0);
         } else {
           dispatch({ type: 'LOGOUT' });
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
         }
       }
     );
@@ -839,23 +862,72 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const clinicsResult = await getUserClinicsFromDB(session.user.id);
-        
-        if (!clinicsResult || clinicsResult.clinics.length === 0) {
-          // No clinics
-          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-        } else if (clinicsResult.clinics.length === 1) {
-          // Single clinic - auto-select it
-          const clinic = clinicsResult.clinics[0];
-          const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
-          
-          if (result) {
-            dispatch({ type: 'LOGIN', payload: result.user });
-            dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: result.clinicId, name: result.clinicName } });
+        try {
+          await supabase.functions.invoke('ensure-public-user', {
+            body: {
+              fullName: (session.user.user_metadata as any)?.full_name ?? null,
+            },
+          });
+
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, full_name, email')
+            .eq('auth_user_id', session.user.id)
+            .single();
+
+          if (!userData) {
+            await supabase.auth.signOut();
+            dispatch({ type: 'LOGOUT' });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            return;
           }
-          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-        } else {
-          // Multiple clinics - will be redirected to select clinic page
+
+          const clinicsResult = await getUserClinicsFromDB(session.user.id);
+
+          if (!clinicsResult || clinicsResult.clinics.length === 0) {
+            // No clinics
+            dispatch({
+              type: 'LOGIN',
+              payload: {
+                id: userData.id,
+                name: userData.full_name,
+                email: userData.email,
+                role: 'admin',
+                clinicId: undefined,
+              },
+            });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          } else if (clinicsResult.clinics.length === 1) {
+            // Single clinic - auto-select it
+            const clinic = clinicsResult.clinics[0];
+            const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
+
+            if (result) {
+              dispatch({ type: 'LOGIN', payload: result.user });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: result.clinicId, name: result.clinicName },
+              });
+            }
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          } else {
+            // Multiple clinics - will be redirected to select clinic page
+            dispatch({
+              type: 'LOGIN',
+              payload: {
+                id: userData.id,
+                name: userData.full_name,
+                email: userData.email,
+                role: 'admin',
+                clinicId: undefined,
+              },
+            });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          }
+        } catch (error) {
+          console.error('Error during session bootstrap:', error);
+          await supabase.auth.signOut();
+          dispatch({ type: 'LOGOUT' });
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
         }
       } else {
