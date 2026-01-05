@@ -62,6 +62,8 @@ export interface AppState {
   currentUserId: string;
   currentUserName: string;
   testCurrentDate?: string; // YYYY-MM-DD - For testing purposes only
+  canCreateClinic: boolean; // true si usuario puede crear clínica (sin roles)
+  hasRolesPending: boolean; // true si tiene roles pero ninguna clínica accesible
 }
 
 export type PatientDocument = {
@@ -239,7 +241,9 @@ export type AppAction =
   | { type: 'DELETE_APPOINTMENTS_BULK'; payload: { patientId: string; fromDateTime: string; statuses: string[] } }
   | { type: 'AUTO_NO_ASISTIO'; payload: string[] }
   | { type: 'SET_TEST_DATE'; payload: string | undefined }
-  | { type: 'SET_APPOINTMENTS'; payload: Appointment[] };
+  | { type: 'SET_APPOINTMENTS'; payload: Appointment[] }
+  | { type: 'SET_CAN_CREATE_CLINIC'; payload: boolean }
+  | { type: 'SET_HAS_ROLES_PENDING'; payload: boolean };
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
@@ -308,6 +312,8 @@ const initialState: AppState = {
   testCurrentDate: undefined,
   filterPractitionerId: getStoredFilterPractitionerId(),
   filterPatientSearch: getStoredFilterPatientSearch(),
+  canCreateClinic: false,
+  hasRolesPending: false,
 };
 
 // Reducer
@@ -407,6 +413,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         currentUser: undefined,
         currentUserId: '',
         currentUserName: '',
+        canCreateClinic: false,
+        hasRolesPending: false,
       };
     
     case 'SET_AUTH_LOADING':
@@ -626,6 +634,18 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     }
     
+    case 'SET_CAN_CREATE_CLINIC':
+      return {
+        ...state,
+        canCreateClinic: action.payload,
+      };
+    
+    case 'SET_HAS_ROLES_PENDING':
+      return {
+        ...state,
+        hasRolesPending: action.payload,
+      };
+    
     default:
       return state;
   }
@@ -783,7 +803,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               }
 
               if (clinicsResult.clinics.length === 0) {
-                // No clinics - authenticated, will be redirected to create clinic page
+                // No clinics - check if user has any roles (employee without clinic access)
+                const { data: userRolesData } = await supabase
+                  .from('user_roles')
+                  .select('role_id')
+                  .eq('user_id', clinicsResult.userId);
+
+                const hasRoles = (userRolesData && userRolesData.length > 0);
+                
                 const { data: userData } = await supabase
                   .from('users')
                   .select('id, full_name, email')
@@ -801,6 +828,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                       clinicId: undefined,
                     },
                   });
+                  
+                  // Set flags based on whether user has roles
+                  if (hasRoles) {
+                    // Has roles but no accessible clinics -> pending access
+                    dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
+                    dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
+                  } else {
+                    // No roles -> can create clinic (self-service)
+                    dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: true });
+                    dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: false });
+                  }
                 }
 
                 dispatch({ type: 'SET_AUTH_LOADING', payload: false });
@@ -885,7 +923,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           const clinicsResult = await getUserClinicsFromDB(session.user.id);
 
           if (!clinicsResult || clinicsResult.clinics.length === 0) {
-            // No clinics
+            // No clinics - check if user has roles
+            const userId = clinicsResult?.userId || userData.id;
+            const { data: userRolesData } = await supabase
+              .from('user_roles')
+              .select('role_id')
+              .eq('user_id', userId);
+
+            const hasRoles = (userRolesData && userRolesData.length > 0);
+            
             dispatch({
               type: 'LOGIN',
               payload: {
@@ -896,6 +942,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 clinicId: undefined,
               },
             });
+            
+            // Set flags based on whether user has roles
+            if (hasRoles) {
+              dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
+              dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
+            } else {
+              dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: true });
+              dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: false });
+            }
+            
             dispatch({ type: 'SET_AUTH_LOADING', payload: false });
           } else if (clinicsResult.clinics.length === 1) {
             // Single clinic - auto-select it

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building, Globe, Clock, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,8 +47,15 @@ export const CreateClinicPage = () => {
   const [timezone, setTimezone] = useState('America/Argentina/Buenos_Aires');
   const [currency, setCurrency] = useState('ARS');
   const [isCreating, setIsCreating] = useState(false);
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const navigate = useNavigate();
+
+  // Guard: redirect if user cannot create clinic
+  useEffect(() => {
+    if (!state.isLoadingAuth && !state.canCreateClinic && !state.currentClinicId) {
+      navigate('/no-access', { replace: true });
+    }
+  }, [state.isLoadingAuth, state.canCreateClinic, state.currentClinicId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +169,7 @@ export const CreateClinicPage = () => {
       // Update app context
       dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: newClinic.id, name: newClinic.name } });
       dispatch({ type: 'SET_USER_ROLE', payload: 'admin' });
+      dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false }); // Clear flag after clinic creation
 
       toast.success(`Clínica "${newClinic.name}" creada exitosamente`);
       navigate('/calendar', { replace: true });
