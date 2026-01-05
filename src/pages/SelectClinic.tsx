@@ -188,12 +188,16 @@ export const SelectClinic = () => {
               <div>
                 <h3 className="text-lg font-medium">No tienes clínicas asignadas</h3>
                 <p className="text-sm text-muted-foreground">
-                  Contacta al administrador o crea una nueva clínica
+                  {state.canCreateClinic 
+                    ? 'Puedes crear una nueva clínica para comenzar'
+                    : 'Contacta al administrador para obtener acceso'}
                 </p>
               </div>
-              <Button onClick={() => navigate('/create-clinic')}>
-                Crear Mi Clínica
-              </Button>
+              {state.canCreateClinic && !state.hasRolesPending && (
+                <Button onClick={() => navigate('/create-clinic')}>
+                  Crear Mi Clínica
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}

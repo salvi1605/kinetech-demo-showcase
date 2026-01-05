@@ -30,6 +30,7 @@ import UserManagement from "@/pages/UserManagement";
 import ClinicSettings from "@/pages/ClinicSettings";
 import Architecture from "@/pages/Architecture";
 import NotFound from "./pages/NotFound";
+import { NoAccess } from "@/pages/NoAccess";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,12 @@ const App = () => (
             <Route path="/select-clinic" element={
               <AuthRouteGuard requireClinic={false}>
                 <SelectClinic />
+              </AuthRouteGuard>
+            } />
+            
+            <Route path="/no-access" element={
+              <AuthRouteGuard requireClinic={false}>
+                <NoAccess />
               </AuthRouteGuard>
             } />
             
