@@ -787,6 +787,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     clinicId: undefined
                   } 
                 });
+              } else {
+                // User exists in auth but not in public.users - sign out
+                console.error('Usuario no encontrado en base de datos. Cerrando sesión...');
+                await supabase.auth.signOut();
               }
               dispatch({ type: 'SET_AUTH_LOADING', payload: false });
             } else if (clinicsResult.clinics.length === 1) {
@@ -818,6 +822,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     clinicId: undefined
                   } 
                 });
+              } else {
+                // User exists in auth but not in public.users - sign out
+                console.error('Usuario no encontrado en base de datos. Cerrando sesión...');
+                await supabase.auth.signOut();
               }
               dispatch({ type: 'SET_AUTH_LOADING', payload: false });
             }
