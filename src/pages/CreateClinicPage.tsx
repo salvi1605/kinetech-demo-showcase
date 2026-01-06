@@ -62,116 +62,27 @@ export const CreateClinicPage = () => {
     setIsCreating(true);
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('No se encontró usuario autenticado');
-        setIsCreating(false);
-        return;
-      }
+      // Llamar RPC que crea clinica + settings + rol en una sola transaccion
+      const { data: clinicId, error } = await supabase.rpc('create_clinic_onboarding', {
+        p_name: name,
+        p_country_code: countryCode,
+        p_timezone: timezone,
+        p_default_currency: currency,
+      });
 
-      // Get or create user in public.users
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      let userId = existingUser?.id;
-
-      if (!userId) {
-        const { data: newUser, error: userError } = await supabase
-          .from('users')
-          .insert({
-            auth_user_id: user.id,
-            email: user.email!,
-            full_name: user.user_metadata?.full_name || user.email!.split('@')[0],
-          })
-          .select('id')
-          .single();
-
-        if (userError) {
-          console.error('Error creating user:', userError);
-          toast.error('Error al crear usuario');
-          setIsCreating(false);
-          return;
-        }
-
-        userId = newUser.id;
-      }
-
-      // Create clinic
-      const { data: newClinic, error: clinicError } = await supabase
-        .from('clinics')
-        .insert({
-          name,
-          country_code: countryCode,
-          timezone,
-          default_currency: currency,
-          default_locale: 'es',
-          is_active: true,
-        })
-        .select('id, name')
-        .single();
-
-      if (clinicError) {
-        console.error('Error creating clinic:', clinicError);
-        toast.error('Error al crear la clínica');
-        setIsCreating(false);
-        return;
-      }
-
-      // Create clinic_settings with defaults
-      const { error: settingsError } = await supabase
-        .from('clinic_settings')
-        .insert({
-          clinic_id: newClinic.id,
-          min_slot_minutes: 30,
-          workday_start: '08:00',
-          workday_end: '19:00',
-          allow_professional_self_block: true,
-          auto_mark_no_show: true,
-          auto_mark_no_show_time: '00:00',
-        });
-
-      if (settingsError) {
-        console.error('Error creating clinic settings:', settingsError);
-        // Continue anyway, settings can be created later
-      }
-
-      // Assign user as tenant_owner and admin_clinic
-      const rolesToAssign = [
-        {
-          user_id: userId,
-          clinic_id: newClinic.id,
-          role_id: 'tenant_owner',
-          active: true,
-        },
-        {
-          user_id: userId,
-          clinic_id: newClinic.id,
-          role_id: 'admin_clinic',
-          active: true,
-        },
-      ];
-
-      const { error: rolesError } = await supabase
-        .from('user_roles')
-        .insert(rolesToAssign);
-
-      if (rolesError) {
-        console.error('Error assigning roles:', rolesError);
-        toast.error('Error al asignar roles');
+      if (error) {
+        console.error('Error creating clinic via RPC:', error);
+        toast.error(error.message || 'Error al crear la clínica');
         setIsCreating(false);
         return;
       }
 
       // Update app context
-      dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: newClinic.id, name: newClinic.name } });
+      dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: clinicId, name } });
       dispatch({ type: 'SET_USER_ROLE', payload: 'admin' });
-      dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false }); // Clear flag after clinic creation
+      dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
 
-      toast.success(`Clínica "${newClinic.name}" creada exitosamente`);
+      toast.success(`Clínica "${name}" creada exitosamente`);
       navigate('/calendar', { replace: true });
     } catch (error) {
       console.error('Error creating clinic:', error);
