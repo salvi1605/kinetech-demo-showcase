@@ -30,6 +30,7 @@ import UserManagement from "@/pages/UserManagement";
 import ClinicSettings from "@/pages/ClinicSettings";
 import Architecture from "@/pages/Architecture";
 import NotFound from "./pages/NotFound";
+import { ResetPassword } from "@/pages/ResetPassword";
 import { NoAccess } from "@/pages/NoAccess";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Auth Required - No Clinic Setup */}
             <Route path="/create-clinic" element={
