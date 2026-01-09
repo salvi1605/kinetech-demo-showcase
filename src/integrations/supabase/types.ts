@@ -1061,6 +1061,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_mark_no_show: { Args: never; Returns: undefined }
       can_view_user: { Args: { target_user_id: string }; Returns: boolean }
       create_clinic_onboarding: {
         Args: {
