@@ -24,6 +24,7 @@ interface ClinicSettings {
   id: string;
   clinic_id: string;
   min_slot_minutes: number | null;
+  sub_slots_per_block: number | null;
   workday_start: string | null;
   workday_end: string | null;
   allow_professional_self_block: boolean | null;

@@ -213,6 +213,7 @@ export type Database = {
           created_at: string | null
           id: string
           min_slot_minutes: number | null
+          sub_slots_per_block: number
           updated_at: string | null
           workday_end: string | null
           workday_start: string | null
@@ -225,6 +226,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           min_slot_minutes?: number | null
+          sub_slots_per_block?: number
           updated_at?: string | null
           workday_end?: string | null
           workday_start?: string | null
@@ -237,6 +239,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           min_slot_minutes?: number | null
+          sub_slots_per_block?: number
           updated_at?: string | null
           workday_end?: string | null
           workday_start?: string | null

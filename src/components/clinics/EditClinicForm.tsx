@@ -21,6 +21,7 @@ const editClinicSchema = z.object({
   default_currency: z.string().min(1, 'Moneda requerida'),
   is_active: z.boolean(),
   min_slot_minutes: z.number().min(15).max(60),
+  sub_slots_per_block: z.number().min(1, 'Mínimo 1').max(10, 'Máximo 10'),
   workday_start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
   workday_end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
   allow_professional_self_block: z.boolean(),
@@ -44,6 +45,7 @@ interface ClinicSettings {
   id: string;
   clinic_id: string;
   min_slot_minutes: number | null;
+  sub_slots_per_block: number | null;
   workday_start: string | null;
   workday_end: string | null;
   allow_professional_self_block: boolean | null;
@@ -96,6 +98,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       default_currency: clinic.default_currency || 'ARS',
       is_active: clinic.is_active ?? true,
       min_slot_minutes: settings?.min_slot_minutes || 30,
+      sub_slots_per_block: settings?.sub_slots_per_block ?? 5,
       workday_start: settings?.workday_start || '08:00',
       workday_end: settings?.workday_end || '19:00',
       allow_professional_self_block: settings?.allow_professional_self_block ?? true,
@@ -129,6 +132,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
         .upsert({
           clinic_id: clinic.id,
           min_slot_minutes: data.min_slot_minutes,
+          sub_slots_per_block: data.sub_slots_per_block,
           workday_start: data.workday_start,
           workday_end: data.workday_end,
           allow_professional_self_block: data.allow_professional_self_block,
@@ -328,6 +332,30 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                   </FormControl>
                   <FormDescription>
                     Duración estándar de cada bloque de tiempo (recomendado: 30)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sub_slots_per_block"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sub-slots por Bloque</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10}
+                      step={1}
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Número de citas simultáneas permitidas en cada bloque de 30 minutos
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
