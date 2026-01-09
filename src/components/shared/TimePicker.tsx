@@ -16,11 +16,35 @@ interface TimePickerProps {
 export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }: TimePickerProps) {
   const [open, setOpen] = useState(false);
 
+  // SIEMPRE retorna formato "HH:mm" (5 caracteres exactos)
+  const formatValue = (val: string): string => {
+    if (!val) return "00:00";
+    
+    // Si viene con segundos "HH:mm:ss", tomar solo "HH:mm"
+    const parts = val.split(':');
+    if (parts.length >= 2) {
+      const hours = String(Math.min(23, parseInt(parts[0] || '0', 10))).padStart(2, '0');
+      const minutes = String(Math.min(59, parseInt(parts[1] || '0', 10))).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    
+    // Si solo hay dígitos
+    const digits = val.replace(/\D/g, '');
+    if (digits.length >= 2) {
+      const hours = String(Math.min(23, parseInt(digits.slice(0, 2), 10))).padStart(2, '0');
+      const minutes = digits.length >= 4 
+        ? String(Math.min(59, parseInt(digits.slice(2, 4), 10))).padStart(2, '0')
+        : '00';
+      return `${hours}:${minutes}`;
+    }
+    
+    return "00:00";
+  };
+
   // Normaliza el valor para mostrar siempre HH:mm (sin segundos)
   const displayValue = (val: string): string => {
     if (!val) return '';
-    // Si viene con segundos "HH:mm:ss", tomar solo "HH:mm"
-    return val.slice(0, 5);
+    return formatValue(val);
   };
 
   // Auto-formato mientras escribe (inserta ":" automáticamente)
@@ -35,33 +59,7 @@ export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }
 
   // Normalización al salir del campo (completa valores parciales)
   const normalizeTime = (raw: string): string => {
-    if (!raw) return '08:00';
-    const digits = raw.replace(/\D/g, '');
-    
-    // 1-2 dígitos: "8" → "08:00"
-    if (digits.length <= 2) {
-      const h = Math.min(23, parseInt(digits || '0', 10));
-      return `${String(h).padStart(2, '0')}:00`;
-    }
-    
-    // 3-4 dígitos: "800" → "08:00", "1430" → "14:30"
-    if (digits.length >= 3) {
-      const h = digits.slice(0, digits.length - 2);
-      const m = digits.slice(-2);
-      const hh = String(Math.min(23, parseInt(h, 10))).padStart(2, '0');
-      const mm = String(Math.min(59, parseInt(m, 10))).padStart(2, '0');
-      return `${hh}:${mm}`;
-    }
-    
-    // Ya con formato "HH:mm" o "HH:mm:ss"
-    const match = raw.match(/^(\d{1,2}):(\d{1,2})/);
-    if (match) {
-      const hh = String(Math.min(23, parseInt(match[1], 10))).padStart(2, '0');
-      const mm = String(Math.min(59, parseInt(match[2], 10))).padStart(2, '0');
-      return `${hh}:${mm}`;
-    }
-    
-    return raw.slice(0, 5);
+    return formatValue(raw || '08:00');
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,16 +73,20 @@ export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }
   };
 
   const handleHourClick = (hour: string) => {
-    const [, min] = (displayValue(value) || '00:00').split(':');
-    onChange(`${hour}:${min || '00'}`);
+    const currentValue = formatValue(value);
+    const [, min] = currentValue.split(':');
+    const newValue = `${hour.padStart(2, '0')}:${min}`;
+    onChange(newValue);
   };
 
   const handleMinuteClick = (min: string) => {
-    const [hour] = (displayValue(value) || '00:00').split(':');
-    onChange(`${hour || '00'}:${min}`);
+    const currentValue = formatValue(value);
+    const [hour] = currentValue.split(':');
+    const newValue = `${hour}:${min.padStart(2, '0')}`;
+    onChange(newValue);
   };
 
-  const [currentHour, currentMin] = (displayValue(value) || '00:00').split(':');
+  const [currentHour, currentMin] = formatValue(value).split(':');
 
   return (
     <div className={cn("relative", className)}>
