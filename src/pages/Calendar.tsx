@@ -50,14 +50,9 @@ const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
 
 // Utilidades para tri-estado
-type Status = 'scheduled' | 'completed' | 'no_show' | 'cancelled';
-const statusToChecked = (s: Status) => s === 'completed' ? true : s === 'no_show' || s === 'cancelled' ? 'indeterminate' : false;
-const nextStatus = (s: Status): Status => {
-  // Ciclo: scheduled → completed → no_show → scheduled (cancelled se salta en ciclo normal)
-  if (s === 'scheduled') return 'completed';
-  if (s === 'completed') return 'no_show';
-  return 'scheduled';
-};
+type Status = 'scheduled' | 'completed' | 'no_show';
+const statusToChecked = (s: Status) => s === 'completed' ? true : s === 'no_show' ? 'indeterminate' : false;
+const nextStatus = (s: Status): Status => s === 'scheduled' ? 'completed' : s === 'completed' ? 'no_show' : 'scheduled';
 
 // Crear clave única para cada sub-slot
 const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string; subSlot: number }) => {
@@ -456,8 +451,9 @@ export const Calendar = () => {
         case 'completed':
           return { label: 'Asistió', className: 'bg-green-100 text-green-800' };
         case 'no_show':
-        case 'cancelled':
           return { label: 'No asistió', className: 'bg-red-100 text-red-800' };
+        case 'cancelled':
+          return { label: 'Cancelado', className: 'bg-gray-100 text-gray-800' };
         case 'confirmed':
           return { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' };
         case 'scheduled':
