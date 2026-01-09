@@ -16,6 +16,13 @@ interface TimePickerProps {
 export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }: TimePickerProps) {
   const [open, setOpen] = useState(false);
 
+  // Normaliza el valor para mostrar siempre HH:mm (sin segundos)
+  const displayValue = (val: string): string => {
+    if (!val) return '';
+    // Si viene con segundos "HH:mm:ss", tomar solo "HH:mm"
+    return val.slice(0, 5);
+  };
+
   // Auto-formato mientras escribe (inserta ":" automáticamente)
   const formatTimeOnInput = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 4);
@@ -46,15 +53,15 @@ export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }
       return `${hh}:${mm}`;
     }
     
-    // Ya con formato "HH:mm"
-    const match = raw.match(/^(\d{1,2}):(\d{1,2})$/);
+    // Ya con formato "HH:mm" o "HH:mm:ss"
+    const match = raw.match(/^(\d{1,2}):(\d{1,2})/);
     if (match) {
       const hh = String(Math.min(23, parseInt(match[1], 10))).padStart(2, '0');
       const mm = String(Math.min(59, parseInt(match[2], 10))).padStart(2, '0');
       return `${hh}:${mm}`;
     }
     
-    return raw;
+    return raw.slice(0, 5);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,16 +75,16 @@ export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }
   };
 
   const handleHourClick = (hour: string) => {
-    const [, min] = (value || '00:00').split(':');
+    const [, min] = (displayValue(value) || '00:00').split(':');
     onChange(`${hour}:${min || '00'}`);
   };
 
   const handleMinuteClick = (min: string) => {
-    const [hour] = (value || '00:00').split(':');
+    const [hour] = (displayValue(value) || '00:00').split(':');
     onChange(`${hour || '00'}:${min}`);
   };
 
-  const [currentHour, currentMin] = (value || '00:00').split(':');
+  const [currentHour, currentMin] = (displayValue(value) || '00:00').split(':');
 
   return (
     <div className={cn("relative", className)}>
@@ -86,10 +93,10 @@ export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }
         inputMode="numeric"
         maxLength={5}
         placeholder={placeholder}
-        value={value}
+        value={displayValue(value)}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
-        className="pr-10 text-center"
+        className="pr-10 text-left"
       />
       
       <Popover open={open} onOpenChange={setOpen}>
