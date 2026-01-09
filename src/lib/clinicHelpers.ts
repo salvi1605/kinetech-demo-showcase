@@ -40,7 +40,7 @@ export const getBaseClinicSettings = async () => {
     workday_start: data.workday_start,
     workday_end: data.workday_end,
     allow_professional_self_block: data.allow_professional_self_block,
-    auto_mark_no_show: data.auto_mark_no_show,
+    auto_mark_no_show: (data as any).auto_mark_no_show ?? true,
     auto_mark_no_show_time: data.auto_mark_no_show_time,
   };
 };

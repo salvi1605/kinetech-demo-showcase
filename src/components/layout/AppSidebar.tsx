@@ -275,7 +275,7 @@ export function AppSidebar() {
                     title: 'Iniciar Sesión',
                     url: '/login',
                     icon: LogIn,
-                    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'],
+                    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
                   }}
                 />
               </SidebarMenu>
@@ -331,7 +331,7 @@ export function AppSidebar() {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <div className="w-8 h-8 bg-white/20 text-white rounded-md flex items-center justify-center"> {/* ★ */}
               <span className="text-xs font-medium">
-                {state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin' ? 'A' : state.userRole === 'recep' ? 'R' : 'K'}
+                {state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin_clinic' ? 'A' : state.userRole === 'receptionist' ? 'R' : 'K'}
               </span>
             </div>
           </div>

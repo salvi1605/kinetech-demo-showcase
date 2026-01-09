@@ -125,7 +125,7 @@ export const Patients = () => {
           </p>
         </div>
 
-        {state.userRole !== 'kinesio' && (
+        {state.userRole !== 'health_pro' && (
           <div className="flex items-center gap-2">
             <Button onClick={handleNewPatient} className={cn("hidden lg:flex")}>
               <Plus className="h-4 w-4 mr-2" />
@@ -171,7 +171,7 @@ export const Patients = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Paciente</TableHead>
-                    {state.userRole !== 'kinesio' && <TableHead>Contacto</TableHead>}
+                    {state.userRole !== 'health_pro' && <TableHead>Contacto</TableHead>}
                     <TableHead>Edad</TableHead>
                     <TableHead>Última Visita</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -181,16 +181,16 @@ export const Patients = () => {
                   {paginatedPatients.map((patient) => (
                     <TableRow 
                       key={patient.id}
-                      role={state.userRole !== 'kinesio' ? "button" : undefined}
-                      tabIndex={state.userRole !== 'kinesio' ? 0 : undefined}
-                      onClick={state.userRole !== 'kinesio' ? () => navigate(`/patients/${patient.id}`) : undefined}
-                      onKeyDown={state.userRole !== 'kinesio' ? (e) => {
+                      role={state.userRole !== 'health_pro' ? "button" : undefined}
+                      tabIndex={state.userRole !== 'health_pro' ? 0 : undefined}
+                      onClick={state.userRole !== 'health_pro' ? () => navigate(`/patients/${patient.id}`) : undefined}
+                      onKeyDown={state.userRole !== 'health_pro' ? (e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           navigate(`/patients/${patient.id}`);
                         }
                       } : undefined}
-                      className={state.userRole !== 'kinesio' ? "hover:bg-muted cursor-pointer" : ""}
+                      className={state.userRole !== 'health_pro' ? "hover:bg-muted cursor-pointer" : ""}
                     >
                       <TableCell className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -200,12 +200,12 @@ export const Patients = () => {
                         </Avatar>
                         <div>
                           <p className="font-medium">{patient.name}</p>
-                          {state.userRole !== 'kinesio' && patient.identificacion?.documentId && (
+                          {state.userRole !== 'health_pro' && patient.identificacion?.documentId && (
                             <p className="text-sm text-muted-foreground">DNI/Pasaporte: {patient.identificacion.documentId}</p>
                           )}
                         </div>
                       </TableCell>
-                      {state.userRole !== 'kinesio' && (
+                      {state.userRole !== 'health_pro' && (
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 text-sm">
@@ -249,7 +249,7 @@ export const Patients = () => {
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <TooltipProvider>
                           <div className="flex items-center justify-end gap-1">
-                            <RoleGuard allowedRoles={['admin', 'tenant_owner', 'kinesio']}>
+                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'health_pro']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -268,7 +268,7 @@ export const Patients = () => {
                               </Tooltip>
                             </RoleGuard>
                             
-                            <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
+                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -287,7 +287,7 @@ export const Patients = () => {
                               </Tooltip>
                             </RoleGuard>
                             
-                            <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
+                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -358,8 +358,8 @@ export const Patients = () => {
             paginatedPatients.map((patient) => (
               <Card 
                 key={patient.id} 
-                className={state.userRole !== 'kinesio' ? "hover:shadow-md transition-shadow cursor-pointer" : "hover:shadow-md transition-shadow"}
-                onClick={state.userRole !== 'kinesio' ? () => navigate(`/patients/${patient.id}`) : undefined}
+                className={state.userRole !== 'health_pro' ? "hover:shadow-md transition-shadow cursor-pointer" : "hover:shadow-md transition-shadow"}
+                onClick={state.userRole !== 'health_pro' ? () => navigate(`/patients/${patient.id}`) : undefined}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -372,7 +372,7 @@ export const Patients = () => {
                       <div>
                         <CardTitle className="text-lg">{patient.name}</CardTitle>
                         <CardDescription>
-                          {state.userRole !== 'kinesio' && patient.identificacion?.documentId && (
+                          {state.userRole !== 'health_pro' && patient.identificacion?.documentId && (
                             <span className="block">DNI/Pasaporte: {patient.identificacion.documentId} • </span>
                           )}
                           {calculateAge(patient.birthDate)} años
@@ -380,7 +380,7 @@ export const Patients = () => {
                       </div>
                     </div>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <RoleGuard allowedRoles={['admin', 'tenant_owner', 'kinesio']}>
+                      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'health_pro']}>
                         <Button 
                           variant="ghost" 
                           size="icon"
@@ -390,7 +390,7 @@ export const Patients = () => {
                           <ScrollText className="h-4 w-4" />
                         </Button>
                       </RoleGuard>
-                      <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
+                      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
                         <Button 
                           variant="ghost" 
                           size="icon"
@@ -400,7 +400,7 @@ export const Patients = () => {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </RoleGuard>
-                      <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
+                      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
                         <Button 
                           variant="ghost" 
                           size="icon"
@@ -416,7 +416,7 @@ export const Patients = () => {
 
                 <CardContent className="space-y-4">
                   {/* Contact Info */}
-                  {state.userRole !== 'kinesio' && (
+                  {state.userRole !== 'health_pro' && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="h-4 w-4" />
@@ -557,7 +557,7 @@ export const Patients = () => {
       )}
 
       {/* FAB for Mobile */}
-      {isMobile && state.userRole !== 'kinesio' && (
+      {isMobile && state.userRole !== 'health_pro' && (
         <Button
           onClick={handleNewPatient}
           className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-40"

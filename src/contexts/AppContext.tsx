@@ -285,7 +285,7 @@ const getStoredFilterPatientSearch = (): string | undefined => {
 // Initial State
 const initialState: AppState = {
   currentWeek: new Date(),
-  userRole: 'admin',
+  userRole: 'admin_clinic',
   isDemoMode: false,
   searchQuery: '',
   sidebarExpanded: true,
@@ -742,16 +742,16 @@ const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise
       return null;
     }
 
-    // Map database role to app role
-    let appRole: UserRole = 'recep';
+    // Map database role to app role (now 1:1 mapping)
+    let appRole: UserRole = 'receptionist';
     if (roleData.role_id === 'tenant_owner') {
       appRole = 'tenant_owner';
     } else if (roleData.role_id === 'admin_clinic') {
-      appRole = 'admin';
+      appRole = 'admin_clinic';
     } else if (roleData.role_id === 'receptionist') {
-      appRole = 'recep';
+      appRole = 'receptionist';
     } else if (roleData.role_id === 'health_pro') {
-      appRole = 'kinesio';
+      appRole = 'health_pro';
     }
 
     const user: User = {
@@ -824,7 +824,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                       id: userData.id,
                       name: userData.full_name,
                       email: userData.email,
-                      role: 'admin',
+                      role: 'admin_clinic',
                       clinicId: undefined,
                     },
                   });
@@ -876,7 +876,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     id: userData.id,
                     name: userData.full_name,
                     email: userData.email,
-                    role: 'admin',
+                    role: 'admin_clinic',
                     clinicId: undefined,
                   },
                 });
@@ -938,7 +938,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 id: userData.id,
                 name: userData.full_name,
                 email: userData.email,
-                role: 'admin',
+                role: 'admin_clinic',
                 clinicId: undefined,
               },
             });
@@ -974,7 +974,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 id: userData.id,
                 name: userData.full_name,
                 email: userData.email,
-                role: 'admin',
+                role: 'admin_clinic',
                 clinicId: undefined,
               },
             });

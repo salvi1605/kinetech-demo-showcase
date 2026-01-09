@@ -110,14 +110,16 @@ export const SelectClinic = () => {
   const handleSelectClinic = (clinicId: string, clinicName: string, roleId: string) => {
     setSelectedClinic(clinicId);
     
-    // Map database role to app role
-    let appRole: 'admin' | 'recep' | 'kinesio' = 'kinesio';
-    if (roleId === 'admin_clinic' || roleId === 'tenant_owner') {
-      appRole = 'admin';
+    // Map database role to app role (now 1:1 mapping)
+    let appRole: 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' = 'health_pro';
+    if (roleId === 'admin_clinic') {
+      appRole = 'admin_clinic';
+    } else if (roleId === 'tenant_owner') {
+      appRole = 'tenant_owner';
     } else if (roleId === 'receptionist') {
-      appRole = 'recep';
+      appRole = 'receptionist';
     } else if (roleId === 'health_pro') {
-      appRole = 'kinesio';
+      appRole = 'health_pro';
     }
 
     dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: clinicId, name: clinicName } });

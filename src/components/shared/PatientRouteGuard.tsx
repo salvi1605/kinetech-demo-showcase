@@ -12,13 +12,13 @@ export const PatientRouteGuard = ({ children }: PatientRouteGuardProps) => {
   
   useEffect(() => {
     // Si el usuario es kinesiólogo, redirigir a la lista de pacientes
-    if (state.userRole === 'kinesio') {
+    if (state.userRole === 'health_pro') {
       navigate('/patients', { replace: true });
     }
   }, [state.userRole, navigate]);
   
   // Si es kinesiólogo, no renderizar nada (ya redirigimos)
-  if (state.userRole === 'kinesio') {
+  if (state.userRole === 'health_pro') {
     return null;
   }
   

@@ -63,7 +63,7 @@ export const useClinicSettings = () => {
             throw fetchError;
           }
         } else {
-          setSettings(data);
+          setSettings({ ...data, auto_mark_no_show: (data as any).auto_mark_no_show ?? true });
         }
       } catch (err) {
         if (!isMounted) return;

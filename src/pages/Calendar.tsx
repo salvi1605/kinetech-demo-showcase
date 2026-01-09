@@ -28,8 +28,8 @@ import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel } from '@/utils/formatters';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
+import { statusLabel, type AppointmentStatus } from '@/utils/statusUtils';
 import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
-import { statusLabel } from '@/utils/statusUtils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
@@ -192,7 +192,7 @@ export const Calendar = () => {
       // El loading ahora viene de loadingAppointments
       
       // Clean past day selections only for non-admin users
-      if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
+      if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
         const filteredSlots = [...state.selectedSlots].filter(key => {
           const [dateISO] = key.split('_');
           return !isPastDay(dateISO);
@@ -278,7 +278,7 @@ export const Calendar = () => {
   };
 
   // Verificar si multi-selección está habilitada
-  const isMultiSelectEnabled = state.userRole === 'admin' || state.userRole === 'tenant_owner' || state.userRole === 'recep';
+  const isMultiSelectEnabled = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || state.userRole === 'receptionist';
 
   // Función para alternar selección de slot
   const toggleSelect = (key: string) => {
@@ -288,7 +288,7 @@ export const Calendar = () => {
   // Handler para toggle tri-estado - CONECTADO A BD
   const onTriToggle = async (apt: Appointment) => {
     const dateISO = apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd');
-    if (isPastDay(dateISO) && state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
+    if (isPastDay(dateISO) && state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
       toast({
         title: "Acceso denegado",
         description: "No puedes realizar cambios en días anteriores",
@@ -351,7 +351,7 @@ export const Calendar = () => {
       setSelectedAppointmentId(appointment.id);
     } else {
       // Sub-slot vacío (crear)
-      if (isPast && (state.userRole === 'recep' || state.userRole === 'kinesio')) {
+      if (isPast && (state.userRole === 'receptionist' || state.userRole === 'health_pro')) {
         setAgendaBanner({ type: 'error', text: 'No se pueden elegir citas de días anteriores' });
         return; // No seleccionar ni abrir modales de creación
       }
@@ -958,7 +958,7 @@ export const Calendar = () => {
                                                appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
                                                'bg-red-100 text-red-800'
                                              }`}>
-                                                {statusLabel(appointment.status)}
+                                                {statusLabel(appointment.status as AppointmentStatus)}
                                              </span>
                                           </div>
                                           <div className="text-xs text-muted-foreground flex items-center gap-2">

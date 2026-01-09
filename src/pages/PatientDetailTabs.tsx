@@ -243,11 +243,11 @@ export const PatientDetailTabs = () => {
   };
 
   const canEdit = (section: string) => {
-    if (state.userRole === 'admin' || state.userRole === 'tenant_owner') return true;
-    if (state.userRole === 'kinesio') {
+    if (state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner') return true;
+    if (state.userRole === 'health_pro') {
       return section === 'clinical';
     }
-    if (state.userRole === 'recep') {
+    if (state.userRole === 'receptionist') {
       return section === 'data' || section === 'insurance';
     }
     return false;

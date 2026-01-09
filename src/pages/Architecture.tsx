@@ -5,7 +5,7 @@ import { ShieldCheck, Database, Building2, Lock, Unlock } from "lucide-react";
 
 export default function Architecture() {
   return (
-    <RoleGuard allowedRoles={['admin', 'tenant_owner']} fallback={
+    <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']} fallback={
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-destructive">Acceso Denegado</h1>
         <p className="text-muted-foreground mt-2">Esta página solo está disponible para administradores.</p>
