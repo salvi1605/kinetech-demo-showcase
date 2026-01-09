@@ -1,8 +1,10 @@
 import { ReactNode } from 'react';
 import { useApp, UserRole } from '@/contexts/AppContext';
 
+type AllowedRole = UserRole; // 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner'
+
 interface RoleGuardProps {
-  allowedRoles: UserRole[];
+  allowedRoles: AllowedRole[];
   children: ReactNode;
   fallback?: ReactNode;
 }
