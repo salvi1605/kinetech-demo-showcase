@@ -50,7 +50,7 @@ const editAppointmentSchema = z.object({
     message: "La hora de inicio no puede ser posterior a las 19:00"
   }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
-  status: z.enum(['scheduled', 'completed', 'cancelled']),
+  status: z.enum(['scheduled', 'completed', 'no_show', 'cancelled']),
   treatmentType: z.string().min(1, 'Selecciona un tipo de tratamiento'),
   notes: z.string().optional(),
 });
@@ -129,7 +129,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   // Check if appointment is in past day
   const appointmentDateISO = appointment.date.length === 10 ? appointment.date : format(parseISO(appointment.date), 'yyyy-MM-dd');
   const isPast = isPastDay(appointmentDateISO);
-  const canEdit = state.userRole === 'admin' || state.userRole === 'tenant_owner' || !isPast;
+  const canEdit = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || !isPast;
 
   // Calcular duración estándar (30 min)
   const durationLabel = '30 min';
@@ -255,7 +255,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     if (!appointment) return;
     
     // Check permissions for past day appointments
-    if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner' && isPast) {
+    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner' && isPast) {
       toast({
         title: "Acceso denegado",
         description: "No puedes realizar cambios en días anteriores",
@@ -598,7 +598,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 Copiar resumen
               </Button>
 
-              <RoleGuard allowedRoles={['admin', 'tenant_owner', 'recep']}>
+              <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
                 <Button
                   variant="outline"
                   onClick={() => setShowFreeDialog(true)}
@@ -651,7 +651,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                       </Select>
                     </FormControl>
                     <FormMessage />
-                    {state.userRole !== 'admin' && state.userRole !== 'tenant_owner' && isPast && (
+                    {state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner' && isPast && (
                       <p className="text-sm text-red-600 mt-2">No se puede cambiar el estado de citas de días anteriores</p>
                     )}
                   </FormItem>

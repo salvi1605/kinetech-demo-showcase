@@ -95,7 +95,7 @@ export default function UserManagement() {
       navigate('/login');
       return;
     }
-    if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
+    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
       toast.error('No tienes permisos para acceder a esta sección');
       navigate('/calendar');
       return;

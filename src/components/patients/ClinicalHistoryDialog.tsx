@@ -149,7 +149,7 @@ export const ClinicalHistoryDialog = ({
             snapshots={snapshots}
             currentUserId={state.currentUserId}
             currentUserName={state.currentUserName}
-            currentUserRole={state.userRole || 'kinesio'}
+            currentUserRole={state.userRole || 'health_pro'}
             tempPrefill={tempPrefill}
             onHistoryChange={handleHistoryChange}
             onPatientChange={() => refetch()}

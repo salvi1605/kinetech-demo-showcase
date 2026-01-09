@@ -47,7 +47,7 @@ export default function ClinicSettings() {
       navigate('/login');
       return;
     }
-    if (state.userRole !== 'admin' && state.userRole !== 'tenant_owner') {
+    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
       toast.error('No tienes permisos para acceder a esta sección');
       navigate('/calendar');
       return;
@@ -134,7 +134,7 @@ export default function ClinicSettings() {
         throw settingsError;
       }
 
-      setClinicSettings(settings);
+      setClinicSettings(settings ? { ...settings, auto_mark_no_show: (settings as any).auto_mark_no_show ?? true } : null);
 
       // Update context with clinic ID and name
       dispatch({ 

@@ -22,7 +22,7 @@ interface ClinicalHistoryBlockProps {
   snapshots?: ClinicalSummaryDay[];
   currentUserId: string;
   currentUserName: string;
-  currentUserRole: 'admin' | 'tenant_owner' | 'recep' | 'kinesio';
+  currentUserRole: 'admin_clinic' | 'tenant_owner' | 'receptionist' | 'health_pro';
   tempPrefill: any;
   onHistoryChange: (entries: EvolutionEntry[]) => void;
   onPatientChange: (patient: Patient) => void;
@@ -71,11 +71,11 @@ export const ClinicalHistoryBlock = ({
   const canEdit = (entry: EvolutionEntry): boolean => {
     const today = todayYMD(testCurrentDate);
     
-    if (currentUserRole === 'admin' || currentUserRole === 'tenant_owner') {
+    if (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner') {
       return true;
     }
     
-    if (currentUserRole === 'recep' || currentUserRole === 'kinesio') {
+    if (currentUserRole === 'receptionist' || currentUserRole === 'health_pro') {
       return entry.date === today;
     }
     
@@ -134,7 +134,7 @@ export const ClinicalHistoryBlock = ({
   }, [drafts, saveToDb]);
 
   const handleRemove = async (appointmentId: string) => {
-    if (currentUserRole !== 'admin' && currentUserRole !== 'tenant_owner') return;
+    if (currentUserRole !== 'admin_clinic' && currentUserRole !== 'tenant_owner') return;
     
     // Note: We don't actually delete evolution notes, just clear the text
     const entry = entries.find(e => e.appointmentId === appointmentId);
@@ -166,7 +166,7 @@ export const ClinicalHistoryBlock = ({
   });
 
   const today = todayYMD(testCurrentDate);
-  const showSummaries = currentUserRole !== 'recep';
+  const showSummaries = currentUserRole !== 'receptionist';
 
   const defaultClinicalData = {
     mainReason: '',
@@ -179,12 +179,12 @@ export const ClinicalHistoryBlock = ({
   };
 
   const canEditSnapshot = (date: string): boolean => {
-    if (currentUserRole === 'admin' || currentUserRole === 'tenant_owner') return true;
-    if (currentUserRole === 'kinesio') return date === today;
+    if (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner') return true;
+    if (currentUserRole === 'health_pro') return date === today;
     return false;
   };
 
-  const canDeleteSnapshot = currentUserRole === 'admin' || currentUserRole === 'tenant_owner';
+  const canDeleteSnapshot = currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner';
 
   const handleEditSnapshot = (date: string) => {
     setEditingSnapshotDate(date);
@@ -300,7 +300,7 @@ export const ClinicalHistoryBlock = ({
                             </Badge>
                           )}
                         </div>
-                        {canEdit(entry) && (currentUserRole === 'admin' || currentUserRole === 'tenant_owner') && entry.date < today && (
+                        {canEdit(entry) && (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner') && entry.date < today && (
                           <Button
                             variant="ghost"
                             size="sm"

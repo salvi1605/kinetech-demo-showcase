@@ -20,16 +20,18 @@ export interface UpdateAppointmentInput {
   date?: string;
   startTime?: string;
   subSlot?: number;
-  status?: 'scheduled' | 'completed' | 'cancelled';
+  status?: 'scheduled' | 'completed' | 'no_show' | 'cancelled';
   notes?: string;
   treatmentType?: TreatmentType;
 }
 
 // Mapeo de status interno -> DB
-const mapStatusToDb = (status: 'scheduled' | 'completed' | 'cancelled') => {
+const mapStatusToDb = (status: 'scheduled' | 'completed' | 'no_show' | 'cancelled') => {
   switch (status) {
     case 'completed':
       return 'completed';
+    case 'no_show':
+      return 'no_show';
     case 'cancelled':
       return 'cancelled';
     case 'scheduled':
@@ -98,7 +100,7 @@ export const deleteAppointment = async (id: string) => {
 
 export const updateAppointmentStatus = async (
   id: string, 
-  status: 'scheduled' | 'completed' | 'cancelled'
+  status: 'scheduled' | 'completed' | 'no_show' | 'cancelled'
 ) => {
   const { data, error } = await supabase
     .from('appointments')

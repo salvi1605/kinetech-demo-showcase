@@ -56,18 +56,18 @@ export const Topbar = () => {
   const getRoleDisplayName = (role: UserRole) => {
     switch (role) {
       case 'tenant_owner': return 'Propietario';
-      case 'admin': return 'Administrador';
-      case 'recep': return 'Recepcionista';
-      case 'kinesio': return 'Kinesiólogo';
+      case 'admin_clinic': return 'Administrador';
+      case 'receptionist': return 'Recepcionista';
+      case 'health_pro': return 'Kinesiólogo';
     }
   };
 
   const getRoleBadgeVariant = (role: UserRole): "default" | "destructive" | "outline" | "secondary" => {
     switch (role) {
       case 'tenant_owner': return 'outline';
-      case 'admin': return 'destructive';
-      case 'recep': return 'secondary';
-      case 'kinesio': return 'default';
+      case 'admin_clinic': return 'destructive';
+      case 'receptionist': return 'secondary';
+      case 'health_pro': return 'default';
     }
   };
 
@@ -181,9 +181,9 @@ export const Topbar = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="tenant_owner">Propietario</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
-              <SelectItem value="recep">Recepcionista</SelectItem>
-              <SelectItem value="kinesio">Kinesiólogo</SelectItem>
+              <SelectItem value="admin_clinic">Administrador</SelectItem>
+              <SelectItem value="receptionist">Recepcionista</SelectItem>
+              <SelectItem value="health_pro">Kinesiólogo</SelectItem>
             </SelectContent>
           </Select>
           <Badge variant={getRoleBadgeVariant(state.userRole)} className="text-xs">
@@ -209,7 +209,7 @@ export const Topbar = () => {
         </div>
 
         {/* Day Change Simulator */}
-        {(state.userRole === 'admin' || state.userRole === 'tenant_owner') && (
+        {(state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner') && (
           <Button
             size="sm"
             className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"

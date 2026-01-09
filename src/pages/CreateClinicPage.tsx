@@ -79,7 +79,7 @@ export const CreateClinicPage = () => {
 
       // Update app context
       dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: clinicId, name } });
-      dispatch({ type: 'SET_USER_ROLE', payload: 'admin' });
+      dispatch({ type: 'SET_USER_ROLE', payload: 'admin_clinic' });
       dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
 
       toast.success(`Clínica "${name}" creada exitosamente`);
