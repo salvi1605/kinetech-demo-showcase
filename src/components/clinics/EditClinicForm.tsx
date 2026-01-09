@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { TimePicker } from '@/components/shared/TimePicker';
 
 const editClinicSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
@@ -370,7 +371,10 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                   <FormItem>
                     <FormLabel>Hora de Inicio</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <TimePicker
+                        value={field.value || "08:00"}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormDescription>
                       Primera hora disponible para turnos (formato 24h: 08:00)
@@ -387,7 +391,10 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                   <FormItem>
                     <FormLabel>Hora de Fin</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <TimePicker
+                        value={field.value || "19:00"}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormDescription>
                       Última hora de inicio permitida (formato 24h: 19:00)
@@ -450,7 +457,10 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                   <FormItem>
                     <FormLabel>Hora de Auto-marcado</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <TimePicker
+                        value={field.value || "00:00"}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormDescription>
                       Hora del día para ejecutar el auto-marcado (formato 24h: 00:00 = medianoche)
