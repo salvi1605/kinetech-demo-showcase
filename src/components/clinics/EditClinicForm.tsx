@@ -108,9 +108,26 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
     },
   });
 
+  // Asegurar formato HH:mm (5 caracteres) antes de guardar
+  const formatTimeValue = (value: string | undefined, defaultValue: string): string => {
+    if (!value) return defaultValue;
+    const parts = value.split(':');
+    if (parts.length >= 2) {
+      const hours = String(Math.min(23, parseInt(parts[0] || '0', 10))).padStart(2, '0');
+      const minutes = String(Math.min(59, parseInt(parts[1] || '0', 10))).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    return defaultValue;
+  };
+
   const onSubmit = async (data: EditClinicFormData) => {
     setIsSaving(true);
     try {
+      // Normalizar valores de hora antes de guardar
+      const workday_start = formatTimeValue(data.workday_start, "08:00");
+      const workday_end = formatTimeValue(data.workday_end, "19:00");
+      const auto_mark_no_show_time = formatTimeValue(data.auto_mark_no_show_time, "00:00");
+
       // Update clinic
       const { error: clinicError } = await supabase
         .from('clinics')
@@ -134,11 +151,11 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
           clinic_id: clinic.id,
           min_slot_minutes: data.min_slot_minutes,
           sub_slots_per_block: data.sub_slots_per_block,
-          workday_start: data.workday_start,
-          workday_end: data.workday_end,
+          workday_start,
+          workday_end,
           allow_professional_self_block: data.allow_professional_self_block,
           auto_mark_no_show: data.auto_mark_no_show,
-          auto_mark_no_show_time: data.auto_mark_no_show_time,
+          auto_mark_no_show_time,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'clinic_id'
