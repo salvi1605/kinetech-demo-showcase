@@ -5,7 +5,7 @@ import type { EvolutionEntry } from '@/types/patient';
 import { supabase } from '@/integrations/supabase/client';
 
 // Types
-export type UserRole = 'admin' | 'recep' | 'kinesio' | 'tenant_owner';
+export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner';
 
 export interface Preferences {
   timezone: string;
@@ -182,7 +182,7 @@ export interface Appointment {
   date: string;
   startTime: string;
   type: 'consultation' | 'therapy' | 'follow-up';
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'completed' | 'no_show' | 'cancelled';
   notes?: string;
   subSlot: 1 | 2 | 3 | 4 | 5;
   treatmentType: TreatmentType;
