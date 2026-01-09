@@ -89,6 +89,18 @@ const CURRENCIES = [
 export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormProps) {
   const [isSaving, setIsSaving] = useState(false);
 
+  // Asegurar formato HH:mm (5 caracteres) - elimina segundos si existen
+  const formatTimeValue = (value: string | undefined | null, defaultValue: string): string => {
+    if (!value) return defaultValue;
+    const parts = value.split(':');
+    if (parts.length >= 2) {
+      const hours = String(Math.min(23, parseInt(parts[0] || '0', 10))).padStart(2, '0');
+      const minutes = String(Math.min(59, parseInt(parts[1] || '0', 10))).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    return defaultValue;
+  };
+
   const form = useForm<EditClinicFormData>({
     resolver: zodResolver(editClinicSchema),
     values: {
@@ -100,25 +112,13 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       is_active: clinic.is_active ?? true,
       min_slot_minutes: settings?.min_slot_minutes || 30,
       sub_slots_per_block: settings?.sub_slots_per_block ?? 5,
-      workday_start: settings?.workday_start || '08:00',
-      workday_end: settings?.workday_end || '19:00',
+      workday_start: formatTimeValue(settings?.workday_start, '08:00'),
+      workday_end: formatTimeValue(settings?.workday_end, '19:00'),
       allow_professional_self_block: settings?.allow_professional_self_block ?? true,
       auto_mark_no_show: settings?.auto_mark_no_show ?? true,
-      auto_mark_no_show_time: settings?.auto_mark_no_show_time || '00:00',
+      auto_mark_no_show_time: formatTimeValue(settings?.auto_mark_no_show_time, '00:00'),
     },
   });
-
-  // Asegurar formato HH:mm (5 caracteres) antes de guardar
-  const formatTimeValue = (value: string | undefined, defaultValue: string): string => {
-    if (!value) return defaultValue;
-    const parts = value.split(':');
-    if (parts.length >= 2) {
-      const hours = String(Math.min(23, parseInt(parts[0] || '0', 10))).padStart(2, '0');
-      const minutes = String(Math.min(59, parseInt(parts[1] || '0', 10))).padStart(2, '0');
-      return `${hours}:${minutes}`;
-    }
-    return defaultValue;
-  };
 
   const onSubmit = async (data: EditClinicFormData) => {
     setIsSaving(true);
