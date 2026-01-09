@@ -373,7 +373,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                       <Input type="time" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Primera hora disponible para turnos
+                      Primera hora disponible para turnos (formato 24h: 08:00)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -390,7 +390,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                       <Input type="time" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Última hora de inicio permitida
+                      Última hora de inicio permitida (formato 24h: 19:00)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -453,7 +453,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                       <Input type="time" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Hora del día en que se ejecutará el auto-marcado (ej: 00:00 para medianoche)
+                      Hora del día para ejecutar el auto-marcado (formato 24h: 00:00 = medianoche)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
