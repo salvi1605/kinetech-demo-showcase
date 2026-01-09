@@ -119,13 +119,14 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
 };
 
 // Mapeo de status DB -> interno
-const mapDbStatusToInternal = (dbStatus: string): 'scheduled' | 'completed' | 'cancelled' => {
+const mapDbStatusToInternal = (dbStatus: string): 'scheduled' | 'completed' | 'cancelled' | 'no_show' => {
   switch (dbStatus) {
     case 'completed':
       return 'completed';
     case 'cancelled':
-    case 'no_show':
       return 'cancelled';
+    case 'no_show':
+      return 'no_show';
     case 'scheduled':
     case 'confirmed':
     default:

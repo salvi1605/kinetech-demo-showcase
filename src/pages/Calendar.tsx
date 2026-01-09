@@ -957,7 +957,8 @@ export const Calendar = () => {
                                              <span className={`inline-block px-2 py-1 text-xs rounded ${
                                                appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
                                                appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                               'bg-red-100 text-red-800'
+                                               appointment.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                                               'bg-gray-100 text-gray-800'
                                              }`}>
                                                 {statusLabel(appointment.status as AppointmentStatus)}
                                              </span>
