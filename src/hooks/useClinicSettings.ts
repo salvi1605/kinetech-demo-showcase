@@ -6,6 +6,7 @@ export interface ClinicSettings {
   id: string;
   clinic_id: string;
   min_slot_minutes: number;
+  sub_slots_per_block: number;
   workday_start: string; // "HH:mm:ss"
   workday_end: string;   // "HH:mm:ss"
   allow_professional_self_block: boolean;
@@ -53,6 +54,7 @@ export const useClinicSettings = () => {
               id: 'default',
               clinic_id: state.currentClinicId,
               min_slot_minutes: 30,
+              sub_slots_per_block: 5,
               workday_start: '08:00:00',
               workday_end: '19:00:00',
               allow_professional_self_block: true,
@@ -63,7 +65,7 @@ export const useClinicSettings = () => {
             throw fetchError;
           }
         } else {
-          setSettings({ ...data, auto_mark_no_show: (data as any).auto_mark_no_show ?? true });
+          setSettings({ ...data, auto_mark_no_show: (data as any).auto_mark_no_show ?? true, sub_slots_per_block: (data as any).sub_slots_per_block ?? 5 });
         }
       } catch (err) {
         if (!isMounted) return;
@@ -74,6 +76,7 @@ export const useClinicSettings = () => {
           id: 'fallback',
           clinic_id: state.currentClinicId,
           min_slot_minutes: 30,
+          sub_slots_per_block: 5,
           workday_start: '08:00:00',
           workday_end: '19:00:00',
           allow_professional_self_block: true,
