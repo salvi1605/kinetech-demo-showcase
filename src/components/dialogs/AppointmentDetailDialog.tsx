@@ -160,13 +160,13 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
         return { 
           label: 'Cancelado', 
           icon: XCircle, 
-          color: 'text-red-600',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200'
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200'
         };
       case 'completed':
         return { 
-          label: 'Completado', 
+          label: 'Asistió', 
           icon: CheckCircle2, 
           color: 'text-green-600',
           bgColor: 'bg-green-50',
@@ -174,11 +174,11 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
         };
       case 'no_show':
         return { 
-          label: 'No-show', 
-          icon: AlertCircle, 
-          color: 'text-orange-600',
-          bgColor: 'bg-orange-50',
-          borderColor: 'border-orange-200'
+          label: 'No Asistió', 
+          icon: XCircle, 
+          color: 'text-red-600',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200'
         };
       default:
         return { 
