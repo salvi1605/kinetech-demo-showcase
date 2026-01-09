@@ -50,9 +50,14 @@ const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
 
 // Utilidades para tri-estado
-type Status = 'scheduled' | 'completed' | 'cancelled';
-const statusToChecked = (s: Status) => s === 'completed' ? true : s === 'cancelled' ? 'indeterminate' : false;
-const nextStatus = (s: Status): Status => s === 'scheduled' ? 'completed' : s === 'completed' ? 'cancelled' : 'scheduled';
+type Status = 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+const statusToChecked = (s: Status) => s === 'completed' ? true : s === 'no_show' || s === 'cancelled' ? 'indeterminate' : false;
+const nextStatus = (s: Status): Status => {
+  // Ciclo: scheduled → completed → no_show → scheduled (cancelled se salta en ciclo normal)
+  if (s === 'scheduled') return 'completed';
+  if (s === 'completed') return 'no_show';
+  return 'scheduled';
+};
 
 // Crear clave única para cada sub-slot
 const getSlotKey = ({ dateISO, hour, subSlot }: { dateISO: string; hour: string; subSlot: number }) => {
