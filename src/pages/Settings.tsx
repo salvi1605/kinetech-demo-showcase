@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, User, Shield, Database, FlaskConical, Loader2, Trash2, Upload } from 'lucide-react';
+import { Settings as SettingsIcon, User, Shield, Database, FlaskConical, Loader2, Trash2, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { downloadSchemaAsSQL } from '@/utils/downloadSchema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -310,6 +311,17 @@ export const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <Label>Descargar Schema SQL</Label>
+                  <p className="text-sm text-muted-foreground">Exportar estructura completa de la base de datos para respaldo</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={downloadSchemaAsSQL}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar .sql
+                </Button>
+              </div>
+              <Separator />
               <div className="flex justify-between items-center">
                 <div>
                   <Label>Exportar datos</Label>
