@@ -6,9 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ADMIN_SECRET = Deno.env.get("ADMIN_CONFIRM_SECRET") || "temp-admin-secret-123";
+const ADMIN_SECRET = Deno.env.get("ADMIN_CONFIRM_SECRET");
 
 serve(async (req) => {
+  // Validate that the required secret is configured
+  if (!ADMIN_SECRET) {
+    console.error("ADMIN_CONFIRM_SECRET environment variable is not configured");
+    return new Response(
+      JSON.stringify({ error: "Server configuration error: ADMIN_CONFIRM_SECRET must be configured" }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
+  }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
