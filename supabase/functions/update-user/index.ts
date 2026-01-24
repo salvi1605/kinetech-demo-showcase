@@ -6,6 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Cryptographically secure password generation
+function generateSecurePassword(length: number = 16): string {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
+  return Array.from(randomValues)
+    .map(v => charset[v % charset.length])
+    .join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -133,8 +143,8 @@ serve(async (req) => {
     }
 
     if (action === 'reset_password') {
-      // Generate temporary password
-      const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
+      // Generate cryptographically secure temporary password
+      const tempPassword = generateSecurePassword(16);
 
       const { data: targetUser } = await supabaseAdmin
         .from('users')
