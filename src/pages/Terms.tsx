@@ -11,7 +11,7 @@ export function Terms() {
         <div className="container flex h-16 items-center justify-between">
           <Link to="/welcome" className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">KinesioTurnos</span>
+            <span className="text-xl font-bold">Agendix</span>
           </Link>
           <Button asChild variant="ghost" size="sm">
             <Link to="/welcome">
@@ -34,14 +34,14 @@ export function Terms() {
           <CardContent className="prose prose-neutral dark:prose-invert max-w-none">
             <h2>1. Aceptación de los Términos</h2>
             <p>
-              Al acceder y utilizar KinesioTurnos ("el Servicio"), usted acepta estar 
+              Al acceder y utilizar Agendix ("el Servicio"), usted acepta estar 
               sujeto a estos Términos de Servicio. Si no está de acuerdo con alguna 
               parte de los términos, no podrá acceder al Servicio.
             </p>
 
             <h2>2. Descripción del Servicio</h2>
             <p>
-              KinesioTurnos es una plataforma de gestión de turnos diseñada para 
+              Agendix es una plataforma de gestión de turnos diseñada para 
               clínicas de kinesiología y profesionales de la salud. El servicio incluye:
             </p>
             <ul>
@@ -81,13 +81,13 @@ export function Terms() {
             <h2>6. Propiedad Intelectual</h2>
             <p>
               El Servicio y su contenido original, características y funcionalidad 
-              son propiedad de KinesioTurnos y están protegidos por leyes de 
+              son propiedad de Agendix y están protegidos por leyes de 
               derechos de autor y marcas registradas.
             </p>
 
             <h2>7. Limitación de Responsabilidad</h2>
             <p>
-              En ningún caso KinesioTurnos será responsable por daños indirectos, 
+              En ningún caso Agendix será responsable por daños indirectos, 
               incidentales, especiales o consecuentes que resulten del uso o la 
               imposibilidad de usar el Servicio.
             </p>

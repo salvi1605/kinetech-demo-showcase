@@ -96,8 +96,7 @@ export const Topbar = () => {
         
         <div className="hidden lg:flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-primary">Kine-UI</h1>
-            <Badge variant="outline" className="text-xs">v2</Badge>
+            <h1 className="text-xl font-bold text-primary">Agendix</h1>
           </div>
           
         </div>
