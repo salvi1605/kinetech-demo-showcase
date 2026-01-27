@@ -11,7 +11,7 @@ export function Privacy() {
         <div className="container flex h-16 items-center justify-between">
           <Link to="/welcome" className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">KinesioTurnos</span>
+            <span className="text-xl font-bold">Agendix</span>
           </Link>
           <Button asChild variant="ghost" size="sm">
             <Link to="/welcome">

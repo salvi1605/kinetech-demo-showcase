@@ -44,7 +44,7 @@ export function Welcome() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">KinesioTurnos</span>
+            <span className="text-xl font-bold">Agendix</span>
           </div>
           <nav className="flex items-center gap-4">
             <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground">
@@ -63,11 +63,11 @@ export function Welcome() {
       {/* Hero Section */}
       <section className="container py-24 text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-          Gestión de Turnos para{" "}
-          <span className="text-primary">Kinesiología</span>
+          Gestión de Turnos{" "}
+          <span className="text-primary">Profesional</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Sistema completo para clínicas de kinesiología. Agenda turnos, gestiona pacientes, 
+          Sistema completo para clínicas y consultorios. Agenda turnos, gestiona pacientes, 
           controla disponibilidad y mantén el historial clínico en un solo lugar.
         </p>
         <div className="mt-10 flex justify-center gap-4">
@@ -108,7 +108,7 @@ export function Welcome() {
           <CardContent className="flex flex-col items-center gap-6 py-12 text-center">
             <h2 className="text-3xl font-bold">¿Listo para optimizar tu clínica?</h2>
             <p className="max-w-xl text-primary-foreground/80">
-              Únete a profesionales de kinesiología que ya gestionan sus turnos de forma eficiente.
+              Únete a profesionales de la salud que ya gestionan sus turnos de forma eficiente.
             </p>
             <Button asChild size="lg" variant="secondary">
               <Link to="/login">Crear Cuenta Gratis</Link>
@@ -122,7 +122,7 @@ export function Welcome() {
         <div className="container flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>© 2026 KinesioTurnos. Todos los derechos reservados.</span>
+            <span>© 2026 Agendix. Todos los derechos reservados.</span>
           </div>
           <nav className="flex gap-6 text-sm text-muted-foreground">
             <Link to="/terms" className="hover:text-foreground">Términos</Link>

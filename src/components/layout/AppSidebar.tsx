@@ -201,11 +201,11 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">K</span>
+                <span className="text-white font-bold text-sm">A</span>
               </div>
               <div>
-                <h2 className="font-bold text-white">Kine-UI</h2> {/* ★ */}
-                <p className="text-xs text-white/70">Sistema de Gestión</p> {/* ★ */}
+                <h2 className="font-bold text-white">Agendix</h2>
+                <p className="text-xs text-white/70">Sistema de Gestión</p>
               </div>
             </div>
           )}
