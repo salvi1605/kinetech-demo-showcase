@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
 
 const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Ingresa tu contraseña actual"),
   newPassword: z
     .string()
     .min(8, "Mínimo 8 caracteres")
@@ -34,6 +35,9 @@ const changePasswordSchema = z.object({
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
+}).refine((data) => data.currentPassword !== data.newPassword, {
+  message: "La nueva contraseña debe ser diferente a la actual",
+  path: ["newPassword"],
 });
 
 type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
@@ -49,12 +53,14 @@ export function ChangePasswordDialog({
 }: ChangePasswordDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
+      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -63,6 +69,28 @@ export function ChangePasswordDialog({
   const onSubmit = async (data: ChangePasswordFormData) => {
     setIsLoading(true);
     try {
+      // Get current user email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error("No se pudo obtener el usuario actual");
+      }
+
+      // Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: data.currentPassword,
+      });
+
+      if (signInError) {
+        form.setError("currentPassword", {
+          type: "manual",
+          message: "Contraseña actual incorrecta",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Update to new password
       const { error } = await supabase.auth.updateUser({
         password: data.newPassword,
       });
@@ -103,6 +131,40 @@ export function ChangePasswordDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="currentPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contraseña actual</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={showCurrentPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        aria-label={showCurrentPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="newPassword"
