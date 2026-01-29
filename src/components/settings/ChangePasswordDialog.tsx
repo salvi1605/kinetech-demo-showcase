@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { PasswordStrengthIndicator } from "@/components/shared/PasswordStrengthIndicator";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Ingresa tu contraseña actual"),
@@ -194,6 +195,7 @@ export function ChangePasswordDialog({
                       </Button>
                     </div>
                   </FormControl>
+                  <PasswordStrengthIndicator password={field.value} className="mt-2" />
                   <FormMessage />
                 </FormItem>
               )}
