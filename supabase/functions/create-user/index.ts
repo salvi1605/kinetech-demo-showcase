@@ -74,6 +74,14 @@ serve(async (req) => {
     // Obtener datos del request
     const { email, password, fullName, roleId, clinicId } = await req.json()
 
+    // Validate password minimum length
+    if (!password || password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'La contraseña debe tener al menos 8 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     console.log(`Creating/adding user: ${email} with role ${roleId} for clinic ${clinicId}`)
 
     let authUserId: string | null = null

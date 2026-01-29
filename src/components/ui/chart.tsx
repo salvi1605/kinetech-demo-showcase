@@ -65,6 +65,55 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+// Sanitize CSS color values to prevent injection attacks
+const sanitizeCssColor = (color: string): string | null => {
+  if (!color || typeof color !== 'string') return null;
+  
+  // Allow valid CSS color formats only:
+  // - Hex: #rgb, #rrggbb, #rrggbbaa
+  // - HSL: hsl(h, s%, l%) or hsla(h, s%, l%, a)
+  // - RGB: rgb(r, g, b) or rgba(r, g, b, a)
+  // - CSS variables: var(--name)
+  // - Named colors (limited set for safety)
+  
+  const hexPattern = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+  const hslPattern = /^hsla?\(\s*\d+(\.\d+)?(deg|rad|turn)?\s*,\s*\d+(\.\d+)?%\s*,\s*\d+(\.\d+)?%\s*(,\s*(0(\.\d+)?|1(\.0+)?|\d+(\.\d+)?%))?\s*\)$/i;
+  const rgbPattern = /^rgba?\(\s*\d+(\.\d+)?\s*,\s*\d+(\.\d+)?\s*,\s*\d+(\.\d+)?\s*(,\s*(0(\.\d+)?|1(\.0+)?|\d+(\.\d+)?%))?\s*\)$/i;
+  const cssVarPattern = /^var\(--[a-zA-Z0-9-]+\)$/;
+  const namedColors = [
+    'transparent', 'currentcolor', 'inherit',
+    'black', 'white', 'red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey',
+    'navy', 'teal', 'aqua', 'lime', 'maroon', 'olive', 'silver', 'fuchsia'
+  ];
+  
+  const trimmed = color.trim().toLowerCase();
+  
+  if (
+    hexPattern.test(color.trim()) ||
+    hslPattern.test(color.trim()) ||
+    rgbPattern.test(color.trim()) ||
+    cssVarPattern.test(color.trim()) ||
+    namedColors.includes(trimmed)
+  ) {
+    return color.trim();
+  }
+  
+  console.warn(`[ChartStyle] Invalid color value rejected: ${color}`);
+  return null;
+};
+
+// Sanitize CSS key names to prevent injection
+const sanitizeCssKey = (key: string): string | null => {
+  if (!key || typeof key !== 'string') return null;
+  // Only allow alphanumeric characters, hyphens, and underscores
+  const safeKeyPattern = /^[a-zA-Z0-9_-]+$/;
+  if (safeKeyPattern.test(key)) {
+    return key;
+  }
+  console.warn(`[ChartStyle] Invalid key rejected: ${key}`);
+  return null;
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
@@ -83,11 +132,17 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const safeKey = sanitizeCssKey(key);
+    if (!safeKey) return null;
+    
+    const rawColor =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+      itemConfig.color;
+    const safeColor = rawColor ? sanitizeCssColor(rawColor) : null;
+    
+    return safeColor ? `  --color-${safeKey}: ${safeColor};` : null
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `

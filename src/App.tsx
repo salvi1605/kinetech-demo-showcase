@@ -10,6 +10,7 @@ import { AppProvider } from "@/contexts/AppContext";
 // Route Guards
 import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
 import { AuthRouteGuard } from "@/components/shared/AuthRouteGuard";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 // Layout
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -32,63 +33,71 @@ import Architecture from "@/pages/Architecture";
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "@/pages/ResetPassword";
 import { NoAccess } from "@/pages/NoAccess";
+import Welcome from "@/pages/Welcome";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AppProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            
-            {/* Auth Required - No Clinic Setup */}
-            <Route path="/create-clinic" element={
-              <AuthRouteGuard requireClinic={false}>
-                <CreateClinicPage />
-              </AuthRouteGuard>
-            } />
-            
-            <Route path="/select-clinic" element={
-              <AuthRouteGuard requireClinic={false}>
-                <SelectClinic />
-              </AuthRouteGuard>
-            } />
-            
-            <Route path="/no-access" element={
-              <AuthRouteGuard requireClinic={false}>
-                <NoAccess />
-              </AuthRouteGuard>
-            } />
-            
-            {/* Protected Routes - Clinic Required */}
-            <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
-              <Route index element={<Calendar />} />
-              <Route path="calendar" element={<Calendar />} />
-              <Route path="patients" element={<Patients />} />
-              <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
-              <Route path="practitioners" element={<Practitioners />} />
-              <Route path="availability" element={<Availability />} />
-              <Route path="exceptions" element={<Exceptions />} />
-              <Route path="copy-schedule" element={<CopySchedule />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="users" element={<UserManagement />} />
-              <Route path="clinics" element={<ClinicSettings />} />
-              <Route path="architecture" element={<Architecture />} />
-            </Route>
-            
-            {/* 404 Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AppProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AppProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/welcome" element={<Welcome />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              
+              {/* Auth Required - No Clinic Setup */}
+              <Route path="/create-clinic" element={
+                <AuthRouteGuard requireClinic={false}>
+                  <CreateClinicPage />
+                </AuthRouteGuard>
+              } />
+              
+              <Route path="/select-clinic" element={
+                <AuthRouteGuard requireClinic={false}>
+                  <SelectClinic />
+                </AuthRouteGuard>
+              } />
+              
+              <Route path="/no-access" element={
+                <AuthRouteGuard requireClinic={false}>
+                  <NoAccess />
+                </AuthRouteGuard>
+              } />
+              
+              {/* Protected Routes - Clinic Required */}
+              <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
+                <Route index element={<Calendar />} />
+                <Route path="calendar" element={<Calendar />} />
+                <Route path="patients" element={<Patients />} />
+                <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
+                <Route path="practitioners" element={<Practitioners />} />
+                <Route path="availability" element={<Availability />} />
+                <Route path="exceptions" element={<Exceptions />} />
+                <Route path="copy-schedule" element={<CopySchedule />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="clinics" element={<ClinicSettings />} />
+                <Route path="architecture" element={<Architecture />} />
+              </Route>
+              
+              {/* 404 Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AppProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
