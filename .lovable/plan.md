@@ -1,133 +1,199 @@
 
+# Plan: Corregir Roles de Navegación y Asegurar Permisos por Rol
 
-# Plan: Ocultar Herramientas de Desarrollo en Producción
+## Problema Identificado
 
-## Resumen
+El sidebar y la navegación móvil usan **nombres de roles incorrectos** que no coinciden con los roles reales de la base de datos:
 
-Implementar una variable de entorno que permita mostrar/ocultar las herramientas de desarrollo (testing, emulación de roles, modo demo) para que en el branch `main` (producción) los usuarios finales no vean elementos que son solo para desarrollo.
+| Usado en UI (incorrecto) | Rol real en BD |
+|--------------------------|----------------|
+| `'admin'`                | `'admin_clinic'` |
+| `'recep'`                | `'receptionist'` |
+| `'kinesio'`              | `'health_pro'` |
 
----
-
-## Elementos a Ocultar
-
-Basándome en la captura de pantalla, estos son los elementos de desarrollo a ocultar:
-
-| Elemento | Descripción | Ubicación |
-|----------|-------------|-----------|
-| Test: Fecha | Time Travel para simular fechas | Topbar |
-| Selector de Rol | Emulador de roles (Propietario/Admin/etc) | Topbar |
-| Modo Demo | Toggle para cargar datos de demostración | Topbar |
-| Simular cambio de día | Botón para testing de cambio de día | Topbar |
-| Badge DEMO | Indicador de modo demo en mobile | BottomNav |
+Esto causa que el **sidebar aparezca vacío** para receptionist y health_pro porque el filtro `item.roles.includes(state.userRole)` nunca encuentra coincidencia.
 
 ---
 
-## Solución Propuesta
+## Matriz de Permisos por Rol
 
-### Opción Recomendada: Variable de Entorno `VITE_DEV_TOOLS`
+### Navegación Principal
 
-Crear una variable de entorno específica que controle la visibilidad de las herramientas de desarrollo:
+| Ruta | tenant_owner | admin_clinic | receptionist | health_pro |
+|------|:------------:|:------------:|:------------:|:----------:|
+| /calendar | Si | Si | Si | Si |
+| /patients | Si | Si | Si | Si (solo asignados) |
+| /practitioners | Si | Si | Si (solo ver) | No |
+| /availability | Si | Si | No | Si (solo propia) |
+| /exceptions | Si | Si | No | Si (solo propias) |
+| /copy-schedule | Si | Si | No | No |
 
-- **En desarrollo (branch `dev`)**: `VITE_DEV_TOOLS=true` → herramientas visibles
-- **En producción (branch `main`)**: Variable ausente o `false` → herramientas ocultas
+### Sistema/Administración
 
-Esta opción es preferible a usar `NODE_ENV` porque:
-1. Permite control granular independiente del entorno de build
-2. Se puede habilitar temporalmente en producción si es necesario debuggear
-3. Es explícita en su intención
+| Ruta | tenant_owner | admin_clinic | receptionist | health_pro |
+|------|:------------:|:------------:|:------------:|:----------:|
+| /users | Si | Si | No | No |
+| /clinics | Si | Si | No | No |
+| /settings | Si | Si | Si (limitado) | Si (limitado) |
+
+### Acceso a Configuración por Rol
+
+- **tenant_owner / admin_clinic**: Acceso completo (gestión de usuarios, datos, demo)
+- **receptionist / health_pro**: Solo preferencias personales y cambio de contraseña
 
 ---
 
 ## Cambios Técnicos
 
-### 1. Crear constante de utilidad
+### 1. Corregir AppSidebar.tsx
 
-**Archivo**: `src/lib/devTools.ts` (nuevo)
+Actualizar los arrays `navigationItems` y `authItems` con los roles correctos:
 
 ```typescript
-export const isDevToolsEnabled = 
-  import.meta.env.VITE_DEV_TOOLS === 'true' || 
-  import.meta.env.DEV; // Siempre habilitado en desarrollo local
+const navigationItems = [
+  {
+    title: 'Agenda',
+    url: '/calendar',
+    icon: Calendar,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
+  },
+  {
+    title: 'Pacientes',
+    url: '/patients',
+    icon: Users,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
+  },
+  {
+    title: 'Profesionales',
+    url: '/practitioners',
+    icon: UserCheck,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
+  },
+  {
+    title: 'Disponibilidad',
+    url: '/availability',
+    icon: Clock,
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
+  },
+  {
+    title: 'Excepciones',
+    url: '/exceptions',
+    icon: Calendar1,
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
+  },
+  {
+    title: 'Copiar Horario',
+    url: '/copy-schedule',
+    icon: Copy,
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+  },
+];
+
+const authItems = [
+  {
+    title: 'Usuarios',
+    url: '/users',
+    icon: Shield,
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+  },
+  {
+    title: 'Clínicas',
+    url: '/clinics',
+    icon: Building2,
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+  },
+  {
+    title: 'Configuración',
+    url: '/settings',
+    icon: Settings,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
+  },
+];
 ```
 
-### 2. Modificar Topbar.tsx
+### 2. Corregir BottomNav.tsx
 
-Envolver los elementos de desarrollo en condicionales:
+Actualizar `mobileNavItems` con los mismos roles corregidos:
 
-```tsx
-import { isDevToolsEnabled } from '@/lib/devTools';
-
-// En el JSX, envolver cada sección de desarrollo:
-{isDevToolsEnabled && (
-  <>
-    {/* Time Travel Control */}
-    ...
-    
-    {/* Role Emulator */}
-    ...
-    
-    {/* Demo Mode Toggle */}
-    ...
-    
-    {/* Day Change Simulator */}
-    ...
-  </>
-)}
+```typescript
+const mobileNavItems = [
+  {
+    title: 'Agenda',
+    url: '/calendar',
+    icon: Calendar,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
+  },
+  {
+    title: 'Pacientes',
+    url: '/patients',
+    icon: Users,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
+  },
+  {
+    title: 'Profesionales',
+    url: '/practitioners',
+    icon: UserCheck,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist'],
+  },
+  {
+    title: 'Disponibilidad',
+    url: '/availability',
+    icon: Clock,
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro'],
+  },
+  {
+    title: 'Config',
+    url: '/settings',
+    icon: Settings,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
+  },
+];
 ```
 
-### 3. Modificar BottomNav.tsx
+### 3. Actualizar Settings.tsx para Todos los Roles
 
-Ocultar el badge de DEMO:
+Modificar la página de configuración para que:
+- **Todos los roles** vean la sección de Preferencias UI (incluyendo cambio de contraseña)
+- Solo **admin_clinic y tenant_owner** vean las secciones de gestión de usuarios, sistema y datos
 
-```tsx
-import { isDevToolsEnabled } from '@/lib/devTools';
-
-// Cambiar la condición:
-{isDevToolsEnabled && state.isDemoMode && (
-  <Badge ...>DEMO</Badge>
-)}
-```
+La estructura actual ya es correcta - solo necesita asegurar que la ruta `/settings` sea accesible.
 
 ---
 
-## Topbar Resultante en Producción
+## Resumen de Acceso al Sidebar por Rol
 
-En producción, el Topbar mostrará solo:
+### receptionist vera:
+- Agenda
+- Pacientes
+- Profesionales
+- Configuración (solo preferencias personales)
 
-| Elemento | Visible |
-|----------|---------|
-| Logo "Agendix" | Sí |
-| Nombre de Clínica | Sí |
-| Botón "Cambiar Clínica" | Sí |
-| Email del usuario + Cerrar sesión | Sí |
-| Botón de Settings | Sí |
+### health_pro vera:
+- Agenda (solo sus citas)
+- Pacientes (solo asignados)
+- Disponibilidad (solo la suya)
+- Configuración (solo preferencias personales)
 
----
-
-## Configuración por Entorno
-
-Para activar las herramientas de desarrollo, agregar al archivo `.env` del entorno deseado:
-
-```env
-VITE_DEV_TOOLS=true
-```
-
-> **Nota**: En Lovable, el archivo `.env` es manejado automáticamente. Para el branch `main` simplemente no incluir esta variable o establecerla en `false`.
+### admin_clinic / tenant_owner veran:
+- Todo el menú completo
 
 ---
 
 ## Archivos a Modificar
 
-1. **`src/lib/devTools.ts`** - Crear nuevo archivo con la constante
-2. **`src/components/layout/Topbar.tsx`** - Envolver elementos de desarrollo
-3. **`src/components/layout/BottomNav.tsx`** - Ocultar badge DEMO
+1. **`src/components/layout/AppSidebar.tsx`**
+   - Corregir roles en `navigationItems`
+   - Corregir roles en `authItems`
+
+2. **`src/components/layout/BottomNav.tsx`**
+   - Corregir roles en `mobileNavItems`
 
 ---
 
 ## Beneficios
 
-- Separación clara entre herramientas de desarrollo y UI de producción
-- Fácil de habilitar/deshabilitar sin cambiar código
-- El rol del usuario vendrá de la base de datos, no del emulador
-- Los datos reales se cargarán de la BD, no del modo demo
-
+- El sidebar mostrara las opciones correctas para cada rol
+- receptionist podra ver y crear pacientes, gestionar agenda
+- health_pro podra ver su agenda y pacientes asignados
+- Todos los usuarios pueden cambiar su contraseña y configurar preferencias personales
+- Coherencia entre los roles de BD y la UI
