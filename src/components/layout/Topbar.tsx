@@ -13,6 +13,7 @@ import { addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isDevToolsEnabled } from '@/lib/devTools';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
@@ -128,95 +129,100 @@ export const Topbar = () => {
           </Button>
         )}
 
-        {/* Time Travel Control */}
-        <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant={state.testCurrentDate ? "default" : "outline"} 
+        {/* DEV TOOLS - Only visible in development */}
+        {isDevToolsEnabled && (
+          <>
+            {/* Time Travel Control */}
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant={state.testCurrentDate ? "default" : "outline"} 
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    {state.testCurrentDate 
+                      ? format(parseLocalDate(state.testCurrentDate), 'dd/MM/yyyy', { locale: es })
+                      : 'Test: Fecha'
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={state.testCurrentDate ? parseLocalDate(state.testCurrentDate) : undefined}
+                    onSelect={handleTestDateChange}
+                    locale={es}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {state.testCurrentDate && (
+                <Button
+                  variant="ghost"
                   size="sm"
-                  className="gap-2"
+                  onClick={handleClearTestDate}
+                  className="h-8 w-8 p-0"
                 >
-                  <CalendarIcon className="h-4 w-4" />
-                  {state.testCurrentDate 
-                    ? format(parseLocalDate(state.testCurrentDate), 'dd/MM/yyyy', { locale: es })
-                    : 'Test: Fecha'
-                  }
+                  <X className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={state.testCurrentDate ? parseLocalDate(state.testCurrentDate) : undefined}
-                  onSelect={handleTestDateChange}
-                  locale={es}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {state.testCurrentDate && (
+              )}
+              {state.testCurrentDate && (
+                <Badge variant="default" className="text-xs bg-primary">
+                  🕐 Time Travel
+                </Badge>
+              )}
+            </div>
+
+            {/* Role Emulator */}
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <Select value={state.userRole} onValueChange={handleRoleChange}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tenant_owner">Propietario</SelectItem>
+                  <SelectItem value="admin_clinic">Administrador</SelectItem>
+                  <SelectItem value="receptionist">Recepcionista</SelectItem>
+                  <SelectItem value="health_pro">Kinesiólogo</SelectItem>
+                </SelectContent>
+              </Select>
+              <Badge variant={getRoleBadgeVariant(state.userRole)} className="text-xs">
+                {getRoleDisplayName(state.userRole)}
+              </Badge>
+            </div>
+
+            {/* Demo Mode Toggle */}
+            <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2">
+              <Switch
+                checked={state.isDemoMode}
+                onCheckedChange={handleDemoToggle}
+                id="demo-mode"
+              />
+              <Label htmlFor="demo-mode" className="text-sm cursor-pointer">
+                Modo Demo
+              </Label>
+              {state.isDemoMode && (
+                <Badge variant="secondary" className="text-xs">
+                  DEMO
+                </Badge>
+              )}
+            </div>
+
+            {/* Day Change Simulator */}
+            {(state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner') && (
               <Button
-                variant="ghost"
                 size="sm"
-                onClick={handleClearTestDate}
-                className="h-8 w-8 p-0"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                onClick={handleSimulateDayChange}
+                title="Ejecuta conversión Reservado → No Asistió como si fuera medianoche"
               >
-                <X className="h-4 w-4" />
+                Simular cambio de día
               </Button>
             )}
-            {state.testCurrentDate && (
-              <Badge variant="default" className="text-xs bg-primary">
-                🕐 Time Travel
-              </Badge>
-            )}
-        </div>
-
-        {/* Role Emulator */}
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <Select value={state.userRole} onValueChange={handleRoleChange}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tenant_owner">Propietario</SelectItem>
-              <SelectItem value="admin_clinic">Administrador</SelectItem>
-              <SelectItem value="receptionist">Recepcionista</SelectItem>
-              <SelectItem value="health_pro">Kinesiólogo</SelectItem>
-            </SelectContent>
-          </Select>
-          <Badge variant={getRoleBadgeVariant(state.userRole)} className="text-xs">
-            {getRoleDisplayName(state.userRole)}
-          </Badge>
-        </div>
-
-        {/* Demo Mode Toggle */}
-        <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2">
-          <Switch
-            checked={state.isDemoMode}
-            onCheckedChange={handleDemoToggle}
-            id="demo-mode"
-          />
-          <Label htmlFor="demo-mode" className="text-sm cursor-pointer">
-            Modo Demo
-          </Label>
-          {state.isDemoMode && (
-            <Badge variant="secondary" className="text-xs">
-              DEMO
-            </Badge>
-          )}
-        </div>
-
-        {/* Day Change Simulator */}
-        {(state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner') && (
-          <Button
-            size="sm"
-            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
-            onClick={handleSimulateDayChange}
-            title="Ejecuta conversión Reservado → No Asistió como si fuera medianoche"
-          >
-            Simular cambio de día
-          </Button>
+          </>
         )}
 
         {/* User Info and Logout */}

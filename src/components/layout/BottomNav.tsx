@@ -2,6 +2,7 @@ import { Calendar, Users, UserCheck, Clock, Settings } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
+import { isDevToolsEnabled } from '@/lib/devTools';
 
 const mobileNavItems = [
   {
@@ -77,8 +78,8 @@ export const BottomNav = () => {
         ))}
       </div>
       
-      {/* Demo Mode Indicator */}
-      {state.isDemoMode && (
+      {/* Demo Mode Indicator - Only visible in development */}
+      {isDevToolsEnabled && state.isDemoMode && (
         <div className="absolute -top-8 left-2">
           <Badge variant="secondary" className="text-xs">
             DEMO
