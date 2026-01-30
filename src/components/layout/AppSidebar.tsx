@@ -43,37 +43,37 @@ const navigationItems = [
     title: 'Agenda',
     url: '/calendar',
     icon: Calendar,
-    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
   },
   {
     title: 'Pacientes',
     url: '/patients',
     icon: Users,
-    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
   },
   {
     title: 'Profesionales',
     url: '/practitioners',
     icon: UserCheck,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
   },
   {
     title: 'Disponibilidad',
     url: '/availability',
     icon: Clock,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
   },
   {
     title: 'Excepciones',
     url: '/exceptions',
     icon: Calendar1,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
   },
   {
     title: 'Copiar Horario',
     url: '/copy-schedule',
     icon: Copy,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
   },
 ];
 
@@ -82,19 +82,19 @@ const authItems = [
     title: 'Usuarios',
     url: '/users',
     icon: Shield,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Clínicas',
     url: '/clinics',
     icon: Building2,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
   },
   {
     title: 'Configuración',
     url: '/settings',
     icon: Settings,
-    roles: ['admin', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
   },
 ];
 
