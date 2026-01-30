@@ -2,37 +2,38 @@ import { Calendar, Users, UserCheck, Clock, Settings } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
+import { isDevToolsEnabled } from '@/lib/devTools';
 
 const mobileNavItems = [
   {
     title: 'Agenda',
     url: '/calendar',
     icon: Calendar,
-    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
   },
   {
     title: 'Pacientes',
     url: '/patients',
     icon: Users,
-    roles: ['admin', 'tenant_owner', 'recep', 'kinesio'],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
   },
   {
     title: 'Profesionales',
     url: '/practitioners',
     icon: UserCheck,
-    roles: ['admin', 'tenant_owner', 'recep'],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist'],
   },
   {
     title: 'Disponibilidad',
     url: '/availability',
     icon: Clock,
-    roles: ['admin', 'tenant_owner', 'kinesio'],
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro'],
   },
   {
     title: 'Config',
     url: '/settings',
     icon: Settings,
-    roles: ['admin', 'tenant_owner'],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
   },
 ];
 
@@ -77,8 +78,8 @@ export const BottomNav = () => {
         ))}
       </div>
       
-      {/* Demo Mode Indicator */}
-      {state.isDemoMode && (
+      {/* Demo Mode Indicator - Only visible in development */}
+      {isDevToolsEnabled && state.isDemoMode && (
         <div className="absolute -top-8 left-2">
           <Badge variant="secondary" className="text-xs">
             DEMO
