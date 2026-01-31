@@ -440,10 +440,8 @@ export const Calendar = () => {
     const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
-    // Calcular alturas dinámicas: 60px con cita, 24px sin cita
-    const rowHeights = Array.from({ length: 5 }).map((_, i) => 
-      slotAppointments[i] ? '60px' : '24px'
-    ).join(' ');
+    // Alturas uniformes: 60px para todos los sub-slots
+    const rowHeights = 'repeat(5, 60px)';
 
     // Helper para obtener el badge de estado
     const getStatusBadge = (status: string) => {
@@ -550,7 +548,7 @@ export const Calendar = () => {
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
-                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] h-full min-h-[56px] ${
                     isSelected 
                       ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
@@ -571,10 +569,10 @@ export const Calendar = () => {
       );
     }
 
-    // Slot completamente vacío - mostrar todos los sub-slots disponibles (24px cada uno)
+    // Slot completamente vacío - mostrar todos los sub-slots disponibles (60px cada uno)
     return (
       <div key={`${dayIndex}-${time}`} className="p-1 border border-border/30 grid gap-1" 
-           style={{ gridTemplateRows: 'repeat(5, 24px)' }}>
+           style={{ gridTemplateRows: 'repeat(5, 60px)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
              return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
@@ -612,7 +610,7 @@ export const Calendar = () => {
             return (
               <button
                  key={`${dayIndex}-${time}-${subIndex}`}
-                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] h-full min-h-[56px] ${
                    isSelected 
                      ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
                      : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
