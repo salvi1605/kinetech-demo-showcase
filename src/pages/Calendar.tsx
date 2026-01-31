@@ -548,7 +548,7 @@ export const Calendar = () => {
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
-                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] h-full min-h-[56px] ${
+                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                     isSelected 
                       ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
@@ -610,7 +610,7 @@ export const Calendar = () => {
             return (
               <button
                  key={`${dayIndex}-${time}-${subIndex}`}
-                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] h-full min-h-[56px] ${
+                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                    isSelected 
                      ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
                      : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
