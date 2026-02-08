@@ -832,11 +832,11 @@ export const Calendar = () => {
               <LoadingSkeleton variant="calendar" />
             ) : (
               <div className="relative z-0 overflow-hidden">
-                <div className="overflow-x-auto">
-                  {/* Navegador de semana compacto */}
-                  <div className="sticky top-0 z-10 flex justify-end px-2 py-1 bg-background/80 backdrop-blur">
-                    <WeekNavigatorCompact />
-                  </div>
+                {/* Navegador de semana compacto - fuera del scroll */}
+                <div className="flex justify-end px-2 py-1 bg-background">
+                  <WeekNavigatorCompact />
+                </div>
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
                   <div 
                     className="w-full"
                     style={{ 
@@ -846,14 +846,14 @@ export const Calendar = () => {
                       width: '100%'
                     }}
                   >
-                  {/* Header - 6 celdas directas del grid */}
-                  <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center">
+                  {/* Header - 6 celdas directas del grid (sticky) */}
+                  <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center sticky top-0 z-20 bg-background">
                     Hora
                   </div>
                   {WEEKDAYS.map((day, index) => (
                     <div 
                       key={day} 
-                      className="p-1 border border-border/30 bg-muted/30 flex flex-col items-center justify-center"
+                      className="p-1 border border-border/30 flex flex-col items-center justify-center sticky top-0 z-20 bg-background"
                     >
                       <div className="text-sm font-medium">{day}</div>
                       <div className="text-xs text-muted-foreground">
