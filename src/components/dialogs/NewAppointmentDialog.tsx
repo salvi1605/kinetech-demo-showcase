@@ -19,6 +19,7 @@ import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { addMinutesStr } from '@/utils/dateUtils';
 import { checkConflictInDb, checkSlotConflictInDb } from '@/utils/appointments/checkConflictInDb';
+import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { treatmentLabel } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
 import { createAppointment as createAppointmentInDb } from '@/lib/appointmentService';
@@ -189,6 +190,26 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
     const subSlot = selectedSlot.subSlot ?? 1;
     
+    // Verificar disponibilidad del profesional
+    if (state.currentClinicId) {
+      const availCheck = await checkPractitionerAvailability({
+        practitionerId: data.practitionerId,
+        date: appointmentDate,
+        startTime: data.startTime,
+        clinicId: state.currentClinicId,
+      });
+
+      if (!availCheck.available && availCheck.hasAvailabilityConfigured) {
+        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+        toast({
+          title: "Fuera de horario",
+          description: `${practitionerName}: ${availCheck.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Verificar conflictos en el mismo subSlot desde BD
     const slotConflict = await checkSlotConflictInDb(
       state.currentClinicId,

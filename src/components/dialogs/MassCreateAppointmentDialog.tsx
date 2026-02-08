@@ -17,6 +17,7 @@ import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2 } from '
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
+import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MassCreateAppointmentDialogProps {
@@ -115,6 +116,34 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         variant: "destructive",
       });
       return;
+    }
+
+    // Validar disponibilidad de profesionales
+    if (state.currentClinicId) {
+      const availabilityConflicts: string[] = [];
+      for (const slot of sortedSlots) {
+        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+        if (slotPractitionerId) {
+          const availCheck = await checkPractitionerAvailability({
+            practitionerId: slotPractitionerId,
+            date: slot.dateISO,
+            startTime: slot.hour,
+            clinicId: state.currentClinicId,
+          });
+          if (!availCheck.available && availCheck.hasAvailabilityConfigured) {
+            const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
+            availabilityConflicts.push(`${slot.displayText} - ${practitionerName}: ${availCheck.message}`);
+          }
+        }
+      }
+      if (availabilityConflicts.length > 0) {
+        toast({
+          title: "Fuera de horario",
+          description: `${availabilityConflicts.length} turno(s) fuera del horario del profesional. Revisa la disponibilidad.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Validar conflictos de tratamientos exclusivos desde BD
