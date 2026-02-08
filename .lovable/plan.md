@@ -1,82 +1,70 @@
 
-# Plan: Alturas Uniformes en Sub-Slots del Calendario
+# Plan: Headers de dias sticky en el calendario
 
-## Problema Actual
+## Problema
 
-El calendario tiene alturas inconsistentes para los sub-slots:
+Al hacer scroll hacia abajo en el calendario para ver las horas mas tardias, los encabezados de los dias (Lunes, Martes, Miercoles, Jueves, Viernes) desaparecen, haciendo dificil saber en que columna/dia se esta mirando.
 
-| Estado del sub-slot | Altura actual |
-|--------------------|---------------|
-| Con cita agendada | 60px |
-| Vacío (sin cita) | 24px |
+## Solucion
 
-Esto crea una experiencia visual desigual donde los slots vacíos son muy pequeños comparados con los que tienen información.
+Hacer que la fila de encabezados de dias quede fija ("pinned") en la parte superior mientras se hace scroll vertical, de forma que siempre sean visibles.
 
----
-
-## Solución Propuesta
-
-Establecer una **altura uniforme de 60px** para todos los sub-slots, independientemente de si tienen cita o no.
-
----
-
-## Cambios Técnicos
+## Enfoque Tecnico
 
 ### Archivo: `src/pages/Calendar.tsx`
 
-#### Cambio 1: Alturas dinámicas (líneas 443-446)
+### Cambio 1: Crear contenedor con scroll vertical
 
-```typescript
-// ANTES:
-const rowHeights = Array.from({ length: 5 }).map((_, i) => 
-  slotAppointments[i] ? '60px' : '24px'
-).join(' ');
+Envolver el area del grid en un contenedor con altura maxima calculada y `overflow-y: auto`, para que el scroll ocurra dentro de ese contenedor (requisito para que `position: sticky` funcione).
 
-// DESPUES:
-const rowHeights = 'repeat(5, 60px)';
+```
+// ANTES: solo overflow-x-auto
+<div className="overflow-x-auto">
+
+// DESPUES: scroll en ambos ejes con altura limitada
+<div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
 ```
 
-#### Cambio 2: Slots completamente vacíos (línea 577)
+La altura `100vh - 280px` descuenta el topbar (64px), el header de la pagina (~120px), el card header (~60px) y algo de padding, dejando el maximo espacio posible para el grid.
 
-```typescript
-// ANTES:
-style={{ gridTemplateRows: 'repeat(5, 24px)' }}
+### Cambio 2: Hacer los headers del grid sticky
 
-// DESPUES:
-style={{ gridTemplateRows: 'repeat(5, 60px)' }}
+Aplicar `sticky top-0 z-20 bg-background` a las 6 celdas del header (celda "Hora" + 5 dias) para que se queden fijas al hacer scroll.
+
+```
+// Celda "Hora" - agregar sticky
+<div className="p-2 text-sm font-medium ... sticky top-0 z-20 bg-background">
+  Hora
+</div>
+
+// Celdas de dias - agregar sticky
+<div className="p-1 border ... sticky top-0 z-20 bg-background">
+  <div className="text-sm font-medium">{day}</div>
+  <div className="text-xs ...">{fecha}</div>
+</div>
 ```
 
-#### Cambio 3: Ajustar sub-slots vacíos
+### Cambio 3: Ajustar el WeekNavigatorCompact
 
-Agregar altura mínima a los botones de sub-slots vacíos para que ocupen el espacio correctamente:
+El navegador de semana ya es `sticky top-0 z-10`. Para que quede por encima de los headers de dias, se movera fuera del contenedor con scroll, asi no compite por espacio sticky.
 
-```typescript
-// Botón de sub-slot vacío
-className={`... h-full min-h-[56px] ...`}
 ```
-
----
+// Mover el WeekNavigator ANTES del contenedor scrollable
+<div className="flex justify-end px-2 py-1">
+  <WeekNavigatorCompact />
+</div>
+<div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
+  <!-- Grid sin el navigator -->
+</div>
+```
 
 ## Resultado Visual
 
-| Estado del sub-slot | Altura nueva |
-|--------------------|--------------|
-| Con cita agendada | 60px |
-| Vacío (sin cita) | 60px |
-
-Todos los sub-slots tendran la misma altura, creando una grilla uniforme y consistente.
-
----
+- Los encabezados de los dias se mantienen visibles al hacer scroll hacia abajo
+- Las horas siguen desplazandose normalmente debajo de los headers
+- El navegador de semana permanece siempre visible arriba del grid
+- Sin cambios en la vista mobile (usa tabs, no tiene este problema)
 
 ## Archivos a Modificar
 
-- **`src/pages/Calendar.tsx`**: 3 cambios puntuales para unificar alturas
-
----
-
-## Beneficios
-
-- Consistencia visual en toda la grilla del calendario
-- Los sub-slots vacíos son mas faciles de clickear (area tactil mas grande)
-- Mejor accesibilidad (objetivos tactiles >= 44px)
-- Experiencia de usuario mejorada
+- `src/pages/Calendar.tsx`: 3 cambios puntuales en la seccion desktop del grid (lineas 830-883)
