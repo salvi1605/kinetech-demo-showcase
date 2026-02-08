@@ -40,6 +40,7 @@ import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
+import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
 
 const editAppointmentSchema = z.object({
@@ -264,6 +265,26 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return; // Impedir persistencia
     }
     
+    // Validar disponibilidad del profesional
+    if (state.currentClinicId) {
+      const availCheck = await checkPractitionerAvailability({
+        practitionerId: data.practitionerId,
+        date: data.date,
+        startTime: data.startTime,
+        clinicId: state.currentClinicId,
+      });
+
+      if (!availCheck.available && availCheck.hasAvailabilityConfigured) {
+        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+        toast({
+          title: "Fuera de horario",
+          description: `${practitionerName}: ${availCheck.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Validar conflicto de tratamiento exclusivo desde BD
     if (state.currentClinicId) {
       const validation = await checkConflictInDb({
