@@ -1,53 +1,45 @@
 
-# Plan: Lineas divisorias mas visibles en el calendario
+
+# Plan: Lineas divisorias mas oscuras en el calendario
 
 ## Problema
 
-Las lineas entre dias (columnas) y entre horas (filas) en el grid del calendario son muy tenues porque usan `border-border/30` (30% de opacidad) y el grid tiene `gap: 4px` sin bordes solidos entre celdas.
+Las lineas divisorias actuales usan `border-border` y `border-border/50` o `border-border/60`, que son grises claros. Se necesitan lineas mas oscuras, cercanas al negro.
 
 ## Solucion
 
-Cambiar el enfoque visual para que las divisiones sean mas gruesas y visibles, usando bordes solidos en lugar de bordes con baja opacidad.
+Reemplazar las clases de color de borde por `border-gray-400` (para lineas principales) y `border-gray-300` (para lineas secundarias entre slots), que son tonos mucho mas oscuros y cercanos al negro sin ser completamente negros.
 
 ## Cambios en `src/pages/Calendar.tsx`
 
-### 1. Grid principal: quitar gap y usar bordes solidos
+### 1. Header "Hora"
+- De: `border-b-2 border-r-2 border-border`
+- A: `border-b-2 border-r-2 border-gray-400`
 
-Cambiar el estilo inline del grid:
-- De: `gap: '4px'`
-- A: `gap: '4px'` (sin gap, los bordes de las celdas hacen la separacion)
+### 2. Headers de dias
+- De: `border-b-2 border-r border-border`
+- A: `border-b-2 border-r border-gray-400`
 
-### 2. Header "Hora": borde mas visible
+### 3. Celdas de hora (columna izquierda)
+- De: `border-r-2 border-b border-border`
+- A: `border-r-2 border-b border-gray-400`
 
-- De: `border-b border-r bg-muted/10`
-- A: `border-b-2 border-r-2 border-border`
+### 4. Wrapper de cada celda de dia
+- De: `border-r border-b border-border/50`
+- A: `border-r border-b border-gray-300`
 
-### 3. Headers de dias: bordes mas gruesos
-
-- De: `border border-border/30`
-- A: `border-b-2 border-r border-border`
-
-### 4. Celdas de hora (columna izquierda): borde derecho visible
-
-- De: `border-r bg-muted/10`
-- A: `border-r-2 border-b border-border bg-muted/10`
-
-### 5. Celdas de slots (contenido): bordes visibles
-
-- De: `border border-border/30` (en las celdas internas de `renderSlot`)
-- A: `border border-border/60` o `border border-border`
-
-### 6. Wrapper de cada celda de dia: agregar borde
-
-Agregar `border-r border-b border-border/50` al div que envuelve cada `renderSlot` para marcar claramente la separacion entre columnas de dias y filas de horas.
+### 5. Celdas internas de slots (renderSlot)
+- De: `border border-border/60`
+- A: `border border-gray-300`
 
 ## Resultado
 
-- Lineas verticales (entre dias) claramente visibles
-- Lineas horizontales (entre bloques de hora) claramente visibles
-- Se mantiene el estilo limpio y profesional, solo se aumenta la visibilidad de las divisiones
-- Sin cambios funcionales, solo visuales
+- Lineas principales (headers, columna de horas): gris oscuro (`gray-400` = #9ca3af)
+- Lineas secundarias (entre slots): gris medio (`gray-300` = #d1d5db)
+- Jerarquia visual clara entre divisiones principales y secundarias
+- Aspecto mas definido y profesional
 
 ## Archivo a modificar
 
-- `src/pages/Calendar.tsx` (6 cambios puntuales en clases CSS)
+- `src/pages/Calendar.tsx` (5 cambios de clases CSS)
+
