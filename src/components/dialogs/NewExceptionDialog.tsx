@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, eachDayOfInterval, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, AlertTriangle, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -28,14 +27,31 @@ const EXCEPTION_TYPES = [
   { value: 'extended_hours', label: 'Horario extendido' },
 ] as const;
 
+const MAX_RANGE_DAYS = 90;
+
 const exceptionSchema = z.object({
   type: z.enum(['clinic_closed', 'practitioner_block', 'extended_hours']),
-  date: z.date({ required_error: 'La fecha es requerida' }),
+  dateFrom: z.date({ required_error: 'La fecha inicio es requerida' }),
+  dateTo: z.date().optional().nullable(),
   practitionerId: z.string().optional(),
   fromTime: z.string().optional(),
   toTime: z.string().optional(),
   reason: z.string().max(500).optional(),
 }).superRefine((data, ctx) => {
+  if (data.dateTo && data.dateFrom && data.dateTo < data.dateFrom) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Fecha fin debe ser igual o posterior a fecha inicio',
+      path: ['dateTo'],
+    });
+  }
+  if (data.dateTo && data.dateFrom && differenceInCalendarDays(data.dateTo, data.dateFrom) > MAX_RANGE_DAYS) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `El rango máximo es de ${MAX_RANGE_DAYS} días`,
+      path: ['dateTo'],
+    });
+  }
   if (data.type === 'practitioner_block' && !data.practitionerId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -73,6 +89,8 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
   const [affectedCount, setAffectedCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const isEditing = !!editingException;
+
   const form = useForm<ExceptionFormValues>({
     resolver: zodResolver(exceptionSchema),
     defaultValues: {
@@ -81,18 +99,25 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
       practitionerId: '',
       fromTime: '',
       toTime: '',
+      dateTo: null,
     },
   });
 
   const watchType = form.watch('type');
-  const watchDate = form.watch('date');
+  const watchDateFrom = form.watch('dateFrom');
+  const watchDateTo = form.watch('dateTo');
+
+  const rangeDayCount = watchDateFrom && watchDateTo
+    ? differenceInCalendarDays(watchDateTo, watchDateFrom) + 1
+    : null;
 
   // Populate form when editing
   useEffect(() => {
     if (editingException && open) {
       form.reset({
         type: editingException.type as ExceptionFormValues['type'],
-        date: new Date(editingException.date + 'T12:00:00'),
+        dateFrom: new Date(editingException.date + 'T12:00:00'),
+        dateTo: null,
         practitionerId: editingException.practitioner_id || '',
         fromTime: editingException.from_time?.substring(0, 5) || '',
         toTime: editingException.to_time?.substring(0, 5) || '',
@@ -105,6 +130,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
         practitionerId: '',
         fromTime: '',
         toTime: '',
+        dateTo: null,
       });
     }
   }, [editingException, open, form]);
@@ -112,7 +138,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
   // Check affected appointments when date/type changes
   useEffect(() => {
     const checkAffected = async () => {
-      if (!watchDate || !state.currentClinicId) {
+      if (!watchDateFrom || !state.currentClinicId) {
         setAffectedCount(null);
         return;
       }
@@ -121,12 +147,15 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
         return;
       }
 
-      const dateISO = format(watchDate, 'yyyy-MM-dd');
+      const dateFromISO = format(watchDateFrom, 'yyyy-MM-dd');
+      const dateToISO = watchDateTo ? format(watchDateTo, 'yyyy-MM-dd') : dateFromISO;
+
       let query = supabase
         .from('appointments')
         .select('id', { count: 'exact', head: true })
         .eq('clinic_id', state.currentClinicId)
-        .eq('date', dateISO)
+        .gte('date', dateFromISO)
+        .lte('date', dateToISO)
         .in('status', ['scheduled', 'confirmed']);
 
       const practId = form.getValues('practitionerId');
@@ -139,7 +168,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
     };
 
     checkAffected();
-  }, [watchDate, watchType, state.currentClinicId, form]);
+  }, [watchDateFrom, watchDateTo, watchType, state.currentClinicId, form]);
 
   const practitionerOptions = state.practitioners.map(p => ({
     value: p.id,
@@ -151,30 +180,41 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
 
     setIsSaving(true);
     try {
-      const dateISO = format(data.date, 'yyyy-MM-dd');
-      const payload = {
+      const basePayload = {
         clinic_id: state.currentClinicId,
         type: data.type,
-        date: dateISO,
         practitioner_id: data.type === 'clinic_closed' ? null : (data.practitionerId || null),
         from_time: data.type === 'clinic_closed' ? null : (data.fromTime || null),
         to_time: data.type === 'clinic_closed' ? null : (data.toTime || null),
         reason: data.reason || null,
       };
 
-      if (editingException) {
+      if (isEditing) {
+        const dateISO = format(data.dateFrom, 'yyyy-MM-dd');
         const { error } = await supabase
           .from('schedule_exceptions')
-          .update(payload)
-          .eq('id', editingException.id);
+          .update({ ...basePayload, date: dateISO })
+          .eq('id', editingException!.id);
         if (error) throw error;
         toast({ title: 'Excepción actualizada' });
       } else {
+        const endDate = data.dateTo || data.dateFrom;
+        const dates = eachDayOfInterval({ start: data.dateFrom, end: endDate });
+        const payloads = dates.map(d => ({
+          ...basePayload,
+          date: format(d, 'yyyy-MM-dd'),
+        }));
+
         const { error } = await supabase
           .from('schedule_exceptions')
-          .insert(payload);
+          .insert(payloads);
         if (error) throw error;
-        toast({ title: 'Excepción creada' });
+
+        toast({
+          title: dates.length === 1
+            ? 'Excepción creada'
+            : `${dates.length} excepciones creadas`,
+        });
       }
 
       window.dispatchEvent(new Event('exceptionsUpdated'));
@@ -193,7 +233,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-primary" />
-            {editingException ? 'Editar Excepción' : 'Nueva Excepción'}
+            {isEditing ? 'Editar Excepción' : 'Nueva Excepción'}
           </DialogTitle>
         </DialogHeader>
 
@@ -223,42 +263,92 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
               )}
             />
 
-            {/* Fecha */}
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Fecha</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            'w-full pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          {field.value ? format(field.value, 'PPP', { locale: es }) : 'Seleccionar fecha'}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
+            {/* Fecha inicio */}
+            <div className={cn("grid gap-4", isEditing ? "grid-cols-1" : "grid-cols-2")}>
+              <FormField
+                control={form.control}
+                name="dateFrom"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>{isEditing ? 'Fecha' : 'Fecha inicio'}</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? format(field.value, 'PPP', { locale: es }) : 'Seleccionar'}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Fecha fin (solo en creación) */}
+              {!isEditing && (
+                <FormField
+                  control={form.control}
+                  name="dateTo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Fecha fin (opcional)</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? format(field.value, 'PPP', { locale: es }) : 'Seleccionar'}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ?? undefined}
+                            onSelect={(date) => field.onChange(date ?? null)}
+                            disabled={(date) => watchDateFrom ? date < watchDateFrom : false}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-            />
+            </div>
+
+            {/* Info: cuántas excepciones se crearán */}
+            {!isEditing && rangeDayCount && rangeDayCount > 1 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="h-4 w-4 shrink-0" />
+                <span>Se crearán <strong className="text-foreground">{rangeDayCount}</strong> excepciones (una por día)</span>
+              </div>
+            )}
 
             {/* Profesional (visible for practitioner_block and extended_hours) */}
             {watchType !== 'clinic_closed' && (
@@ -349,7 +439,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
               <Alert variant="default" className="border-amber-300 bg-amber-50">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800">
-                  Hay <strong>{affectedCount}</strong> cita(s) programada(s) para esta fecha.
+                  Hay <strong>{affectedCount}</strong> cita(s) programada(s) {rangeDayCount && rangeDayCount > 1 ? 'en este rango de fechas' : 'para esta fecha'}.
                   No se cancelarán automáticamente.
                 </AlertDescription>
               </Alert>
@@ -360,7 +450,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSaving}>
-                {isSaving ? 'Guardando...' : editingException ? 'Actualizar' : 'Crear'}
+                {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : rangeDayCount && rangeDayCount > 1 ? `Crear ${rangeDayCount} excepciones` : 'Crear'}
               </Button>
             </DialogFooter>
           </form>
