@@ -484,7 +484,7 @@ export const Calendar = () => {
 
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-300 grid gap-1"
+        <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-400 grid gap-1"
              style={{ gridTemplateRows: rowHeights }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
@@ -593,7 +593,7 @@ export const Calendar = () => {
 
     // Slot completamente vacío - mostrar todos los sub-slots disponibles (60px cada uno)
     return (
-      <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-300 grid gap-1" 
+      <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-400 grid gap-1" 
            style={{ gridTemplateRows: 'repeat(5, 60px)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
@@ -922,7 +922,7 @@ export const Calendar = () => {
                         {time}
                       </div>
                       {WEEKDAYS.map((_, dayIndex) => (
-                        <div key={`${time}-${dayIndex}`} className="border-r border-b border-gray-300">
+                        <div key={`${time}-${dayIndex}`} className="border-r border-b border-gray-400">
                           {renderSlot(dayIndex, time)}
                         </div>
                       ))}
