@@ -484,7 +484,7 @@ export const Calendar = () => {
 
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="p-1 border border-border/60 grid gap-1"
+        <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-300 grid gap-1"
              style={{ gridTemplateRows: rowHeights }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
@@ -593,7 +593,7 @@ export const Calendar = () => {
 
     // Slot completamente vacío - mostrar todos los sub-slots disponibles (60px cada uno)
     return (
-      <div key={`${dayIndex}-${time}`} className="p-1 border border-border/60 grid gap-1" 
+      <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-300 grid gap-1" 
            style={{ gridTemplateRows: 'repeat(5, 60px)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
@@ -869,7 +869,7 @@ export const Calendar = () => {
                     }}
                   >
                   {/* Header - 6 celdas directas del grid (sticky) */}
-                  <div className="p-2 text-sm font-medium text-muted-foreground border-b-2 border-r-2 border-border bg-muted/10 flex items-center sticky top-0 z-20 bg-background">
+                  <div className="p-2 text-sm font-medium text-muted-foreground border-b-2 border-r-2 border-gray-400 bg-muted/10 flex items-center sticky top-0 z-20 bg-background">
                     Hora
                   </div>
                   {WEEKDAYS.map((day, index) => {
@@ -884,7 +884,7 @@ export const Calendar = () => {
                         <TooltipTrigger asChild>
                           <div 
                             className={cn(
-                              "p-1 border-b-2 border-r border-border flex flex-col items-center justify-center sticky top-0 z-20",
+                              "p-1 border-b-2 border-r border-gray-400 flex flex-col items-center justify-center sticky top-0 z-20",
                               isClosed ? 'bg-red-50 border-red-200' : hasBlock ? 'bg-amber-50 border-amber-200' : 'bg-background'
                             )}
                           >
@@ -917,12 +917,12 @@ export const Calendar = () => {
                   {/* Slots de tiempo - 6 celdas directas del grid por fila */}
                   {TIME_SLOTS.map((time) => (
                     <React.Fragment key={time}>
-                      <div className="p-2 text-sm text-muted-foreground border-r-2 border-b border-border bg-muted/10 flex items-center">
+                      <div className="p-2 text-sm text-muted-foreground border-r-2 border-b border-gray-400 bg-muted/10 flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
                         {time}
                       </div>
                       {WEEKDAYS.map((_, dayIndex) => (
-                        <div key={`${time}-${dayIndex}`} className="border-r border-b border-border/50">
+                        <div key={`${time}-${dayIndex}`} className="border-r border-b border-gray-300">
                           {renderSlot(dayIndex, time)}
                         </div>
                       ))}
