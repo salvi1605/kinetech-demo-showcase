@@ -10,7 +10,8 @@ import {
   X,
   Plus,
   Check,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import { treatmentLabel } from '@/utils/formatters';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { statusLabel, type AppointmentStatus } from '@/utils/statusUtils';
 import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
+import { cn } from '@/lib/utils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
@@ -41,6 +43,7 @@ import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
 import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 import { useAppointmentsForClinic } from '@/hooks/useAppointmentsForClinic';
+import { useScheduleExceptions } from '@/hooks/useScheduleExceptions';
 import { usePractitioners } from '@/hooks/usePractitioners';
 import { usePatients } from '@/hooks/usePatients';
 import { updateAppointmentStatus } from '@/lib/appointmentService';
@@ -48,6 +51,11 @@ import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/u
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+const TYPE_LABELS_CAL: Record<string, string> = {
+  clinic_closed: 'Día cerrado',
+  practitioner_block: 'Bloqueo profesional',
+  extended_hours: 'Horario extendido',
+};
 
 // Utilidades para tri-estado
 type Status = 'scheduled' | 'completed' | 'no_show';
@@ -122,6 +130,9 @@ export const Calendar = () => {
     weekDates[0], 
     weekDates[4]
   );
+
+  // Fetch schedule exceptions and holidays for the visible week
+  const { exceptionsMap, isBlocked: isSlotBlocked } = useScheduleExceptions(weekDates[0], weekDates[4]);
   
   // Effect to refetch when appointments are updated
   useEffect(() => {
@@ -335,6 +346,17 @@ export const Calendar = () => {
     const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
     const appointment = appointmentsBySlotKey.get(key);
     const isPast = isPastDay(dateISO);
+
+    // Check schedule exceptions (closed days, holidays, practitioner blocks)
+    const blockCheck = isSlotBlocked(dateISO, meta.time, state.filterPractitionerId || undefined);
+    if (blockCheck.blocked && !appointment) {
+      toast({
+        title: "Horario bloqueado",
+        description: blockCheck.reason || 'Este horario no está disponible',
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Verificar si está ocupado por otro profesional
     if (isOccupiedByOtherPractitioner(key)) {
@@ -850,17 +872,47 @@ export const Calendar = () => {
                   <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center sticky top-0 z-20 bg-background">
                     Hora
                   </div>
-                  {WEEKDAYS.map((day, index) => (
-                    <div 
-                      key={day} 
-                      className="p-1 border border-border/30 flex flex-col items-center justify-center sticky top-0 z-20 bg-background"
-                    >
-                      <div className="text-sm font-medium">{day}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(weekDates[index], 'd MMM', { locale: es })}
-                      </div>
-                    </div>
-                  ))}
+                  {WEEKDAYS.map((day, index) => {
+                    const dateISO = format(weekDates[index], 'yyyy-MM-dd');
+                    const dayExceptions = exceptionsMap.get(dateISO) || [];
+                    const isClosed = dayExceptions.some(e => e.type === 'clinic_closed' || e.isHoliday);
+                    const hasBlock = dayExceptions.some(e => e.type === 'practitioner_block');
+                    const closedReason = dayExceptions.find(e => e.type === 'clinic_closed' || e.isHoliday);
+                    
+                    return (
+                      <Tooltip key={day}>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={cn(
+                              "p-1 border border-border/30 flex flex-col items-center justify-center sticky top-0 z-20",
+                              isClosed ? 'bg-red-50 border-red-200' : hasBlock ? 'bg-amber-50 border-amber-200' : 'bg-background'
+                            )}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm font-medium">{day}</span>
+                              {isClosed && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                              {!isClosed && hasBlock && <AlertTriangle className="h-3 w-3 text-amber-500" />}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(weekDates[index], 'd MMM', { locale: es })}
+                            </div>
+                            {isClosed && closedReason && (
+                              <div className="text-[9px] text-red-600 truncate max-w-full px-1">
+                                {closedReason.reason || closedReason.holidayName || 'Cerrado'}
+                              </div>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        {(isClosed || hasBlock) && (
+                          <TooltipContent>
+                            {dayExceptions.map((e, i) => (
+                              <p key={i}>{e.isHoliday ? `🏖️ ${e.holidayName}` : `⚠️ ${e.reason || TYPE_LABELS_CAL[e.type] || e.type}`}</p>
+                            ))}
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    );
+                  })}
 
                   {/* Slots de tiempo - 6 celdas directas del grid por fila */}
                   {TIME_SLOTS.map((time) => (
