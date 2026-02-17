@@ -38,6 +38,7 @@ export const Exceptions = () => {
   const [exceptions, setExceptions] = useState<ScheduleExceptionRow[]>([]);
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterPractitioner, setFilterPractitioner] = useState<string>('all');
 
@@ -72,6 +73,7 @@ export const Exceptions = () => {
       console.error('Error fetching exceptions:', err);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
   }, [clinicId]);
 
@@ -205,8 +207,12 @@ export const Exceptions = () => {
             </Select>
           </div>
 
-          {loading ? (
-            <Card className="p-8 text-center text-muted-foreground">Cargando...</Card>
+          {(loading && !initialLoaded) ? (
+            <Card className="p-6 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-12 w-full rounded bg-muted animate-pulse" />
+              ))}
+            </Card>
           ) : filteredExceptions.length === 0 ? (
             <EmptyState
               icon={<AlertTriangle className="h-12 w-12" />}
@@ -293,8 +299,12 @@ export const Exceptions = () => {
             </Button>
           </div>
 
-          {loading ? (
-            <Card className="p-8 text-center text-muted-foreground">Cargando...</Card>
+          {(loading && !initialLoaded) ? (
+            <Card className="p-6 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-12 w-full rounded bg-muted animate-pulse" />
+              ))}
+            </Card>
           ) : holidays.length === 0 ? (
             <EmptyState
               icon={<Flag className="h-12 w-12" />}

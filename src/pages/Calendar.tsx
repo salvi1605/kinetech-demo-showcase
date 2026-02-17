@@ -84,19 +84,36 @@ export const Calendar = () => {
   // Cargar pacientes de la clínica desde BD
   const { patients: dbPatients, loading: loadingPatients } = usePatients(state.currentClinicId);
   
-  // Sincronizar profesionales de BD con AppContext (protegido contra dispatches redundantes)
+  // Comparación profunda para evitar dispatches redundantes
+  const hasPractitionerDataChanged = (prev: typeof dbPractitioners, next: typeof dbPractitioners): boolean => {
+    if (prev.length !== next.length) return true;
+    for (let i = 0; i < prev.length; i++) {
+      if (prev[i].id !== next[i].id || prev[i].name !== next[i].name || prev[i].color !== next[i].color) return true;
+    }
+    return false;
+  };
+
+  const hasPatientDataChanged = (prev: typeof dbPatients, next: typeof dbPatients): boolean => {
+    if (prev.length !== next.length) return true;
+    for (let i = 0; i < prev.length; i++) {
+      if (prev[i].id !== next[i].id || prev[i].name !== next[i].name) return true;
+    }
+    return false;
+  };
+
+  // Sincronizar profesionales de BD con AppContext (protegido con comparación profunda)
   const prevPractitionersRef = useRef(dbPractitioners);
   useEffect(() => {
-    if (dbPractitioners.length > 0 && dbPractitioners !== prevPractitionersRef.current) {
+    if (dbPractitioners.length > 0 && hasPractitionerDataChanged(prevPractitionersRef.current, dbPractitioners)) {
       prevPractitionersRef.current = dbPractitioners;
       dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
     }
   }, [dbPractitioners, dispatch]);
   
-  // Sincronizar pacientes de BD con AppContext (protegido contra dispatches redundantes)
+  // Sincronizar pacientes de BD con AppContext (protegido con comparación profunda)
   const prevPatientsRef = useRef(dbPatients);
   useEffect(() => {
-    if (dbPatients.length > 0 && dbPatients !== prevPatientsRef.current) {
+    if (dbPatients.length > 0 && hasPatientDataChanged(prevPatientsRef.current, dbPatients)) {
       prevPatientsRef.current = dbPatients;
       dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
     }
@@ -211,8 +228,6 @@ export const Calendar = () => {
   // Effect to update loading when week changes and clean past selections
   useEffect(() => {
     if (state.calendarWeekStart) {
-      // El loading ahora viene de loadingAppointments
-      
       // Clean past day selections only for non-admin users
       if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
         const filteredSlots = [...state.selectedSlots].filter(key => {
@@ -221,7 +236,6 @@ export const Calendar = () => {
         });
         
         if (filteredSlots.length !== state.selectedSlots.size) {
-          // Clear all selections if any past day slots were found
           dispatch({ type: 'CLEAR_SLOT_SELECTION' });
         }
       }
@@ -229,7 +243,8 @@ export const Calendar = () => {
       // Clear banner
       setAgendaBanner(null);
     }
-  }, [state.calendarWeekStart, state.userRole, state.selectedSlots, dispatch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.calendarWeekStart]);
 
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)

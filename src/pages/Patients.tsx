@@ -43,8 +43,8 @@ export const Patients = () => {
     dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
   }, [dbPatients, dispatch]);
 
-  // Usar pacientes del contexto para filtrado (sincronizados desde BD)
-  const patients = state.patients;
+  // Usar pacientes directamente del hook de BD para evitar parpadeo
+  const patients = dbPatients;
 
   const filteredPatients = patients.filter(patient => {
     const searchLower = searchTerm.toLowerCase();
