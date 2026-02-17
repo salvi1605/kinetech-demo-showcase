@@ -109,16 +109,14 @@ export const Calendar = () => {
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
 
-  // Obtener fechas de la semana laboral
-  const getWeekDates = () => {
+  // Obtener fechas de la semana laboral (memoizado para evitar re-renders)
+  const weekDates = useMemo(() => {
     const currentWeek = state.calendarWeekStart 
       ? new Date(state.calendarWeekStart + 'T00:00:00') 
       : new Date();
     const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lunes
     return Array.from({ length: 5 }, (_, i) => addDays(start, i));
-  };
-
-  const weekDates = getWeekDates();
+  }, [state.calendarWeekStart]);
   
   // Generar slots dinámicamente según clinic_settings
   const TIME_SLOTS = clinicSettings 
