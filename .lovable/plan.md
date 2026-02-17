@@ -1,74 +1,136 @@
 
 
-# Plan: Rango de fechas en Nueva Excepcion
+# Diagnostico y Plan de Estabilizacion del Sistema
 
-## Resumen
+## Problemas Identificados
 
-Modificar el dialogo "Nueva Excepcion" para que en lugar de seleccionar una sola fecha, el usuario pueda definir un rango con **Fecha inicio** y **Fecha fin**. Al guardar, se creara un registro individual en `schedule_exceptions` por cada dia del rango.
+### 1. Sesiones que se rompen (conexion al sistema)
 
----
+El error principal en los logs es: **"Invalid Refresh Token: Refresh Token Not Found"**. Esto significa que cuando un usuario deja la aplicacion abierta un tiempo, el token de sesion expira y el sistema no puede renovarlo. El resultado: el usuario queda desconectado sin aviso claro, o la aplicacion se comporta de forma erratica al intentar hacer llamadas al backend sin autorizacion.
 
-## Cambios en la UI del formulario
+Ademas, el proceso de inicio de sesion ejecuta la logica de autenticacion **dos veces** (una en `onAuthStateChange` y otra en `getSession`), duplicando llamadas al backend innecesariamente.
 
-### Reemplazar campo "Fecha" por dos campos
+### 2. Calendario que titila (rendimiento)
 
-El campo unico `date` se reemplaza por:
+Cada vez que llega una actualizacion en tiempo real (otro usuario crea o modifica un turno), el calendario:
 
-- **Fecha inicio** (obligatorio): date picker, igual al actual
-- **Fecha fin** (opcional): date picker. Si no se completa, se asume un solo dia (igual que antes). Si se completa, debe ser >= fecha inicio.
+- Reconstruye **dos mapas de indices** completos iterando TODAS las citas (lineas 150-191 de Calendar.tsx) en cada render
+- Despacha `SET_APPOINTMENTS` al contexto global, lo cual causa un re-render en cascada de toda la aplicacion
+- Sincroniza profesionales y pacientes desde la BD al contexto global en cada render del calendario
 
-Cuando fecha fin esta definida, se muestra un texto informativo debajo: "Se crearan X excepciones (una por dia)".
+Este ciclo se repite con cada cambio en tiempo real, causando el efecto de "titileo" visible.
 
-### Validacion
+### 3. Lentitud general
 
-- `dateFrom` es obligatorio (reemplaza a `date`)
-- `dateTo` es opcional; si se completa, debe ser >= `dateFrom`
-- Limite maximo de 90 dias de rango para evitar creaciones masivas accidentales
-- La advertencia de citas afectadas se adapta para contar citas en todo el rango de fechas
-
-### Comportamiento al guardar
-
-- Si solo hay `dateFrom` (sin `dateTo`): se crea 1 registro, comportamiento identico al actual
-- Si hay `dateFrom` y `dateTo`: se generan todas las fechas del rango (inclusive) y se hace un insert batch de N registros, todos con los mismos datos (tipo, profesional, horario, motivo)
-
-### Edicion
-
-- Cuando se edita una excepcion existente, se mantiene el comportamiento de fecha unica (solo `dateFrom`), ya que cada registro es independiente. El campo `dateTo` aparece vacio y deshabilitado en modo edicion.
+- Llamadas dobles al backend durante la autenticacion (edge function `ensure-public-user` se llama 2 veces)
+- Reconstruccion de indices en cada render sin memoizacion
+- Sincronizacion de datos BD-a-Context que dispara renders innecesarios
 
 ---
 
-## Detalles tecnicos
+## Plan de Solucion (3 cambios principales)
 
-### Schema zod actualizado
+### Cambio 1: Manejo robusto de sesiones expiradas
+
+**Archivo:** `src/contexts/AppContext.tsx`
+
+- Eliminar la logica duplicada: `getSession()` ya no ejecutara el bootstrap completo. Solo `onAuthStateChange` se encargara de la autenticacion.
+- Cuando el refresh token falle, limpiar la sesion local correctamente y redirigir al login con un mensaje claro ("Tu sesion ha expirado, por favor inicia sesion nuevamente").
+- Agregar manejo de errores en `onAuthStateChange` para el evento `TOKEN_REFRESHED` fallido, evitando que la app quede en estado intermedio.
+
+### Cambio 2: Memoizar indices del calendario
+
+**Archivo:** `src/pages/Calendar.tsx`
+
+- Envolver los mapas de indices (`allAppointmentsBySlotKey` y `appointmentsBySlotKey`) en `useMemo`, recalculandolos solo cuando `dbAppointments`, `state.filterPractitionerId` o `state.filterPatientSearch` cambien.
+- Envolver `filteredAppointments` en `useMemo` para evitar recalculos innecesarios.
+- Memoizar las funciones auxiliares (`getAppointmentsForSlot`, `getSlotCapacity`, etc.) con `useCallback`.
+
+### Cambio 3: Evitar sincronizacion innecesaria BD-a-Context
+
+**Archivo:** `src/pages/Calendar.tsx`
+
+- Los `useEffect` que sincronizan `dbPractitioners` y `dbPatients` al AppContext (lineas 87-98) disparan renders en cascada. Se agregara una comparacion de referencia para evitar despachar si los datos no cambiaron realmente.
+- El `useEffect` que despacha `SET_APPOINTMENTS` (linea 145-147) se protegera con una comparacion por longitud y referencia para evitar dispatches redundantes.
+
+---
+
+## Detalle Tecnico
+
+### Cambio 1 - Auth (AppContext.tsx)
 
 ```text
-exceptionSchema:
-  type: enum
-  dateFrom: z.date (obligatorio)
-  dateTo: z.date (opcional, >= dateFrom, max 90 dias de diferencia)
-  practitionerId: string (opcional)
-  fromTime: string (opcional)
-  toTime: string (opcional)
-  reason: string (max 500, opcional)
+Antes:
+  onAuthStateChange -> bootstrap completo
+  getSession -> bootstrap completo (duplicado)
+
+Despues:
+  onAuthStateChange -> bootstrap completo (unica fuente)
+  getSession -> solo verificar si hay sesion, dejar que onAuthStateChange maneje el resto
+  
+  Error de refresh token -> signOut limpio + dispatch LOGOUT + toast informativo
 ```
 
-### Logica de insert batch
+Se agrega deteccion explicita del evento `TOKEN_REFRESHED` fallido y se trata el error `refresh_token_not_found` cerrando la sesion limpiamente en lugar de dejar la app en un estado roto.
+
+### Cambio 2 - Memoizacion (Calendar.tsx)
 
 ```text
-1. Calcular array de fechas: eachDayOfInterval({ start: dateFrom, end: dateTo || dateFrom })
-2. Mapear cada fecha a un payload con los mismos campos
-3. Insertar con supabase.from('schedule_exceptions').insert(payloads)
-4. Mostrar toast con la cantidad de excepciones creadas
+// Antes (se ejecuta en CADA render):
+const allAppointmentsBySlotKey = new Map();
+dbAppointments.forEach(...)
+
+// Despues (solo se recalcula cuando cambian las dependencias):
+const allAppointmentsBySlotKey = useMemo(() => {
+  const map = new Map();
+  dbAppointments.forEach(...)
+  return map;
+}, [dbAppointments]);
+
+const filteredAppointments = useMemo(() => {
+  return dbAppointments.filter(...)
+}, [dbAppointments, state.filterPractitionerId, state.filterPatientSearch, state.patients]);
+
+const appointmentsBySlotKey = useMemo(() => {
+  const map = new Map();
+  filteredAppointments.forEach(...)
+  return map;
+}, [filteredAppointments]);
 ```
 
-### Advertencia de citas afectadas
+### Cambio 3 - Sincronizacion protegida (Calendar.tsx)
 
-La consulta de citas afectadas se adapta para filtrar por rango:
-- `.gte('date', dateFromISO).lte('date', dateToISO)`
-- En lugar del `.eq('date', dateISO)` actual
+```text
+// Antes:
+useEffect(() => {
+  if (dbPractitioners.length > 0) {
+    dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
+  }
+}, [dbPractitioners, dispatch]);
+
+// Despues:
+const prevPractitionersRef = useRef(dbPractitioners);
+useEffect(() => {
+  if (dbPractitioners.length > 0 && dbPractitioners !== prevPractitionersRef.current) {
+    prevPractitionersRef.current = dbPractitioners;
+    dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
+  }
+}, [dbPractitioners, dispatch]);
+```
+
+Mismo patron para `dbPatients` y `dbAppointments`.
 
 ---
 
-## Archivo a modificar
+## Archivos a modificar
 
-- `src/components/dialogs/NewExceptionDialog.tsx`: todos los cambios se concentran en este archivo
+1. `src/contexts/AppContext.tsx` - Eliminar bootstrap duplicado, manejar refresh token expirado
+2. `src/pages/Calendar.tsx` - Memoizar indices, proteger sincronizaciones
+
+## Impacto esperado
+
+- Los usuarios ya no quedaran "trabados" con sesiones rotas: se les redirigira al login con mensaje claro
+- El calendario dejara de titilar porque los re-renders seran minimos
+- La velocidad general mejorara al eliminar llamadas dobles y recalculos innecesarios
+- Las actualizaciones en tiempo real seguiran funcionando pero sin causar cascadas de renders
+
