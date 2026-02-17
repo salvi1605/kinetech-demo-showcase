@@ -9,6 +9,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useApp } from '@/contexts/AppContext';
+import { formatPatientShortName } from '@/utils/formatters';
 
 const routeNames: Record<string, string> = {
   '/': 'Inicio',
@@ -37,7 +38,7 @@ export const Breadcrumbs = () => {
     if (index > 0 && pathnames[index - 1] === 'patients') {
       const patient = state.patients.find(p => p.id === segment);
       if (patient) {
-        return nameToSlug(patient.name);
+        return formatPatientShortName(patient);
       }
     }
     return segment;

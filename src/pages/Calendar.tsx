@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -83,16 +84,37 @@ export const Calendar = () => {
   // Cargar pacientes de la clínica desde BD
   const { patients: dbPatients, loading: loadingPatients } = usePatients(state.currentClinicId);
   
-  // Sincronizar profesionales de BD con AppContext
+  // Comparación profunda para evitar dispatches redundantes
+  const hasPractitionerDataChanged = (prev: typeof dbPractitioners, next: typeof dbPractitioners): boolean => {
+    if (prev.length !== next.length) return true;
+    for (let i = 0; i < prev.length; i++) {
+      if (prev[i].id !== next[i].id || prev[i].name !== next[i].name || prev[i].color !== next[i].color) return true;
+    }
+    return false;
+  };
+
+  const hasPatientDataChanged = (prev: typeof dbPatients, next: typeof dbPatients): boolean => {
+    if (prev.length !== next.length) return true;
+    for (let i = 0; i < prev.length; i++) {
+      if (prev[i].id !== next[i].id || prev[i].name !== next[i].name) return true;
+    }
+    return false;
+  };
+
+  // Sincronizar profesionales de BD con AppContext (protegido con comparación profunda)
+  const prevPractitionersRef = useRef(dbPractitioners);
   useEffect(() => {
-    if (dbPractitioners.length > 0) {
+    if (dbPractitioners.length > 0 && hasPractitionerDataChanged(prevPractitionersRef.current, dbPractitioners)) {
+      prevPractitionersRef.current = dbPractitioners;
       dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
     }
   }, [dbPractitioners, dispatch]);
   
-  // Sincronizar pacientes de BD con AppContext
+  // Sincronizar pacientes de BD con AppContext (protegido con comparación profunda)
+  const prevPatientsRef = useRef(dbPatients);
   useEffect(() => {
-    if (dbPatients.length > 0) {
+    if (dbPatients.length > 0 && hasPatientDataChanged(prevPatientsRef.current, dbPatients)) {
+      prevPatientsRef.current = dbPatients;
       dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
     }
   }, [dbPatients, dispatch]);
@@ -105,16 +127,14 @@ export const Calendar = () => {
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
 
-  // Obtener fechas de la semana laboral
-  const getWeekDates = () => {
+  // Obtener fechas de la semana laboral (memoizado para evitar re-renders)
+  const weekDates = useMemo(() => {
     const currentWeek = state.calendarWeekStart 
       ? new Date(state.calendarWeekStart + 'T00:00:00') 
       : new Date();
     const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lunes
     return Array.from({ length: 5 }, (_, i) => addDays(start, i));
-  };
-
-  const weekDates = getWeekDates();
+  }, [state.calendarWeekStart]);
   
   // Generar slots dinámicamente según clinic_settings
   const TIME_SLOTS = clinicSettings 
@@ -141,54 +161,62 @@ export const Calendar = () => {
     return () => window.removeEventListener('appointmentUpdated', handleRefetch);
   }, [refetch]);
   
-  // Sincronizar citas de BD con AppContext para que AppointmentDetailDialog las encuentre
+  // Sincronizar citas de BD con AppContext (protegido contra dispatches redundantes)
+  const prevAppointmentsRef = useRef(dbAppointments);
   useEffect(() => {
-    dispatch({ type: 'SET_APPOINTMENTS', payload: dbAppointments });
+    if (dbAppointments !== prevAppointmentsRef.current) {
+      prevAppointmentsRef.current = dbAppointments;
+      dispatch({ type: 'SET_APPOINTMENTS', payload: dbAppointments });
+    }
   }, [dbAppointments, dispatch]);
 
-  // Índice de TODAS las citas (para verificar ocupación por otros profesionales)
-  const allAppointmentsBySlotKey = new Map<string, Appointment>();
-  dbAppointments.forEach(appointment => {
-    const dateISO = appointment.date.length === 10
-      ? appointment.date
-      : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot0 = ((appointment.subSlot ?? 1) - 1);
-    const hourNormalized = appointment.startTime.substring(0, 5);
-    const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
-    allAppointmentsBySlotKey.set(key, appointment);
-  });
+  // Índice de TODAS las citas memoizado (para verificar ocupación por otros profesionales)
+  const allAppointmentsBySlotKey = useMemo(() => {
+    const map = new Map<string, Appointment>();
+    dbAppointments.forEach(appointment => {
+      const dateISO = appointment.date.length === 10
+        ? appointment.date
+        : format(parseISO(appointment.date), 'yyyy-MM-dd');
+      const subSlot0 = ((appointment.subSlot ?? 1) - 1);
+      const hourNormalized = appointment.startTime.substring(0, 5);
+      const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
+      map.set(key, appointment);
+    });
+    return map;
+  }, [dbAppointments]);
 
-  // Filtrar citas por profesional Y/O paciente
-  const filteredAppointments = dbAppointments.filter(apt => {
-    // Filtro por profesional
-    if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) {
-      return false;
-    }
-    
-    // Filtro por paciente (búsqueda en nombre)
-    if (state.filterPatientSearch) {
-      const patient = state.patients.find(p => p.id === apt.patientId);
-      const patientName = patient?.name?.toLowerCase() ?? '';
-      const searchLower = state.filterPatientSearch.toLowerCase();
-      if (!patientName.includes(searchLower)) {
+  // Filtrar citas por profesional Y/O paciente (memoizado)
+  const filteredAppointments = useMemo(() => {
+    return dbAppointments.filter(apt => {
+      if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) {
         return false;
       }
-    }
-    
-    return true;
-  });
+      if (state.filterPatientSearch) {
+        const patient = state.patients.find(p => p.id === apt.patientId);
+        const searchLower = state.filterPatientSearch.toLowerCase();
+        const patientNameMatch = patient ? matchesPatientSearch(patient, searchLower) : false;
+        if (!patientNameMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [dbAppointments, state.filterPractitionerId, state.filterPatientSearch, state.patients]);
 
-  // Índice de citas filtradas por clave de sub-slot (para mostrar)
-  const appointmentsBySlotKey = new Map<string, Appointment>();
-  filteredAppointments.forEach(appointment => {
-    const dateISO = appointment.date.length === 10
-      ? appointment.date
-      : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot0 = ((appointment.subSlot ?? 1) - 1);
-    const hourNormalized = appointment.startTime.substring(0, 5);
-    const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
-    appointmentsBySlotKey.set(key, appointment);
-  });
+  // Índice de citas filtradas por clave de sub-slot (memoizado)
+  const appointmentsBySlotKey = useMemo(() => {
+    const map = new Map<string, Appointment>();
+    filteredAppointments.forEach(appointment => {
+      const dateISO = appointment.date.length === 10
+        ? appointment.date
+        : format(parseISO(appointment.date), 'yyyy-MM-dd');
+      const subSlot0 = ((appointment.subSlot ?? 1) - 1);
+      const hourNormalized = appointment.startTime.substring(0, 5);
+      const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
+      map.set(key, appointment);
+    });
+    return map;
+  }, [filteredAppointments]);
 
   // Verificar si un slot está ocupado por otro profesional (cuando hay filtro activo)
   const isOccupiedByOtherPractitioner = (key: string): boolean => {
@@ -200,8 +228,6 @@ export const Calendar = () => {
   // Effect to update loading when week changes and clean past selections
   useEffect(() => {
     if (state.calendarWeekStart) {
-      // El loading ahora viene de loadingAppointments
-      
       // Clean past day selections only for non-admin users
       if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
         const filteredSlots = [...state.selectedSlots].filter(key => {
@@ -210,7 +236,6 @@ export const Calendar = () => {
         });
         
         if (filteredSlots.length !== state.selectedSlots.size) {
-          // Clear all selections if any past day slots were found
           dispatch({ type: 'CLEAR_SLOT_SELECTION' });
         }
       }
@@ -218,7 +243,8 @@ export const Calendar = () => {
       // Clear banner
       setAgendaBanner(null);
     }
-  }, [state.calendarWeekStart, state.userRole, state.selectedSlots, dispatch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.calendarWeekStart]);
 
 
   // Obtener citas para un slot específico (opcionalmente filtrado por subIndex)
@@ -493,7 +519,7 @@ export const Calendar = () => {
               const patient = state.patients.find(p => p.id === appointment.patientId);
               const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
               const styles = getPractitionerStyles(appointment.practitionerId);
-              const hasPermission = ['admin', 'tenant_owner', 'recep', 'kinesio'].includes(state.userRole);
+              const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
               const stateAttr = statusToChecked(appointment.status as Status);
               const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
               const statusBadge = getStatusBadge(appointment.status);
@@ -528,7 +554,7 @@ export const Calendar = () => {
                       </button>
                     )}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
-                      <span className="font-medium text-xs truncate">{patient?.name || 'Paciente'}</span>
+                      <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
                         {statusBadge.label}
@@ -989,7 +1015,7 @@ export const Calendar = () => {
                                  const styles = getPractitionerStyles(appointment.practitionerId);
                                  const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
                                  const isCompleted = appointment.status === 'completed';
-                                 const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
+                                 const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
                                  
                                   return (
                                     <Card
@@ -1002,7 +1028,7 @@ export const Calendar = () => {
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2 mb-1">
                                             <div className="font-medium text-sm truncate">
-                                              {patient?.name || 'Paciente'}
+                                              {patient ? formatPatientShortName(patient) : 'Paciente'}
                                             </div>
                                              <span className={`inline-block px-2 py-1 text-xs rounded ${
                                                appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :

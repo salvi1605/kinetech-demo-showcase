@@ -17,6 +17,10 @@ type ReminderPref = '24h' | 'none';
 
 interface PatientFormData {
   identificacion: {
+    firstSurname: string;
+    secondSurname: string;
+    firstName: string;
+    secondName: string;
     fullName: string;
     preferredName: string;
     documentId: string;
@@ -65,6 +69,10 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
 
   const [form, setForm] = useState<PatientFormData>({
     identificacion: {
+      firstSurname: '',
+      secondSurname: '',
+      firstName: '',
+      secondName: '',
       fullName: '',
       preferredName: '',
       documentId: '',
@@ -93,8 +101,11 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
     const newErrors: { [key: string]: string } = {};
 
     if (step === 1) {
-      if (!form.identificacion.fullName.trim()) {
-        newErrors.fullName = 'El nombre completo es requerido';
+      if (!form.identificacion.firstSurname.trim()) {
+        newErrors.firstSurname = 'El primer apellido es requerido';
+      }
+      if (!form.identificacion.firstName.trim()) {
+        newErrors.firstName = 'El primer nombre es requerido';
       }
       if (!form.identificacion.documentId.trim()) {
         newErrors.documentId = 'El DNI/Pasaporte es requerido';
@@ -180,11 +191,23 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
           })()
         : null;
       
+      // Construir full_name desde campos estructurados
+      const fullName = [
+        form.identificacion.firstSurname.trim(),
+        form.identificacion.secondSurname.trim(),
+        form.identificacion.firstName.trim(),
+        form.identificacion.secondName.trim(),
+      ].filter(Boolean).join(' ');
+
       const { data, error } = await supabase
         .from('patients')
         .insert({
           clinic_id: state.currentClinicId,
-          full_name: form.identificacion.fullName.trim(),
+          full_name: fullName,
+          first_surname: form.identificacion.firstSurname.trim() || null,
+          second_surname: form.identificacion.secondSurname.trim() || null,
+          first_name: form.identificacion.firstName.trim() || null,
+          second_name: form.identificacion.secondName.trim() || null,
           preferred_name: form.identificacion.preferredName.trim() || null,
           document_id: form.identificacion.documentId.trim() || null,
           email: form.identificacion.email.trim() || null,
@@ -220,6 +243,10 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
       setCurrentStep(1);
       setForm({
         identificacion: {
+          firstSurname: '',
+          secondSurname: '',
+          firstName: '',
+          secondName: '',
           fullName: '',
           preferredName: '',
           documentId: '',
@@ -259,17 +286,49 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
       case 1:
         return (
           <div className="space-y-4" data-step-content>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Label htmlFor="fullName">Nombre Completo *</Label>
+          <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstSurname">Primer Apellido *</Label>
                 <Input
-                  id="fullName"
-                  value={form.identificacion.fullName}
-                  onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, fullName: e.target.value } }))}
-                  placeholder="Nombre y apellido completo"
-                  className={errors.fullName ? 'border-destructive' : ''}
+                  id="firstSurname"
+                  value={form.identificacion.firstSurname}
+                  onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, firstSurname: e.target.value } }))}
+                  placeholder="Ej: Alvarez"
+                  className={errors.firstSurname ? 'border-destructive' : ''}
                 />
-                {errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName}</p>}
+                {errors.firstSurname && <p className="text-sm text-destructive mt-1">{errors.firstSurname}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="secondSurname">Segundo Apellido</Label>
+                <Input
+                  id="secondSurname"
+                  value={form.identificacion.secondSurname}
+                  onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, secondSurname: e.target.value } }))}
+                  placeholder="Ej: Arroyo (opcional)"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="firstName">Primer Nombre *</Label>
+                <Input
+                  id="firstName"
+                  value={form.identificacion.firstName}
+                  onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, firstName: e.target.value } }))}
+                  placeholder="Ej: Leilany"
+                  className={errors.firstName ? 'border-destructive' : ''}
+                />
+                {errors.firstName && <p className="text-sm text-destructive mt-1">{errors.firstName}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="secondName">Segundo Nombre</Label>
+                <Input
+                  id="secondName"
+                  value={form.identificacion.secondName}
+                  onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, secondName: e.target.value } }))}
+                  placeholder="Ej: Carolina (opcional)"
+                />
               </div>
 
               <div>
@@ -336,7 +395,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="contactName">Nombre de Contacto *</Label>
+                <Label htmlFor="contactName">Nombre de Contacto</Label>
                 <Input
                   id="contactName"
                   value={form.emergencia.contactName}
@@ -358,7 +417,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="emergencyPhone">Teléfono de emergencia *</Label>
+                <Label htmlFor="emergencyPhone">Teléfono de emergencia</Label>
                 <Input
                   id="emergencyPhone"
                   value={form.emergencia.emergencyPhone}

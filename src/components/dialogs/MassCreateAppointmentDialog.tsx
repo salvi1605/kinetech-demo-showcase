@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
-import { treatmentLabel } from '@/utils/formatters';
+import { treatmentLabel, formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2 } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
@@ -69,7 +69,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
   // Filtrar pacientes por búsqueda
   const filteredPatients = state.patients.filter(p =>
-    p.name.toLowerCase().includes(patientSearch.toLowerCase())
+    matchesPatientSearch(p, patientSearch.toLowerCase())
   );
 
   // Función para detectar solapamiento de rangos horarios
@@ -520,12 +520,12 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                           className="w-full text-left p-3 hover:bg-muted/50 border-b last:border-b-0 flex items-center gap-2"
                           onClick={() => {
                             setPatientId(patient.id);
-                            setPatientSearch(patient.name);
+                            setPatientSearch(formatPatientShortName(patient));
                           }}
                         >
                           <User className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <div className="font-medium">{patient.name}</div>
+                            <div className="font-medium">{formatPatientShortName(patient)}</div>
                             <div className="text-sm text-muted-foreground">{patient.phone}</div>
                           </div>
                         </button>

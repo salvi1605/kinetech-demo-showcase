@@ -32,6 +32,10 @@ export const usePatients = (clinicId?: string) => {
         phone: p.phone || '',
         birthDate: p.date_of_birth || '',
         conditions: [],
+        first_surname: (p as any).first_surname || null,
+        second_surname: (p as any).second_surname || null,
+        first_name: (p as any).first_name || null,
+        second_name: (p as any).second_name || null,
         identificacion: {
           fullName: p.full_name,
           preferredName: p.preferred_name || '',

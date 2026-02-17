@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText } from 'lucide-react';
 import { parseSmartDOB, parseLocalDate } from '@/utils/dateUtils';
+import { formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,12 +43,12 @@ export const Patients = () => {
     dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
   }, [dbPatients, dispatch]);
 
-  // Usar pacientes del contexto para filtrado (sincronizados desde BD)
-  const patients = state.patients;
+  // Usar pacientes directamente del hook de BD para evitar parpadeo
+  const patients = dbPatients;
 
   const filteredPatients = patients.filter(patient => {
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = patient.name.toLowerCase().includes(searchLower) ||
+    const matchesSearch = matchesPatientSearch(patient, searchLower) ||
                          (patient.email && patient.email.toLowerCase().includes(searchLower)) ||
                          (patient.phone && patient.phone.toLowerCase().includes(searchLower)) ||
                          (patient.identificacion?.documentId && patient.identificacion.documentId.toLowerCase().includes(searchLower));
@@ -195,11 +196,11 @@ export const Patients = () => {
                       <TableCell className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-primary text-primary-foreground">
-                            {getInitials(patient.name)}
+                            {getInitials(formatPatientFullName(patient))}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{patient.name}</p>
+                          <p className="font-medium">{formatPatientFullName(patient)}</p>
                           {state.userRole !== 'health_pro' && patient.identificacion?.documentId && (
                             <p className="text-sm text-muted-foreground">DNI/Pasaporte: {patient.identificacion.documentId}</p>
                           )}
@@ -366,11 +367,11 @@ export const Patients = () => {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-primary text-primary-foreground">
-                          {getInitials(patient.name)}
+                          {getInitials(formatPatientFullName(patient))}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <CardTitle className="text-lg">{patient.name}</CardTitle>
+                        <CardTitle className="text-lg">{formatPatientFullName(patient)}</CardTitle>
                         <CardDescription>
                           {state.userRole !== 'health_pro' && patient.identificacion?.documentId && (
                             <span className="block">DNI/Pasaporte: {patient.identificacion.documentId} • </span>

@@ -19,6 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useApp, Appointment } from '@/contexts/AppContext';
+import { formatPatientFullName } from '@/utils/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { usePatients } from '@/hooks/usePatients';
 import { usePractitioners } from '@/hooks/usePractitioners';
@@ -200,7 +201,7 @@ export const PatientDetailTabs = () => {
       const { error } = await supabase
         .from('patients')
         .update({
-          full_name: patient.identificacion?.fullName || patient.name,
+          full_name: patient.identificacion?.fullName || formatPatientFullName(patient),
           preferred_name: patient.identificacion?.preferredName || null,
           document_id: patient.identificacion?.documentId || null,
           date_of_birth: patient.identificacion?.dateOfBirth || patient.birthDate || null,
@@ -282,11 +283,11 @@ export const PatientDetailTabs = () => {
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
               <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                {getInitials(patient.name)}
+                {getInitials(formatPatientFullName(patient))}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <CardTitle className="text-2xl">{patient.name}</CardTitle>
+              <CardTitle className="text-2xl">{formatPatientFullName(patient)}</CardTitle>
               <CardDescription className="text-base">
                 {calculateAge(patient.birthDate) !== null 
                   ? `${calculateAge(patient.birthDate)} años` 
@@ -438,7 +439,7 @@ export const PatientDetailTabs = () => {
                 <div>
                   <Label>Nombre Completo</Label>
                   <Input
-                    value={patient.identificacion?.fullName || patient.name}
+                    value={patient.identificacion?.fullName || formatPatientFullName(patient)}
                     onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, fullName: e.target.value })}
                     disabled={!editingData}
                   />

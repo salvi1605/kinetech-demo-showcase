@@ -9,6 +9,7 @@ import { ensureEvolutionStubs } from '@/lib/clinicalNotesService';
 import { getTodayISO, getLatestSummaryBefore } from '@/lib/clinicalSummaryHelpers';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { differenceInYears } from 'date-fns';
+import { formatPatientFullName } from '@/utils/formatters';
 import type { EvolutionEntry } from '@/types/patient';
 import type { ClinicalSummaryDay } from '@/contexts/AppContext';
 
@@ -130,7 +131,7 @@ export const ClinicalHistoryDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Historial del Paciente - {patient.name}</DialogTitle>
+          <DialogTitle>Historial del Paciente - {formatPatientFullName(patient)}</DialogTitle>
           {age !== null && birthDateFormatted && (
             <DialogDescription className="text-base">
               {age} años • Nacimiento: {birthDateFormatted}
