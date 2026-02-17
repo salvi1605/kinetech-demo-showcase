@@ -66,8 +66,8 @@ export const formatPatientFullName = (patient: {
 
 /**
  * Genera un nombre compacto para mostrar en el calendario.
- * Formato: "Apellido1 I. Nombre1"
- * Ej: first_surname="ALVAREZ", second_surname="ARROYO", first_name="LEILANY" → "Alvarez A. Leilany"
+ * Formato: "Apellido1 N." (primer apellido + inicial del primer nombre)
+ * Ej: first_surname="ALVAREZ", first_name="LEILANY" → "Alvarez L."
  */
 export const formatPatientShortName = (patient: {
   first_surname?: string | null;
@@ -78,16 +78,10 @@ export const formatPatientShortName = (patient: {
   full_name?: string;
 }): string => {
   if (patient.first_surname && patient.first_name) {
-    let result = capitalize(patient.first_surname);
-    if (patient.second_surname) {
-      result += ` ${patient.second_surname.charAt(0).toUpperCase()}.`;
-    }
-    result += ` ${capitalize(patient.first_name)}`;
-    return result;
+    return `${capitalize(patient.first_surname)} ${patient.first_name.charAt(0).toUpperCase()}.`;
   }
   // Fallback: usar name o full_name truncado
   const fallback = patient.name || patient.full_name || 'Paciente';
-  // Capitalizar cada palabra del fallback
   const capitalized = fallback.split(' ').map(capitalize).join(' ');
   return capitalized.length > 25 ? capitalized.substring(0, 22) + '...' : capitalized;
 };
