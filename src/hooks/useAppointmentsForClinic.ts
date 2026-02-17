@@ -149,8 +149,8 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
     };
   }, [state.currentClinicId, fetchAppointments]);
 
-  // Exponer refetch público siempre como no-silencioso por defecto
-  const refetch = useCallback(() => fetchAppointments(false), [fetchAppointments]);
+  // Exponer refetch público silencioso por defecto (evita skeleton en refrescos)
+  const refetch = useCallback(() => fetchAppointments(true), [fetchAppointments]);
 
   return { appointments, isLoading, error, refetch };
 };
