@@ -395,7 +395,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
           <div className="space-y-4" data-step-content>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="contactName">Nombre de Contacto *</Label>
+                <Label htmlFor="contactName">Nombre de Contacto</Label>
                 <Input
                   id="contactName"
                   value={form.emergencia.contactName}
@@ -417,7 +417,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="emergencyPhone">Teléfono de emergencia *</Label>
+                <Label htmlFor="emergencyPhone">Teléfono de emergencia</Label>
                 <Input
                   id="emergencyPhone"
                   value={form.emergencia.emergencyPhone}
