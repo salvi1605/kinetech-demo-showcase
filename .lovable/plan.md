@@ -1,100 +1,77 @@
 
+# Cierre de sesion automatico por inactividad (60 minutos)
 
-# Correccion del parpadeo del calendario
+## Resumen
 
-## Problema raiz
-
-El parpadeo que se ve en el video ocurre porque cada vez que llega una actualizacion en tiempo real (otro usuario crea/modifica un turno), sucede lo siguiente:
-
-1. El hook `useAppointmentsForClinic` ejecuta `setIsLoading(true)` al inicio de cada refetch
-2. El calendario muestra un esqueleto de carga (pantalla gris/animada) durante medio segundo
-3. Los datos llegan, `setIsLoading(false)`, y el calendario se vuelve a dibujar
-
-Ese ciclo **calendario visible -> esqueleto de carga -> calendario visible** es el parpadeo. Ocurre cada vez que cualquier usuario del sistema modifica un turno.
-
-Ademas, cada refetch crea un array de citas completamente nuevo en memoria, lo que invalida todas las protecciones de referencia que se agregaron antes.
+Se implementara un sistema que detecta cuando el usuario no interactua con la aplicacion durante 60 minutos consecutivos y cierra la sesion automaticamente, mostrando un aviso claro.
 
 ---
 
-## Solucion
+## Como funciona
 
-### Cambio 1: Eliminar el skeleton en refetches de tiempo real
+- Se monitorean eventos de actividad del usuario: clicks, teclas, movimiento de mouse, scroll y toques en pantalla
+- Cada vez que el usuario interactua, se reinicia un temporizador de 60 minutos
+- Si pasan 60 minutos sin ninguna interaccion, se cierra la sesion y se redirige al login
+- 5 minutos antes del cierre (al minuto 55), se muestra un aviso tipo toast: "Tu sesion se cerrara en 5 minutos por inactividad"
 
-**Archivo:** `src/hooks/useAppointmentsForClinic.ts`
+---
 
-- Separar el concepto de "carga inicial" vs "actualizacion silenciosa"
-- Solo mostrar `isLoading = true` en la primera carga o al cambiar de semana/clinica
-- Las actualizaciones en tiempo real (realtime) actualizan los datos sin activar el skeleton
-- Se agrega un parametro `silent` a `fetchAppointments` que evita `setIsLoading(true)`
+## Archivos a crear/modificar
 
-### Cambio 2: Estabilizar la referencia del array de citas
+### 1. Nuevo hook: `src/hooks/useInactivityLogout.ts`
 
-**Archivo:** `src/hooks/useAppointmentsForClinic.ts`
+Hook reutilizable que:
 
-- Antes de llamar `setAppointments(newData)`, comparar el contenido con el estado actual
-- Si los datos son identicos (mismos IDs, mismos estados), no actualizar el estado
-- Esto evita re-renders innecesarios cuando el evento de tiempo real no trae cambios reales
+- Registra listeners de eventos de actividad del usuario (click, keydown, mousemove, scroll, touchstart)
+- Mantiene un timer de 60 minutos (configurable)
+- A los 55 minutos muestra un toast de advertencia
+- A los 60 minutos ejecuta `supabase.auth.signOut()` y despacha `LOGOUT`
+- Limpia listeners y timers al desmontarse
 
-### Cambio 3: Memoizar weekDates en Calendar
+### 2. Modificar: `src/contexts/AppContext.tsx`
 
-**Archivo:** `src/pages/Calendar.tsx`
-
-- La funcion `getWeekDates()` se ejecuta en cada render y crea objetos Date nuevos
-- Envolver en `useMemo` dependiendo de `state.calendarWeekStart`
+- Invocar `useInactivityLogout` dentro del `AppProvider`, activo solo cuando `state.isAuthenticated` es `true`
 
 ---
 
 ## Detalle tecnico
 
-### useAppointmentsForClinic.ts - Refetch silencioso
+### Hook useInactivityLogout
 
 ```text
-Antes:
-  fetchAppointments() -> setIsLoading(true) -> fetch -> setAppointments -> setIsLoading(false)
-  (realtime llega) -> fetchAppointments() -> SKELETON VISIBLE -> datos -> grid visible
+Constantes:
+  INACTIVITY_TIMEOUT = 60 * 60 * 1000  (60 min en ms)
+  WARNING_BEFORE = 5 * 60 * 1000       (5 min antes)
 
-Despues:
-  fetchAppointments(silent=false) -> setIsLoading(true) -> fetch -> setAppointments -> setIsLoading(false)  [solo carga inicial]
-  (realtime llega) -> fetchAppointments(silent=true) -> fetch -> setAppointments (SIN skeleton)
+Eventos monitoreados:
+  ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove']
+
+Logica:
+  1. Al montar (si isAuthenticated=true):
+     - Registrar listeners en window para todos los eventos
+     - Iniciar timer de (TIMEOUT - WARNING) = 55 min para mostrar toast
+     - Iniciar timer de TIMEOUT = 60 min para signOut
+
+  2. Cada interaccion del usuario:
+     - Limpiar ambos timers
+     - Reiniciar ambos timers
+
+  3. Al llegar a 55 min sin actividad:
+     - Mostrar toast: "Tu sesion se cerrara en 5 minutos por inactividad"
+
+  4. Al llegar a 60 min sin actividad:
+     - supabase.auth.signOut()
+     - dispatch({ type: 'LOGOUT' })
+     - toast: "Sesion cerrada por inactividad"
+
+  5. Al desmontar o cuando isAuthenticated=false:
+     - Limpiar todos los listeners y timers
+
+  Optimizacion:
+     - Los listeners de mousemove usan throttle (1 evento cada 30 seg)
+       para no reiniciar timers con cada pixel de movimiento
 ```
 
-La suscripcion de realtime llamara a `fetchAppointments(true)` (silencioso), mientras que el `useEffect` de carga inicial y cambio de semana usara `fetchAppointments(false)`.
+### Integracion en AppProvider
 
-### useAppointmentsForClinic.ts - Comparacion de contenido
-
-```text
-// Antes de setAppointments, comparar IDs + estados
-const hasChanged = (prev, next) => {
-  if (prev.length !== next.length) return true;
-  return prev.some((apt, i) => apt.id !== next[i].id || apt.status !== next[i].status || apt.subSlot !== next[i].subSlot);
-};
-
-if (hasChanged(currentAppointments, mappedAppointments)) {
-  setAppointments(mappedAppointments);
-}
-```
-
-### Calendar.tsx - weekDates memoizado
-
-```text
-const weekDates = useMemo(() => {
-  const currentWeek = state.calendarWeekStart
-    ? new Date(state.calendarWeekStart + 'T00:00:00')
-    : new Date();
-  const start = startOfWeek(currentWeek, { weekStartsOn: 1 });
-  return Array.from({ length: 5 }, (_, i) => addDays(start, i));
-}, [state.calendarWeekStart]);
-```
-
----
-
-## Archivos a modificar
-
-1. `src/hooks/useAppointmentsForClinic.ts` - Refetch silencioso + comparacion de contenido
-2. `src/pages/Calendar.tsx` - Memoizar weekDates
-
-## Resultado esperado
-
-- El calendario ya NO parpadea cuando otro usuario modifica turnos
-- Los datos se actualizan en tiempo real de forma invisible (sin skeleton)
-- El skeleton solo aparece en la carga inicial o al cambiar de semana
+Se agrega la llamada al hook dentro del componente `AppProvider`, pasandole `state.isAuthenticated` y `dispatch`.
