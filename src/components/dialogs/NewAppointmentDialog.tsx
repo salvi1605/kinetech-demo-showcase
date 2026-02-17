@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { addMinutesStr } from '@/utils/dateUtils';
 import { checkConflictInDb, checkSlotConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
-import { treatmentLabel } from '@/utils/formatters';
+import { treatmentLabel, formatPatientFullName, formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
 import { createAppointment as createAppointmentInDb } from '@/lib/appointmentService';
 
@@ -91,10 +91,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
   }, [selectedSlot, open, form]);
 
   // Filtrar pacientes por búsqueda
-  const filteredPatients = state.patients.filter(patient =>
-    patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    patient.phone.includes(patientSearch)
-  );
+  const filteredPatients = state.patients.filter(patient => {
+    const searchLower = patientSearch.toLowerCase();
+    return matchesPatientSearch(patient, searchLower) ||
+      patient.phone.includes(patientSearch);
+  });
 
   // Crear paciente rápido - CONECTADO A BD
   const handleQuickCreatePatient = async () => {
@@ -144,7 +145,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
       toast({
         title: "Paciente creado",
-        description: `${newPatient.name} ha sido creado y seleccionado`,
+        description: `${formatPatientFullName(newPatient)} ha sido creado y seleccionado`,
       });
     } catch (error) {
       console.error('Error creating quick patient:', error);
@@ -265,7 +266,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
       toast({
         title: "Turno creado correctamente",
-        description: `Turno para ${patient?.name || 'Sin paciente'} con ${practitioner?.name} el ${format(selectedSlot.date, 'dd/MM/yyyy')} a las ${data.startTime}`,
+        description: `Turno para ${patient ? formatPatientFullName(patient) : 'Sin paciente'} con ${practitioner?.name} el ${format(selectedSlot.date, 'dd/MM/yyyy')} a las ${data.startTime}`,
       });
 
       form.reset();
@@ -450,10 +451,10 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
                           className="w-full text-left p-3 hover:bg-muted/50 border-b last:border-b-0 focus:outline-none focus:bg-muted/50"
                           onClick={() => {
                             form.setValue('patientId', patient.id);
-                            setPatientSearch(patient.name);
+                            setPatientSearch(formatPatientShortName(patient));
                           }}
                         >
-                          <div className="font-medium">{patient.name}</div>
+                          <div className="font-medium">{formatPatientShortName(patient)}</div>
                           <div className="text-sm text-muted-foreground">{patient.phone}</div>
                         </button>
                       ))

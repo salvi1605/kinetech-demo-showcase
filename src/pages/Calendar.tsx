@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { formatPatientShortName } from '@/utils/formatters';
+import { formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -176,9 +176,9 @@ export const Calendar = () => {
       }
       if (state.filterPatientSearch) {
         const patient = state.patients.find(p => p.id === apt.patientId);
-        const patientName = patient?.name?.toLowerCase() ?? '';
         const searchLower = state.filterPatientSearch.toLowerCase();
-        if (!patientName.includes(searchLower)) {
+        const patientNameMatch = patient ? matchesPatientSearch(patient, searchLower) : false;
+        if (!patientNameMatch) {
           return false;
         }
       }

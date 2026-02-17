@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { TreatmentType } from '@/types/appointments';
-import { treatmentLabel } from '@/utils/formatters';
+import { treatmentLabel, formatPatientFullName } from '@/utils/formatters';
 import { 
   Calendar, 
   Clock, 
@@ -200,7 +200,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
     const summary = `
 RESUMEN DE TURNO
 
-Paciente: ${patient?.name || 'Sin paciente'}
+Paciente: ${patient ? formatPatientFullName(patient) : 'Sin paciente'}
 Kinesiólogo: ${practitioner?.name || 'Sin asignar'}
 Fecha: ${format(appointmentDate, 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
 Horario: ${appointment.startTime}
@@ -236,7 +236,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       
       toast({
         title: "Turno eliminado",
-        description: `El turno de ${patient?.name || 'Sin paciente'} ha sido eliminado`,
+        description: `El turno de ${patient ? formatPatientFullName(patient) : 'Sin paciente'} ha sido eliminado`,
       });
       
       onOpenChange(false);
@@ -322,7 +322,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
       toast({
         title: "Turno actualizado",
-        description: `Turno de ${patient?.name || 'Sin paciente'} con ${updatedPractitioner?.name} actualizado a ${statusLabel}`,
+        description: `Turno de ${patient ? formatPatientFullName(patient) : 'Sin paciente'} con ${updatedPractitioner?.name} actualizado a ${statusLabel}`,
       });
 
       setIsEditing(false);
@@ -408,7 +408,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 )}
               </div>
               <div className="bg-muted/30 p-4 rounded-lg">
-                <p className="font-medium">{patient?.name || 'Sin paciente asignado'}</p>
+                <p className="font-medium">{patient ? formatPatientFullName(patient) : 'Sin paciente asignado'}</p>
                 {patient && (
                   <div className="text-sm text-muted-foreground space-y-1 mt-2">
                     <p>📧 {patient.email}</p>
