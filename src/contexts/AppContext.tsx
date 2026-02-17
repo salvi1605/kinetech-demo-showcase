@@ -3,6 +3,7 @@ import { addWeeks, subWeeks, format } from 'date-fns';
 import type { TreatmentType } from '@/types/appointments';
 import type { EvolutionEntry } from '@/types/patient';
 import { supabase } from '@/integrations/supabase/client';
+import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 // Types
 export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner';
@@ -937,6 +938,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Auto-logout after 60 min of inactivity
+  useInactivityLogout(state.isAuthenticated, dispatch);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
