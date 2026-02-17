@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -83,16 +83,20 @@ export const Calendar = () => {
   // Cargar pacientes de la clínica desde BD
   const { patients: dbPatients, loading: loadingPatients } = usePatients(state.currentClinicId);
   
-  // Sincronizar profesionales de BD con AppContext
+  // Sincronizar profesionales de BD con AppContext (protegido contra dispatches redundantes)
+  const prevPractitionersRef = useRef(dbPractitioners);
   useEffect(() => {
-    if (dbPractitioners.length > 0) {
+    if (dbPractitioners.length > 0 && dbPractitioners !== prevPractitionersRef.current) {
+      prevPractitionersRef.current = dbPractitioners;
       dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
     }
   }, [dbPractitioners, dispatch]);
   
-  // Sincronizar pacientes de BD con AppContext
+  // Sincronizar pacientes de BD con AppContext (protegido contra dispatches redundantes)
+  const prevPatientsRef = useRef(dbPatients);
   useEffect(() => {
-    if (dbPatients.length > 0) {
+    if (dbPatients.length > 0 && dbPatients !== prevPatientsRef.current) {
+      prevPatientsRef.current = dbPatients;
       dispatch({ type: 'SET_PATIENTS', payload: dbPatients });
     }
   }, [dbPatients, dispatch]);
@@ -141,54 +145,62 @@ export const Calendar = () => {
     return () => window.removeEventListener('appointmentUpdated', handleRefetch);
   }, [refetch]);
   
-  // Sincronizar citas de BD con AppContext para que AppointmentDetailDialog las encuentre
+  // Sincronizar citas de BD con AppContext (protegido contra dispatches redundantes)
+  const prevAppointmentsRef = useRef(dbAppointments);
   useEffect(() => {
-    dispatch({ type: 'SET_APPOINTMENTS', payload: dbAppointments });
+    if (dbAppointments !== prevAppointmentsRef.current) {
+      prevAppointmentsRef.current = dbAppointments;
+      dispatch({ type: 'SET_APPOINTMENTS', payload: dbAppointments });
+    }
   }, [dbAppointments, dispatch]);
 
-  // Índice de TODAS las citas (para verificar ocupación por otros profesionales)
-  const allAppointmentsBySlotKey = new Map<string, Appointment>();
-  dbAppointments.forEach(appointment => {
-    const dateISO = appointment.date.length === 10
-      ? appointment.date
-      : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot0 = ((appointment.subSlot ?? 1) - 1);
-    const hourNormalized = appointment.startTime.substring(0, 5);
-    const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
-    allAppointmentsBySlotKey.set(key, appointment);
-  });
+  // Índice de TODAS las citas memoizado (para verificar ocupación por otros profesionales)
+  const allAppointmentsBySlotKey = useMemo(() => {
+    const map = new Map<string, Appointment>();
+    dbAppointments.forEach(appointment => {
+      const dateISO = appointment.date.length === 10
+        ? appointment.date
+        : format(parseISO(appointment.date), 'yyyy-MM-dd');
+      const subSlot0 = ((appointment.subSlot ?? 1) - 1);
+      const hourNormalized = appointment.startTime.substring(0, 5);
+      const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
+      map.set(key, appointment);
+    });
+    return map;
+  }, [dbAppointments]);
 
-  // Filtrar citas por profesional Y/O paciente
-  const filteredAppointments = dbAppointments.filter(apt => {
-    // Filtro por profesional
-    if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) {
-      return false;
-    }
-    
-    // Filtro por paciente (búsqueda en nombre)
-    if (state.filterPatientSearch) {
-      const patient = state.patients.find(p => p.id === apt.patientId);
-      const patientName = patient?.name?.toLowerCase() ?? '';
-      const searchLower = state.filterPatientSearch.toLowerCase();
-      if (!patientName.includes(searchLower)) {
+  // Filtrar citas por profesional Y/O paciente (memoizado)
+  const filteredAppointments = useMemo(() => {
+    return dbAppointments.filter(apt => {
+      if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) {
         return false;
       }
-    }
-    
-    return true;
-  });
+      if (state.filterPatientSearch) {
+        const patient = state.patients.find(p => p.id === apt.patientId);
+        const patientName = patient?.name?.toLowerCase() ?? '';
+        const searchLower = state.filterPatientSearch.toLowerCase();
+        if (!patientName.includes(searchLower)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [dbAppointments, state.filterPractitionerId, state.filterPatientSearch, state.patients]);
 
-  // Índice de citas filtradas por clave de sub-slot (para mostrar)
-  const appointmentsBySlotKey = new Map<string, Appointment>();
-  filteredAppointments.forEach(appointment => {
-    const dateISO = appointment.date.length === 10
-      ? appointment.date
-      : format(parseISO(appointment.date), 'yyyy-MM-dd');
-    const subSlot0 = ((appointment.subSlot ?? 1) - 1);
-    const hourNormalized = appointment.startTime.substring(0, 5);
-    const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
-    appointmentsBySlotKey.set(key, appointment);
-  });
+  // Índice de citas filtradas por clave de sub-slot (memoizado)
+  const appointmentsBySlotKey = useMemo(() => {
+    const map = new Map<string, Appointment>();
+    filteredAppointments.forEach(appointment => {
+      const dateISO = appointment.date.length === 10
+        ? appointment.date
+        : format(parseISO(appointment.date), 'yyyy-MM-dd');
+      const subSlot0 = ((appointment.subSlot ?? 1) - 1);
+      const hourNormalized = appointment.startTime.substring(0, 5);
+      const key = getSlotKey({ dateISO, hour: hourNormalized, subSlot: subSlot0 });
+      map.set(key, appointment);
+    });
+    return map;
+  }, [filteredAppointments]);
 
   // Verificar si un slot está ocupado por otro profesional (cuando hay filtro activo)
   const isOccupiedByOtherPractitioner = (key: string): boolean => {
