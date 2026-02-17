@@ -1,136 +1,100 @@
 
 
-# Diagnostico y Plan de Estabilizacion del Sistema
+# Correccion del parpadeo del calendario
 
-## Problemas Identificados
+## Problema raiz
 
-### 1. Sesiones que se rompen (conexion al sistema)
+El parpadeo que se ve en el video ocurre porque cada vez que llega una actualizacion en tiempo real (otro usuario crea/modifica un turno), sucede lo siguiente:
 
-El error principal en los logs es: **"Invalid Refresh Token: Refresh Token Not Found"**. Esto significa que cuando un usuario deja la aplicacion abierta un tiempo, el token de sesion expira y el sistema no puede renovarlo. El resultado: el usuario queda desconectado sin aviso claro, o la aplicacion se comporta de forma erratica al intentar hacer llamadas al backend sin autorizacion.
+1. El hook `useAppointmentsForClinic` ejecuta `setIsLoading(true)` al inicio de cada refetch
+2. El calendario muestra un esqueleto de carga (pantalla gris/animada) durante medio segundo
+3. Los datos llegan, `setIsLoading(false)`, y el calendario se vuelve a dibujar
 
-Ademas, el proceso de inicio de sesion ejecuta la logica de autenticacion **dos veces** (una en `onAuthStateChange` y otra en `getSession`), duplicando llamadas al backend innecesariamente.
+Ese ciclo **calendario visible -> esqueleto de carga -> calendario visible** es el parpadeo. Ocurre cada vez que cualquier usuario del sistema modifica un turno.
 
-### 2. Calendario que titila (rendimiento)
-
-Cada vez que llega una actualizacion en tiempo real (otro usuario crea o modifica un turno), el calendario:
-
-- Reconstruye **dos mapas de indices** completos iterando TODAS las citas (lineas 150-191 de Calendar.tsx) en cada render
-- Despacha `SET_APPOINTMENTS` al contexto global, lo cual causa un re-render en cascada de toda la aplicacion
-- Sincroniza profesionales y pacientes desde la BD al contexto global en cada render del calendario
-
-Este ciclo se repite con cada cambio en tiempo real, causando el efecto de "titileo" visible.
-
-### 3. Lentitud general
-
-- Llamadas dobles al backend durante la autenticacion (edge function `ensure-public-user` se llama 2 veces)
-- Reconstruccion de indices en cada render sin memoizacion
-- Sincronizacion de datos BD-a-Context que dispara renders innecesarios
+Ademas, cada refetch crea un array de citas completamente nuevo en memoria, lo que invalida todas las protecciones de referencia que se agregaron antes.
 
 ---
 
-## Plan de Solucion (3 cambios principales)
+## Solucion
 
-### Cambio 1: Manejo robusto de sesiones expiradas
+### Cambio 1: Eliminar el skeleton en refetches de tiempo real
 
-**Archivo:** `src/contexts/AppContext.tsx`
+**Archivo:** `src/hooks/useAppointmentsForClinic.ts`
 
-- Eliminar la logica duplicada: `getSession()` ya no ejecutara el bootstrap completo. Solo `onAuthStateChange` se encargara de la autenticacion.
-- Cuando el refresh token falle, limpiar la sesion local correctamente y redirigir al login con un mensaje claro ("Tu sesion ha expirado, por favor inicia sesion nuevamente").
-- Agregar manejo de errores en `onAuthStateChange` para el evento `TOKEN_REFRESHED` fallido, evitando que la app quede en estado intermedio.
+- Separar el concepto de "carga inicial" vs "actualizacion silenciosa"
+- Solo mostrar `isLoading = true` en la primera carga o al cambiar de semana/clinica
+- Las actualizaciones en tiempo real (realtime) actualizan los datos sin activar el skeleton
+- Se agrega un parametro `silent` a `fetchAppointments` que evita `setIsLoading(true)`
 
-### Cambio 2: Memoizar indices del calendario
+### Cambio 2: Estabilizar la referencia del array de citas
+
+**Archivo:** `src/hooks/useAppointmentsForClinic.ts`
+
+- Antes de llamar `setAppointments(newData)`, comparar el contenido con el estado actual
+- Si los datos son identicos (mismos IDs, mismos estados), no actualizar el estado
+- Esto evita re-renders innecesarios cuando el evento de tiempo real no trae cambios reales
+
+### Cambio 3: Memoizar weekDates en Calendar
 
 **Archivo:** `src/pages/Calendar.tsx`
 
-- Envolver los mapas de indices (`allAppointmentsBySlotKey` y `appointmentsBySlotKey`) en `useMemo`, recalculandolos solo cuando `dbAppointments`, `state.filterPractitionerId` o `state.filterPatientSearch` cambien.
-- Envolver `filteredAppointments` en `useMemo` para evitar recalculos innecesarios.
-- Memoizar las funciones auxiliares (`getAppointmentsForSlot`, `getSlotCapacity`, etc.) con `useCallback`.
-
-### Cambio 3: Evitar sincronizacion innecesaria BD-a-Context
-
-**Archivo:** `src/pages/Calendar.tsx`
-
-- Los `useEffect` que sincronizan `dbPractitioners` y `dbPatients` al AppContext (lineas 87-98) disparan renders en cascada. Se agregara una comparacion de referencia para evitar despachar si los datos no cambiaron realmente.
-- El `useEffect` que despacha `SET_APPOINTMENTS` (linea 145-147) se protegera con una comparacion por longitud y referencia para evitar dispatches redundantes.
+- La funcion `getWeekDates()` se ejecuta en cada render y crea objetos Date nuevos
+- Envolver en `useMemo` dependiendo de `state.calendarWeekStart`
 
 ---
 
-## Detalle Tecnico
+## Detalle tecnico
 
-### Cambio 1 - Auth (AppContext.tsx)
+### useAppointmentsForClinic.ts - Refetch silencioso
 
 ```text
 Antes:
-  onAuthStateChange -> bootstrap completo
-  getSession -> bootstrap completo (duplicado)
+  fetchAppointments() -> setIsLoading(true) -> fetch -> setAppointments -> setIsLoading(false)
+  (realtime llega) -> fetchAppointments() -> SKELETON VISIBLE -> datos -> grid visible
 
 Despues:
-  onAuthStateChange -> bootstrap completo (unica fuente)
-  getSession -> solo verificar si hay sesion, dejar que onAuthStateChange maneje el resto
-  
-  Error de refresh token -> signOut limpio + dispatch LOGOUT + toast informativo
+  fetchAppointments(silent=false) -> setIsLoading(true) -> fetch -> setAppointments -> setIsLoading(false)  [solo carga inicial]
+  (realtime llega) -> fetchAppointments(silent=true) -> fetch -> setAppointments (SIN skeleton)
 ```
 
-Se agrega deteccion explicita del evento `TOKEN_REFRESHED` fallido y se trata el error `refresh_token_not_found` cerrando la sesion limpiamente en lugar de dejar la app en un estado roto.
+La suscripcion de realtime llamara a `fetchAppointments(true)` (silencioso), mientras que el `useEffect` de carga inicial y cambio de semana usara `fetchAppointments(false)`.
 
-### Cambio 2 - Memoizacion (Calendar.tsx)
+### useAppointmentsForClinic.ts - Comparacion de contenido
 
 ```text
-// Antes (se ejecuta en CADA render):
-const allAppointmentsBySlotKey = new Map();
-dbAppointments.forEach(...)
+// Antes de setAppointments, comparar IDs + estados
+const hasChanged = (prev, next) => {
+  if (prev.length !== next.length) return true;
+  return prev.some((apt, i) => apt.id !== next[i].id || apt.status !== next[i].status || apt.subSlot !== next[i].subSlot);
+};
 
-// Despues (solo se recalcula cuando cambian las dependencias):
-const allAppointmentsBySlotKey = useMemo(() => {
-  const map = new Map();
-  dbAppointments.forEach(...)
-  return map;
-}, [dbAppointments]);
-
-const filteredAppointments = useMemo(() => {
-  return dbAppointments.filter(...)
-}, [dbAppointments, state.filterPractitionerId, state.filterPatientSearch, state.patients]);
-
-const appointmentsBySlotKey = useMemo(() => {
-  const map = new Map();
-  filteredAppointments.forEach(...)
-  return map;
-}, [filteredAppointments]);
+if (hasChanged(currentAppointments, mappedAppointments)) {
+  setAppointments(mappedAppointments);
+}
 ```
 
-### Cambio 3 - Sincronizacion protegida (Calendar.tsx)
+### Calendar.tsx - weekDates memoizado
 
 ```text
-// Antes:
-useEffect(() => {
-  if (dbPractitioners.length > 0) {
-    dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
-  }
-}, [dbPractitioners, dispatch]);
-
-// Despues:
-const prevPractitionersRef = useRef(dbPractitioners);
-useEffect(() => {
-  if (dbPractitioners.length > 0 && dbPractitioners !== prevPractitionersRef.current) {
-    prevPractitionersRef.current = dbPractitioners;
-    dispatch({ type: 'SET_PRACTITIONERS', payload: dbPractitioners });
-  }
-}, [dbPractitioners, dispatch]);
+const weekDates = useMemo(() => {
+  const currentWeek = state.calendarWeekStart
+    ? new Date(state.calendarWeekStart + 'T00:00:00')
+    : new Date();
+  const start = startOfWeek(currentWeek, { weekStartsOn: 1 });
+  return Array.from({ length: 5 }, (_, i) => addDays(start, i));
+}, [state.calendarWeekStart]);
 ```
-
-Mismo patron para `dbPatients` y `dbAppointments`.
 
 ---
 
 ## Archivos a modificar
 
-1. `src/contexts/AppContext.tsx` - Eliminar bootstrap duplicado, manejar refresh token expirado
-2. `src/pages/Calendar.tsx` - Memoizar indices, proteger sincronizaciones
+1. `src/hooks/useAppointmentsForClinic.ts` - Refetch silencioso + comparacion de contenido
+2. `src/pages/Calendar.tsx` - Memoizar weekDates
 
-## Impacto esperado
+## Resultado esperado
 
-- Los usuarios ya no quedaran "trabados" con sesiones rotas: se les redirigira al login con mensaje claro
-- El calendario dejara de titilar porque los re-renders seran minimos
-- La velocidad general mejorara al eliminar llamadas dobles y recalculos innecesarios
-- Las actualizaciones en tiempo real seguiran funcionando pero sin causar cascadas de renders
-
+- El calendario ya NO parpadea cuando otro usuario modifica turnos
+- Los datos se actualizan en tiempo real de forma invisible (sin skeleton)
+- El skeleton solo aparece en la carga inicial o al cambiar de semana
