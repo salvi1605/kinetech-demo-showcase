@@ -10,7 +10,8 @@ import {
   X,
   Plus,
   Check,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import { treatmentLabel } from '@/utils/formatters';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { statusLabel, type AppointmentStatus } from '@/utils/statusUtils';
 import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
+import { cn } from '@/lib/utils';
 import { NewAppointmentDialog } from '@/components/dialogs/NewAppointmentDialog';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { MassCreateAppointmentDialog } from '@/components/dialogs/MassCreateAppointmentDialog';
@@ -41,6 +43,7 @@ import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
 import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 import { useAppointmentsForClinic } from '@/hooks/useAppointmentsForClinic';
+import { useScheduleExceptions } from '@/hooks/useScheduleExceptions';
 import { usePractitioners } from '@/hooks/usePractitioners';
 import { usePatients } from '@/hooks/usePatients';
 import { updateAppointmentStatus } from '@/lib/appointmentService';
@@ -48,6 +51,11 @@ import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/u
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+const TYPE_LABELS_CAL: Record<string, string> = {
+  clinic_closed: 'Día cerrado',
+  practitioner_block: 'Bloqueo profesional',
+  extended_hours: 'Horario extendido',
+};
 
 // Utilidades para tri-estado
 type Status = 'scheduled' | 'completed' | 'no_show';
@@ -122,6 +130,9 @@ export const Calendar = () => {
     weekDates[0], 
     weekDates[4]
   );
+
+  // Fetch schedule exceptions and holidays for the visible week
+  const { exceptionsMap, isBlocked: isSlotBlocked } = useScheduleExceptions(weekDates[0], weekDates[4]);
   
   // Effect to refetch when appointments are updated
   useEffect(() => {
@@ -335,6 +346,17 @@ export const Calendar = () => {
     const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
     const appointment = appointmentsBySlotKey.get(key);
     const isPast = isPastDay(dateISO);
+
+    // Check schedule exceptions (closed days, holidays, practitioner blocks)
+    const blockCheck = isSlotBlocked(dateISO, meta.time, state.filterPractitionerId || undefined);
+    if (blockCheck.blocked && !appointment) {
+      toast({
+        title: "Horario bloqueado",
+        description: blockCheck.reason || 'Este horario no está disponible',
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Verificar si está ocupado por otro profesional
     if (isOccupiedByOtherPractitioner(key)) {
@@ -440,10 +462,8 @@ export const Calendar = () => {
     const hasAppointments = slotAppointments.some(apt => apt !== undefined);
 
     // Si hay citas, mostrar sub-slots
-    // Calcular alturas dinámicas: 60px con cita, 24px sin cita
-    const rowHeights = Array.from({ length: 5 }).map((_, i) => 
-      slotAppointments[i] ? '60px' : '24px'
-    ).join(' ');
+    // Alturas uniformes: 60px para todos los sub-slots
+    const rowHeights = 'repeat(5, 60px)';
 
     // Helper para obtener el badge de estado
     const getStatusBadge = (status: string) => {
@@ -464,7 +484,7 @@ export const Calendar = () => {
 
     if (hasAppointments) {
       return (
-        <div key={`${dayIndex}-${time}`} className="p-1 border border-border/30 grid gap-1"
+        <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-400 grid gap-1"
              style={{ gridTemplateRows: rowHeights }}>
           {Array.from({ length: 5 }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
@@ -550,7 +570,7 @@ export const Calendar = () => {
               return (
                 <button
                   key={`${dayIndex}-${time}-${subIndex}`}
-                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                     isSelected 
                       ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
@@ -571,10 +591,10 @@ export const Calendar = () => {
       );
     }
 
-    // Slot completamente vacío - mostrar todos los sub-slots disponibles (24px cada uno)
+    // Slot completamente vacío - mostrar todos los sub-slots disponibles (60px cada uno)
     return (
-      <div key={`${dayIndex}-${time}`} className="p-1 border border-border/30 grid gap-1" 
-           style={{ gridTemplateRows: 'repeat(5, 24px)' }}>
+      <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-400 grid gap-1" 
+           style={{ gridTemplateRows: 'repeat(5, 60px)' }}>
          {Array.from({ length: 5 }).map((_, subIndex) => {
            if (subIndex >= capacity) {
              return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
@@ -612,7 +632,7 @@ export const Calendar = () => {
             return (
               <button
                  key={`${dayIndex}-${time}-${subIndex}`}
-                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] ${
+                 className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                    isSelected 
                      ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
                      : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
@@ -834,45 +854,75 @@ export const Calendar = () => {
               <LoadingSkeleton variant="calendar" />
             ) : (
               <div className="relative z-0 overflow-hidden">
-                <div className="overflow-x-auto">
-                  {/* Navegador de semana compacto */}
-                  <div className="sticky top-0 z-10 flex justify-end px-2 py-1 bg-background/80 backdrop-blur">
-                    <WeekNavigatorCompact />
-                  </div>
+                {/* Navegador de semana compacto - fuera del scroll */}
+                <div className="flex justify-end px-2 py-1 bg-background">
+                  <WeekNavigatorCompact />
+                </div>
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
                   <div 
                     className="w-full"
                     style={{ 
                       display: 'grid', 
                       gridTemplateColumns: 'minmax(70px, 88px) repeat(5, minmax(100px, 1fr))',
-                      gap: '4px',
+                      gap: '0px',
                       width: '100%'
                     }}
                   >
-                  {/* Header - 6 celdas directas del grid */}
-                  <div className="p-2 text-sm font-medium text-muted-foreground border-b border-r bg-muted/10 flex items-center">
+                  {/* Header - 6 celdas directas del grid (sticky) */}
+                  <div className="p-2 text-sm font-medium text-muted-foreground border-b-2 border-r-2 border-gray-400 bg-muted/10 flex items-center sticky top-0 z-20 bg-background">
                     Hora
                   </div>
-                  {WEEKDAYS.map((day, index) => (
-                    <div 
-                      key={day} 
-                      className="p-1 border border-border/30 bg-muted/30 flex flex-col items-center justify-center"
-                    >
-                      <div className="text-sm font-medium">{day}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(weekDates[index], 'd MMM', { locale: es })}
-                      </div>
-                    </div>
-                  ))}
+                  {WEEKDAYS.map((day, index) => {
+                    const dateISO = format(weekDates[index], 'yyyy-MM-dd');
+                    const dayExceptions = exceptionsMap.get(dateISO) || [];
+                    const isClosed = dayExceptions.some(e => e.type === 'clinic_closed' || e.isHoliday);
+                    const hasBlock = dayExceptions.some(e => e.type === 'practitioner_block');
+                    const closedReason = dayExceptions.find(e => e.type === 'clinic_closed' || e.isHoliday);
+                    
+                    return (
+                      <Tooltip key={day}>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={cn(
+                              "p-1 border-b-2 border-r border-gray-400 flex flex-col items-center justify-center sticky top-0 z-20",
+                              isClosed ? 'bg-red-50 border-red-200' : hasBlock ? 'bg-amber-50 border-amber-200' : 'bg-background'
+                            )}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm font-medium">{day}</span>
+                              {isClosed && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                              {!isClosed && hasBlock && <AlertTriangle className="h-3 w-3 text-amber-500" />}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(weekDates[index], 'd MMM', { locale: es })}
+                            </div>
+                            {isClosed && closedReason && (
+                              <div className="text-[9px] text-red-600 truncate max-w-full px-1">
+                                {closedReason.reason || closedReason.holidayName || 'Cerrado'}
+                              </div>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        {(isClosed || hasBlock) && (
+                          <TooltipContent>
+                            {dayExceptions.map((e, i) => (
+                              <p key={i}>{e.isHoliday ? `🏖️ ${e.holidayName}` : `⚠️ ${e.reason || TYPE_LABELS_CAL[e.type] || e.type}`}</p>
+                            ))}
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    );
+                  })}
 
                   {/* Slots de tiempo - 6 celdas directas del grid por fila */}
                   {TIME_SLOTS.map((time) => (
                     <React.Fragment key={time}>
-                      <div className="p-2 text-sm text-muted-foreground border-r bg-muted/10 flex items-center">
+                      <div className="p-2 text-sm text-muted-foreground border-r-2 border-b border-gray-400 bg-muted/10 flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
                         {time}
                       </div>
                       {WEEKDAYS.map((_, dayIndex) => (
-                        <div key={`${time}-${dayIndex}`}>
+                        <div key={`${time}-${dayIndex}`} className="border-r border-b border-gray-400">
                           {renderSlot(dayIndex, time)}
                         </div>
                       ))}

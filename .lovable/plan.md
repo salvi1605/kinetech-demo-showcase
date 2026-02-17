@@ -1,199 +1,74 @@
 
-# Plan: Corregir Roles de Navegación y Asegurar Permisos por Rol
 
-## Problema Identificado
+# Plan: Rango de fechas en Nueva Excepcion
 
-El sidebar y la navegación móvil usan **nombres de roles incorrectos** que no coinciden con los roles reales de la base de datos:
+## Resumen
 
-| Usado en UI (incorrecto) | Rol real en BD |
-|--------------------------|----------------|
-| `'admin'`                | `'admin_clinic'` |
-| `'recep'`                | `'receptionist'` |
-| `'kinesio'`              | `'health_pro'` |
-
-Esto causa que el **sidebar aparezca vacío** para receptionist y health_pro porque el filtro `item.roles.includes(state.userRole)` nunca encuentra coincidencia.
+Modificar el dialogo "Nueva Excepcion" para que en lugar de seleccionar una sola fecha, el usuario pueda definir un rango con **Fecha inicio** y **Fecha fin**. Al guardar, se creara un registro individual en `schedule_exceptions` por cada dia del rango.
 
 ---
 
-## Matriz de Permisos por Rol
+## Cambios en la UI del formulario
 
-### Navegación Principal
+### Reemplazar campo "Fecha" por dos campos
 
-| Ruta | tenant_owner | admin_clinic | receptionist | health_pro |
-|------|:------------:|:------------:|:------------:|:----------:|
-| /calendar | Si | Si | Si | Si |
-| /patients | Si | Si | Si | Si (solo asignados) |
-| /practitioners | Si | Si | Si (solo ver) | No |
-| /availability | Si | Si | No | Si (solo propia) |
-| /exceptions | Si | Si | No | Si (solo propias) |
-| /copy-schedule | Si | Si | No | No |
+El campo unico `date` se reemplaza por:
 
-### Sistema/Administración
+- **Fecha inicio** (obligatorio): date picker, igual al actual
+- **Fecha fin** (opcional): date picker. Si no se completa, se asume un solo dia (igual que antes). Si se completa, debe ser >= fecha inicio.
 
-| Ruta | tenant_owner | admin_clinic | receptionist | health_pro |
-|------|:------------:|:------------:|:------------:|:----------:|
-| /users | Si | Si | No | No |
-| /clinics | Si | Si | No | No |
-| /settings | Si | Si | Si (limitado) | Si (limitado) |
+Cuando fecha fin esta definida, se muestra un texto informativo debajo: "Se crearan X excepciones (una por dia)".
 
-### Acceso a Configuración por Rol
+### Validacion
 
-- **tenant_owner / admin_clinic**: Acceso completo (gestión de usuarios, datos, demo)
-- **receptionist / health_pro**: Solo preferencias personales y cambio de contraseña
+- `dateFrom` es obligatorio (reemplaza a `date`)
+- `dateTo` es opcional; si se completa, debe ser >= `dateFrom`
+- Limite maximo de 90 dias de rango para evitar creaciones masivas accidentales
+- La advertencia de citas afectadas se adapta para contar citas en todo el rango de fechas
+
+### Comportamiento al guardar
+
+- Si solo hay `dateFrom` (sin `dateTo`): se crea 1 registro, comportamiento identico al actual
+- Si hay `dateFrom` y `dateTo`: se generan todas las fechas del rango (inclusive) y se hace un insert batch de N registros, todos con los mismos datos (tipo, profesional, horario, motivo)
+
+### Edicion
+
+- Cuando se edita una excepcion existente, se mantiene el comportamiento de fecha unica (solo `dateFrom`), ya que cada registro es independiente. El campo `dateTo` aparece vacio y deshabilitado en modo edicion.
 
 ---
 
-## Cambios Técnicos
+## Detalles tecnicos
 
-### 1. Corregir AppSidebar.tsx
+### Schema zod actualizado
 
-Actualizar los arrays `navigationItems` y `authItems` con los roles correctos:
-
-```typescript
-const navigationItems = [
-  {
-    title: 'Agenda',
-    url: '/calendar',
-    icon: Calendar,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
-  },
-  {
-    title: 'Pacientes',
-    url: '/patients',
-    icon: Users,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
-  },
-  {
-    title: 'Profesionales',
-    url: '/practitioners',
-    icon: UserCheck,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
-  },
-  {
-    title: 'Disponibilidad',
-    url: '/availability',
-    icon: Clock,
-    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
-  },
-  {
-    title: 'Excepciones',
-    url: '/exceptions',
-    icon: Calendar1,
-    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
-  },
-  {
-    title: 'Copiar Horario',
-    url: '/copy-schedule',
-    icon: Copy,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
-  },
-];
-
-const authItems = [
-  {
-    title: 'Usuarios',
-    url: '/users',
-    icon: Shield,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
-  },
-  {
-    title: 'Clínicas',
-    url: '/clinics',
-    icon: Building2,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
-  },
-  {
-    title: 'Configuración',
-    url: '/settings',
-    icon: Settings,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
-  },
-];
+```text
+exceptionSchema:
+  type: enum
+  dateFrom: z.date (obligatorio)
+  dateTo: z.date (opcional, >= dateFrom, max 90 dias de diferencia)
+  practitionerId: string (opcional)
+  fromTime: string (opcional)
+  toTime: string (opcional)
+  reason: string (max 500, opcional)
 ```
 
-### 2. Corregir BottomNav.tsx
+### Logica de insert batch
 
-Actualizar `mobileNavItems` con los mismos roles corregidos:
-
-```typescript
-const mobileNavItems = [
-  {
-    title: 'Agenda',
-    url: '/calendar',
-    icon: Calendar,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
-  },
-  {
-    title: 'Pacientes',
-    url: '/patients',
-    icon: Users,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
-  },
-  {
-    title: 'Profesionales',
-    url: '/practitioners',
-    icon: UserCheck,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist'],
-  },
-  {
-    title: 'Disponibilidad',
-    url: '/availability',
-    icon: Clock,
-    roles: ['admin_clinic', 'tenant_owner', 'health_pro'],
-  },
-  {
-    title: 'Config',
-    url: '/settings',
-    icon: Settings,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
-  },
-];
+```text
+1. Calcular array de fechas: eachDayOfInterval({ start: dateFrom, end: dateTo || dateFrom })
+2. Mapear cada fecha a un payload con los mismos campos
+3. Insertar con supabase.from('schedule_exceptions').insert(payloads)
+4. Mostrar toast con la cantidad de excepciones creadas
 ```
 
-### 3. Actualizar Settings.tsx para Todos los Roles
+### Advertencia de citas afectadas
 
-Modificar la página de configuración para que:
-- **Todos los roles** vean la sección de Preferencias UI (incluyendo cambio de contraseña)
-- Solo **admin_clinic y tenant_owner** vean las secciones de gestión de usuarios, sistema y datos
-
-La estructura actual ya es correcta - solo necesita asegurar que la ruta `/settings` sea accesible.
+La consulta de citas afectadas se adapta para filtrar por rango:
+- `.gte('date', dateFromISO).lte('date', dateToISO)`
+- En lugar del `.eq('date', dateISO)` actual
 
 ---
 
-## Resumen de Acceso al Sidebar por Rol
+## Archivo a modificar
 
-### receptionist vera:
-- Agenda
-- Pacientes
-- Profesionales
-- Configuración (solo preferencias personales)
-
-### health_pro vera:
-- Agenda (solo sus citas)
-- Pacientes (solo asignados)
-- Disponibilidad (solo la suya)
-- Configuración (solo preferencias personales)
-
-### admin_clinic / tenant_owner veran:
-- Todo el menú completo
-
----
-
-## Archivos a Modificar
-
-1. **`src/components/layout/AppSidebar.tsx`**
-   - Corregir roles en `navigationItems`
-   - Corregir roles en `authItems`
-
-2. **`src/components/layout/BottomNav.tsx`**
-   - Corregir roles en `mobileNavItems`
-
----
-
-## Beneficios
-
-- El sidebar mostrara las opciones correctas para cada rol
-- receptionist podra ver y crear pacientes, gestionar agenda
-- health_pro podra ver su agenda y pacientes asignados
-- Todos los usuarios pueden cambiar su contraseña y configurar preferencias personales
-- Coherencia entre los roles de BD y la UI
+- `src/components/dialogs/NewExceptionDialog.tsx`: todos los cambios se concentran en este archivo
