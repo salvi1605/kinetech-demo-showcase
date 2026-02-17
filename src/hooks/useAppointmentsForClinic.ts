@@ -1,27 +1,49 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { format } from 'date-fns';
 import type { TreatmentType } from '@/types/appointments';
+
+// Comparar dos arrays de citas por contenido relevante
+const hasDataChanged = (prev: Appointment[], next: Appointment[]): boolean => {
+  if (prev.length !== next.length) return true;
+  for (let i = 0; i < prev.length; i++) {
+    if (
+      prev[i].id !== next[i].id ||
+      prev[i].status !== next[i].status ||
+      prev[i].subSlot !== next[i].subSlot ||
+      prev[i].patientId !== next[i].patientId ||
+      prev[i].practitionerId !== next[i].practitionerId ||
+      prev[i].notes !== next[i].notes ||
+      prev[i].date !== next[i].date ||
+      prev[i].startTime !== next[i].startTime
+    ) return true;
+  }
+  return false;
+};
 
 export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
   const { state } = useApp();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const appointmentsRef = useRef<Appointment[]>([]);
 
   // Convertir fechas a ISO strings para evitar recreación de objetos
   const startDateISO = format(startDate, 'yyyy-MM-dd');
   const endDateISO = format(endDate, 'yyyy-MM-dd');
 
-  const fetchAppointments = useCallback(async () => {
+  const fetchAppointments = useCallback(async (silent = false) => {
     if (!state.currentClinicId) {
       setIsLoading(false);
       setAppointments([]);
+      appointmentsRef.current = [];
       return;
     }
 
-    setIsLoading(true);
+    if (!silent) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -75,18 +97,25 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
         treatmentType: mapTreatmentTypeToInternal(apt.treatment_type_id, apt.treatment_types?.name),
       }));
 
-      setAppointments(mappedAppointments);
+      // Solo actualizar estado si los datos realmente cambiaron
+      if (hasDataChanged(appointmentsRef.current, mappedAppointments)) {
+        appointmentsRef.current = mappedAppointments;
+        setAppointments(mappedAppointments);
+      }
     } catch (err) {
       console.error('Error fetching appointments:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar turnos');
       setAppointments([]);
+      appointmentsRef.current = [];
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, [state.currentClinicId, startDateISO, endDateISO]);
 
   useEffect(() => {
-    fetchAppointments();
+    fetchAppointments(false);
   }, [fetchAppointments]);
 
   // Suscribirse a cambios en tiempo real de appointments
@@ -105,7 +134,8 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
         },
         (payload) => {
           console.log('Realtime calendar update:', payload);
-          fetchAppointments();
+          // Refetch silencioso: no mostrar skeleton
+          fetchAppointments(true);
         }
       )
       .subscribe();
@@ -115,7 +145,10 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
     };
   }, [state.currentClinicId, fetchAppointments]);
 
-  return { appointments, isLoading, error, refetch: fetchAppointments };
+  // Exponer refetch público siempre como no-silencioso por defecto
+  const refetch = useCallback(() => fetchAppointments(false), [fetchAppointments]);
+
+  return { appointments, isLoading, error, refetch };
 };
 
 // Mapeo de status DB -> interno
