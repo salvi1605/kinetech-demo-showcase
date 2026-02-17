@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { formatPatientShortName } from '@/utils/formatters';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -503,7 +504,7 @@ export const Calendar = () => {
               const patient = state.patients.find(p => p.id === appointment.patientId);
               const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
               const styles = getPractitionerStyles(appointment.practitionerId);
-              const hasPermission = ['admin', 'tenant_owner', 'recep', 'kinesio'].includes(state.userRole);
+              const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
               const stateAttr = statusToChecked(appointment.status as Status);
               const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
               const statusBadge = getStatusBadge(appointment.status);
@@ -538,7 +539,7 @@ export const Calendar = () => {
                       </button>
                     )}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
-                      <span className="font-medium text-xs truncate">{patient?.name || 'Paciente'}</span>
+                      <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
                         {statusBadge.label}
@@ -999,7 +1000,7 @@ export const Calendar = () => {
                                  const styles = getPractitionerStyles(appointment.practitionerId);
                                  const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
                                  const isCompleted = appointment.status === 'completed';
-                                 const hasPermission = ['admin', 'recep', 'kinesio'].includes(state.userRole);
+                                 const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
                                  
                                   return (
                                     <Card
@@ -1012,7 +1013,7 @@ export const Calendar = () => {
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2 mb-1">
                                             <div className="font-medium text-sm truncate">
-                                              {patient?.name || 'Paciente'}
+                                              {patient ? formatPatientShortName(patient) : 'Paciente'}
                                             </div>
                                              <span className={`inline-block px-2 py-1 text-xs rounded ${
                                                appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :

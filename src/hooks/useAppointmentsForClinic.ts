@@ -64,7 +64,11 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
           treatment_type_id,
           patients (
             id,
-            full_name
+            full_name,
+            first_surname,
+            second_surname,
+            first_name,
+            second_name
           ),
           practitioners (
             id,
