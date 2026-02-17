@@ -778,160 +778,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          // Defer database calls to avoid blocking
-          setTimeout(async () => {
-            try {
-              // Ensure public.users exists for this auth user (new signups / deleted rows)
-              await supabase.functions.invoke('ensure-public-user', {
-                body: {
-                  fullName: (session.user.user_metadata as any)?.full_name ?? null,
-                },
-              });
+    let bootstrapDone = false;
 
-              // Check user's clinics
-              const clinicsResult = await getUserClinicsFromDB(session.user.id);
+    const bootstrapUser = async (userId: string, userMetadata: any) => {
+      try {
+        await supabase.functions.invoke('ensure-public-user', {
+          body: {
+            fullName: userMetadata?.full_name ?? null,
+          },
+        });
 
-              if (!clinicsResult) {
-                await supabase.auth.signOut();
-                dispatch({ type: 'LOGOUT' });
-                dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-                return;
-              }
+        const clinicsResult = await getUserClinicsFromDB(userId);
 
-              if (clinicsResult.clinics.length === 0) {
-                // No clinics - check if user has any roles (employee without clinic access)
-                const { data: userRolesData } = await supabase
-                  .from('user_roles')
-                  .select('role_id')
-                  .eq('user_id', clinicsResult.userId);
-
-                const hasRoles = (userRolesData && userRolesData.length > 0);
-                
-                const { data: userData } = await supabase
-                  .from('users')
-                  .select('id, full_name, email')
-                  .eq('auth_user_id', session.user.id)
-                  .single();
-
-                if (userData) {
-                  dispatch({
-                    type: 'LOGIN',
-                    payload: {
-                      id: userData.id,
-                      name: userData.full_name,
-                      email: userData.email,
-                      role: 'admin_clinic',
-                      clinicId: undefined,
-                    },
-                  });
-                  
-                  // Set flags based on whether user has roles
-                  if (hasRoles) {
-                    // Has roles but no accessible clinics -> pending access
-                    dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
-                    dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
-                  } else {
-                    // No roles -> can create clinic (self-service)
-                    dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: true });
-                    dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: false });
-                  }
-                }
-
-                dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-                return;
-              }
-
-              if (clinicsResult.clinics.length === 1) {
-                // Single clinic - auto-select it
-                const clinic = clinicsResult.clinics[0];
-                const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
-
-                if (result) {
-                  dispatch({ type: 'LOGIN', payload: result.user });
-                  dispatch({
-                    type: 'SET_CURRENT_CLINIC',
-                    payload: { id: result.clinicId, name: result.clinicName },
-                  });
-                }
-
-                dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-                return;
-              }
-
-              // Multiple clinics - user authenticated but needs to select clinic
-              const { data: userData } = await supabase
-                .from('users')
-                .select('id, full_name, email')
-                .eq('auth_user_id', session.user.id)
-                .single();
-
-              if (userData) {
-                dispatch({
-                  type: 'LOGIN',
-                  payload: {
-                    id: userData.id,
-                    name: userData.full_name,
-                    email: userData.email,
-                    role: 'admin_clinic',
-                    clinicId: undefined,
-                  },
-                });
-              }
-
-              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            } catch (error) {
-              console.error('Error during auth bootstrap:', error);
-              await supabase.auth.signOut();
-              dispatch({ type: 'LOGOUT' });
-              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            }
-          }, 0);
-        } else {
+        if (!clinicsResult) {
+          await supabase.auth.signOut();
           dispatch({ type: 'LOGOUT' });
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
         }
-      }
-    );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        try {
-          await supabase.functions.invoke('ensure-public-user', {
-            body: {
-              fullName: (session.user.user_metadata as any)?.full_name ?? null,
-            },
-          });
+        if (clinicsResult.clinics.length === 0) {
+          const { data: userRolesData } = await supabase
+            .from('user_roles')
+            .select('role_id')
+            .eq('user_id', clinicsResult.userId);
+
+          const hasRoles = (userRolesData && userRolesData.length > 0);
 
           const { data: userData } = await supabase
             .from('users')
             .select('id, full_name, email')
-            .eq('auth_user_id', session.user.id)
+            .eq('auth_user_id', userId)
             .single();
 
-          if (!userData) {
-            await supabase.auth.signOut();
-            dispatch({ type: 'LOGOUT' });
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            return;
-          }
-
-          const clinicsResult = await getUserClinicsFromDB(session.user.id);
-
-          if (!clinicsResult || clinicsResult.clinics.length === 0) {
-            // No clinics - check if user has roles
-            const userId = clinicsResult?.userId || userData.id;
-            const { data: userRolesData } = await supabase
-              .from('user_roles')
-              .select('role_id')
-              .eq('user_id', userId);
-
-            const hasRoles = (userRolesData && userRolesData.length > 0);
-            
+          if (userData) {
             dispatch({
               type: 'LOGIN',
               payload: {
@@ -942,8 +822,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 clinicId: undefined,
               },
             });
-            
-            // Set flags based on whether user has roles
+
             if (hasRoles) {
               dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
               dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
@@ -951,44 +830,109 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: true });
               dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: false });
             }
-            
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-          } else if (clinicsResult.clinics.length === 1) {
-            // Single clinic - auto-select it
-            const clinic = clinicsResult.clinics[0];
-            const result = await getUserRoleFromDB(session.user.id, clinic.clinic_id);
-
-            if (result) {
-              dispatch({ type: 'LOGIN', payload: result.user });
-              dispatch({
-                type: 'SET_CURRENT_CLINIC',
-                payload: { id: result.clinicId, name: result.clinicName },
-              });
-            }
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-          } else {
-            // Multiple clinics - will be redirected to select clinic page
-            dispatch({
-              type: 'LOGIN',
-              payload: {
-                id: userData.id,
-                name: userData.full_name,
-                email: userData.email,
-                role: 'admin_clinic',
-                clinicId: undefined,
-              },
-            });
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
           }
-        } catch (error) {
-          console.error('Error during session bootstrap:', error);
-          await supabase.auth.signOut();
+
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
+        if (clinicsResult.clinics.length === 1) {
+          const clinic = clinicsResult.clinics[0];
+          const result = await getUserRoleFromDB(userId, clinic.clinic_id);
+
+          if (result) {
+            dispatch({ type: 'LOGIN', payload: result.user });
+            dispatch({
+              type: 'SET_CURRENT_CLINIC',
+              payload: { id: result.clinicId, name: result.clinicName },
+            });
+          }
+
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
+        // Multiple clinics
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .eq('auth_user_id', userId)
+          .single();
+
+        if (userData) {
+          dispatch({
+            type: 'LOGIN',
+            payload: {
+              id: userData.id,
+              name: userData.full_name,
+              email: userData.email,
+              role: 'admin_clinic',
+              clinicId: undefined,
+            },
+          });
+        }
+
+        dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+      } catch (error) {
+        console.error('Error during auth bootstrap:', error);
+        await supabase.auth.signOut();
+        dispatch({ type: 'LOGOUT' });
+        dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+      }
+    };
+
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // Handle expired/invalid refresh tokens
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh failed, signing out');
+          supabase.auth.signOut().then(() => {
+            dispatch({ type: 'LOGOUT' });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          });
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          dispatch({ type: 'LOGOUT' });
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
+        if (session?.user) {
+          // Defer database calls to avoid blocking
+          setTimeout(() => {
+            bootstrapDone = true;
+            bootstrapUser(session.user.id, session.user.user_metadata);
+          }, 0);
+        } else if (!session) {
           dispatch({ type: 'LOGOUT' });
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
         }
-      } else {
+      }
+    );
+
+    // THEN check for existing session - only to kick off loading state,
+    // onAuthStateChange will handle the actual bootstrap
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      // Handle expired refresh token error
+      if (error) {
+        console.warn('Session recovery failed:', error.message);
+        if (error.message?.includes('Refresh Token') || (error as any)?.code === 'refresh_token_not_found') {
+          supabase.auth.signOut().then(() => {
+            dispatch({ type: 'LOGOUT' });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          });
+          return;
+        }
+      }
+
+      // If no session and onAuthStateChange hasn't fired yet, clear loading
+      if (!session && !bootstrapDone) {
         dispatch({ type: 'SET_AUTH_LOADING', payload: false });
       }
+      // If session exists, onAuthStateChange will handle the bootstrap — do nothing here
     });
 
     return () => subscription.unsubscribe();
