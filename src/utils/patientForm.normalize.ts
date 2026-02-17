@@ -6,6 +6,10 @@ export type ReminderPref = '24h' | 'none' | '';
 
 export type PatientForm = {
   identificacion: {
+    firstSurname: string;
+    secondSurname: string;
+    firstName: string;
+    secondName: string;
     fullName: string;
     preferredName: string;
     documentId: string;
@@ -41,6 +45,10 @@ export type PatientForm = {
 export const normalizePatientForm = (f: PatientForm): PatientForm => {
   const normalized: PatientForm = {
     identificacion: {
+      firstSurname: f.identificacion?.firstSurname ?? '',
+      secondSurname: f.identificacion?.secondSurname ?? '',
+      firstName: f.identificacion?.firstName ?? '',
+      secondName: f.identificacion?.secondName ?? '',
       fullName: f.identificacion?.fullName ?? '',
       preferredName: f.identificacion?.preferredName ?? '',
       documentId: f.identificacion?.documentId ?? '',
@@ -108,6 +116,10 @@ export const toFormFromPatient = (p: any): PatientForm => {
 
   return {
     identificacion: {
+      firstSurname: p?.first_surname || '',
+      secondSurname: p?.second_surname || '',
+      firstName: p?.first_name || '',
+      secondName: p?.second_name || '',
       fullName: p?.identificacion?.fullName || p?.name || '',
       preferredName: p?.identificacion?.preferredName ?? '',
       documentId: p?.identificacion?.documentId ?? '',
@@ -155,12 +167,23 @@ export const toFormFromPatient = (p: any): PatientForm => {
 
 // Convertir PatientForm a Patient para guardar
 export const toPatientFromForm = (id: string, form: PatientForm): any => {
+  const fullName = [
+    form.identificacion.firstSurname.trim(),
+    form.identificacion.secondSurname.trim(),
+    form.identificacion.firstName.trim(),
+    form.identificacion.secondName.trim(),
+  ].filter(Boolean).join(' ') || form.identificacion.fullName;
+
   const patient: any = {
     id,
-    name: form.identificacion.fullName,
+    name: fullName,
     email: form.identificacion.email || '',
     phone: form.identificacion.mobilePhone,
     birthDate: form.identificacion.dateOfBirth,
+    first_surname: form.identificacion.firstSurname || null,
+    second_surname: form.identificacion.secondSurname || null,
+    first_name: form.identificacion.firstName || null,
+    second_name: form.identificacion.secondName || null,
     conditions: [
       ...(form.clinico?.redFlags?.embarazo ? ['Embarazo'] : []),
       ...(form.clinico?.redFlags?.cancer ? ['Cáncer'] : []),

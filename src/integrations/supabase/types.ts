@@ -665,6 +665,8 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relationship: string | null
+          first_name: string | null
+          first_surname: string | null
           full_name: string
           id: string
           is_deleted: boolean | null
@@ -673,6 +675,8 @@ export type Database = {
           phone: string | null
           preferred_name: string | null
           reminder_preference: string | null
+          second_name: string | null
+          second_surname: string | null
           sesiones_autorizadas: number | null
           updated_at: string | null
         }
@@ -689,6 +693,8 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
+          first_name?: string | null
+          first_surname?: string | null
           full_name: string
           id?: string
           is_deleted?: boolean | null
@@ -697,6 +703,8 @@ export type Database = {
           phone?: string | null
           preferred_name?: string | null
           reminder_preference?: string | null
+          second_name?: string | null
+          second_surname?: string | null
           sesiones_autorizadas?: number | null
           updated_at?: string | null
         }
@@ -713,6 +721,8 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
+          first_name?: string | null
+          first_surname?: string | null
           full_name?: string
           id?: string
           is_deleted?: boolean | null
@@ -721,6 +731,8 @@ export type Database = {
           phone?: string | null
           preferred_name?: string | null
           reminder_preference?: string | null
+          second_name?: string | null
+          second_surname?: string | null
           sesiones_autorizadas?: number | null
           updated_at?: string | null
         }

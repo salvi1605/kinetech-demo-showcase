@@ -124,6 +124,11 @@ export interface Patient {
   phone: string;
   birthDate: string;
   conditions: string[];
+  // Structured name fields
+  first_surname?: string | null;
+  second_surname?: string | null;
+  first_name?: string | null;
+  second_name?: string | null;
   lastVisit?: string;
   nextAppointment?: string;
   documents?: PatientDocument[];
