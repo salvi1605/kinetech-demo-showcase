@@ -146,6 +146,37 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       }
     }
 
+    // Verificar bloqueos de profesionales (vacaciones, licencia, etc.)
+    if (state.currentClinicId) {
+      const blockConflicts: string[] = [];
+      for (const slot of sortedSlots) {
+        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+        if (slotPractitionerId) {
+          const { data: blocks, error: blockError } = await supabase
+            .from('schedule_exceptions')
+            .select('reason, type')
+            .eq('clinic_id', state.currentClinicId)
+            .eq('practitioner_id', slotPractitionerId)
+            .eq('date', slot.dateISO)
+            .eq('type', 'practitioner_block');
+
+          if (!blockError && blocks && blocks.length > 0) {
+            const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
+            const reason = blocks[0].reason?.toUpperCase() || 'BLOQUEO';
+            blockConflicts.push(`${slot.displayText} - ${practitionerName} tiene ${reason}`);
+          }
+        }
+      }
+      if (blockConflicts.length > 0) {
+        toast({
+          title: "Profesional(es) no disponible(s)",
+          description: `No se puede agendar: ${blockConflicts.join('; ')}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Validar conflictos de tratamientos exclusivos desde BD
     if (state.currentClinicId) {
       const conflictsExclusive: string[] = [];
