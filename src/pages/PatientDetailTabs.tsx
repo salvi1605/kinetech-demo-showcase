@@ -368,13 +368,13 @@ export const PatientDetailTabs = () => {
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-accent">
-                          {lastVisit ? parseLocalDate(lastVisit.date).toLocaleDateString('es-ES') : '-'}
+                          {lastVisit ? formatDisplayDate(parseLocalDate(lastVisit.date)) : '-'}
                         </p>
                         <p className="text-sm text-muted-foreground">Última Visita</p>
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-warning">
-                          {nextAppointment ? parseLocalDate(nextAppointment.date).toLocaleDateString('es-ES') : '-'}
+                          {nextAppointment ? formatDisplayDate(parseLocalDate(nextAppointment.date)) : '-'}
                         </p>
                         <p className="text-sm text-muted-foreground">Próxima Cita</p>
                       </div>
@@ -405,7 +405,7 @@ export const PatientDetailTabs = () => {
                     return futureAppointments.map(apt => (
                       <div key={apt.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div>
-                          <p className="font-medium">{parseLocalDate(apt.date).toLocaleDateString('es-ES')}</p>
+                          <p className="font-medium">{formatDisplayDate(parseLocalDate(apt.date))}</p>
                           <p className="text-sm text-muted-foreground">{apt.startTime.substring(0, 5)}</p>
                         </div>
                         <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
@@ -465,7 +465,7 @@ export const PatientDetailTabs = () => {
                 <div>
                   <Label>Fecha de Nacimiento</Label>
                   <Input
-                    value={patient.identificacion?.dateOfBirth || patient.birthDate || ''}
+                    value={(() => { const raw = patient.identificacion?.dateOfBirth || patient.birthDate || ''; if (!raw) return ''; try { return formatDisplayDate(parseSmartDOB(raw)); } catch { return raw; } })()}
                     onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, dateOfBirth: e.target.value })}
                     disabled={!editingData}
                   />
@@ -672,7 +672,7 @@ export const PatientDetailTabs = () => {
                                       appointment.type === 'therapy' ? 'Terapia' : 'Seguimiento'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {parseLocalDate(appointment.date).toLocaleDateString('es-ES')} • {appointment.startTime}
+                            {formatDisplayDate(parseLocalDate(appointment.date))} • {appointment.startTime}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {getPractitionerName(appointment.practitionerId)}
