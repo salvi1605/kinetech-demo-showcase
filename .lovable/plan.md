@@ -1,35 +1,34 @@
-# Validacion de excepciones al crear cita nueva
 
-## Problema actual
+# Validacion de excepciones en todos los flujos de citas
 
-Cuando se crea una cita nueva desde `NewAppointmentDialog`, el sistema valida:
+## Problema
 
-- Disponibilidad horaria del profesional (`checkPractitionerAvailability`)
-- Conflictos de slot (`checkSlotConflictInDb`)
-- Conflictos de tratamiento exclusivo (`checkConflictInDb`)
+La validacion de `practitioner_block` (vacaciones, licencia, etc.) solo se agregó en `NewAppointmentDialog`. Faltan estos otros flujos:
 
-Pero **NO valida** si el profesional seleccionado tiene un `practitioner_block` (vacaciones, licencia, etc.) para esa fecha. Esto permite agendar citas con un profesional que esta de vacaciones sin ninguna advertencia.
+1. **AppointmentDetailDialog** (reprogramar/editar cita) - Permite cambiar fecha, hora o profesional sin verificar bloqueos.
+2. **MassCreateAppointmentDialog** (creacion masiva) - Crea multiples citas sin verificar si el profesional asignado tiene bloqueo en alguna de las fechas.
 
-## Solucion
+`FreeAppointmentDialog` solo elimina citas, no necesita esta validacion.
 
-Agregar una consulta a `schedule_exceptions` dentro de la funcion `createAppointment` en `NewAppointmentDialog.tsx`, justo antes de las validaciones existentes (linea ~194). La consulta verificara si existe un `practitioner_block` para el profesional seleccionado en la fecha de la cita.
+## Cambios
+
+### 1. `src/components/dialogs/AppointmentDetailDialog.tsx`
+
+Insertar la verificacion de `schedule_exceptions` justo antes de la validacion de disponibilidad (~linea 269), dentro del bloque `if (state.currentClinicId)`. La logica:
+
+- Consultar `schedule_exceptions` filtrando por `clinic_id`, `practitioner_id`, `date` y `type = 'practitioner_block'`
+- Si existe un bloqueo, mostrar toast destructivo con el nombre del profesional y la razon (ej: "Telma Ayastuy tiene VACACIONES en esta fecha. No se puede reprogramar la cita.")
+- Retornar sin guardar cambios
+
+### 2. `src/components/dialogs/MassCreateAppointmentDialog.tsx`
+
+Insertar la verificacion dentro del loop `for (const slot of allowedSlots)` (~linea 227), antes de verificar conflictos de citas existentes. La logica:
+
+- Para cada slot, consultar `schedule_exceptions` filtrando por `clinic_id`, `practitioner_id` del slot, `date` del slot y `type = 'practitioner_block'`
+- Si existe un bloqueo en **cualquier** slot, agregar ese slot a la lista de `failed` con mensaje descriptivo (ej: "Lun 10/03 08:00 - Profesional tiene VACACIONES")
+- **No insertar ninguna cita** si hay al menos un slot bloqueado (comportamiento consistente con el plan aprobado: "no se debe permitir agendar ninguna cita hasta que la cita con error sea corregida")
+- Mostrar toast destructivo listando los slots con conflicto
 
 ## Detalle tecnico
 
-### Archivo: `src/components/dialogs/NewAppointmentDialog.tsx`
-
-**Cambio unico**: Insertar validacion de excepciones entre la linea 190 (despues de validar `currentClinicId`) y la linea 194 (antes de `checkPractitionerAvailability`).
-
-La validacion hara:
-
-1. Consultar `schedule_exceptions` filtrando por:
-  - `clinic_id` = clinica actual
-  - `practitioner_id` = profesional seleccionado
-  - `date` = fecha de la cita
-  - `type` = `practitioner_block`
-2. Si encuentra resultados:
-  - Mostrar toast destructivo con el nombre del profesional y la razon (ej: "Telma Ayastuy tiene VACACIONES en esta fecha")
-  - Debe mostrar error y no permitir que se agende la cita, si es una cita múltiple, no se debe permitir agendar ninguna cita hasta que la cita con error sea corregido. Debe mandar un mensaje específico de porque no se puede agendar la cita. 
-3. Si no encuentra resultados: continuar con el flujo normal
-
-No se necesitan cambios en otros archivos. La interfaz `ExceptionInfo` y el hook `useScheduleExceptions` no se utilizan aqui; se hace una consulta directa a la tabla para mantener la consistencia con el patron existente del dialogo (que ya usa `supabase` directamente para otras validaciones).
+Ambas validaciones siguen el mismo patron ya implementado en `NewAppointmentDialog`: consulta directa a `supabase.from('schedule_exceptions')` sin usar hooks adicionales. El toast usa `variant: "destructive"` y muestra el nombre del profesional + razon del bloqueo.
