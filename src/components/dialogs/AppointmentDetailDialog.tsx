@@ -42,6 +42,7 @@ import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDial
 import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
+import { supabase } from '@/integrations/supabase/client';
 
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -306,6 +307,52 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         return;
       }
     }
+
+    // Calcular sub_slot disponible si cambia fecha u hora
+    let targetSubSlot: number | undefined;
+    const dateOrTimeChanged = data.date !== appointment.date || data.startTime !== appointment.startTime || data.practitionerId !== appointment.practitionerId;
+    
+    if (dateOrTimeChanged && state.currentClinicId) {
+      // Obtener sub_slots_per_block de clinic_settings
+      const { data: csData } = await supabase
+        .from('clinic_settings')
+        .select('sub_slots_per_block')
+        .eq('clinic_id', state.currentClinicId)
+        .single();
+      const maxSubSlots = csData?.sub_slots_per_block ?? 5;
+
+      // Buscar sub_slots ocupados en el nuevo bloque (excluyendo la cita actual)
+      const { data: occupied } = await supabase
+        .from('appointments')
+        .select('sub_slot')
+        .eq('clinic_id', state.currentClinicId)
+        .eq('practitioner_id', data.practitionerId)
+        .eq('date', data.date)
+        .eq('start_time', data.startTime)
+        .neq('status', 'cancelled')
+        .neq('id', appointment.id);
+
+      const usedSlots = new Set((occupied || []).map(a => a.sub_slot));
+      
+      // Encontrar primer sub_slot libre
+      let freeSlot: number | null = null;
+      for (let i = 1; i <= maxSubSlots; i++) {
+        if (!usedSlots.has(i)) {
+          freeSlot = i;
+          break;
+        }
+      }
+
+      if (freeSlot === null) {
+        toast({
+          title: "Bloque completo",
+          description: `Todos los turnos del bloque ${data.startTime} están ocupados (${maxSubSlots}/${maxSubSlots}). Elegí otro horario.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      targetSubSlot = freeSlot;
+    }
     
     try {
       await updateAppointmentInDb(appointment.id, {
@@ -314,7 +361,8 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         practitionerId: data.practitionerId,
         status: data.status,
         treatmentType: data.treatmentType as TreatmentType,
-        notes: data.notes || ''
+        notes: data.notes || '',
+        ...(targetSubSlot !== undefined ? { subSlot: targetSubSlot } : {}),
       });
 
       const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
@@ -327,11 +375,18 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
       setIsEditing(false);
       window.dispatchEvent(new Event('appointmentUpdated'));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating appointment:', error);
+      const msg = error?.message || '';
+      let description = "No se pudo actualizar el turno";
+      if (msg.includes('unique') || msg.includes('duplicate') || msg.includes('23505')) {
+        description = "Ya existe un turno en ese horario y sub-slot. Intentá con otro horario.";
+      } else if (msg.includes('permission') || msg.includes('policy')) {
+        description = "No tenés permisos para modificar este turno.";
+      }
       toast({
         title: "Error",
-        description: "No se pudo actualizar el turno",
+        description,
         variant: "destructive",
       });
     }

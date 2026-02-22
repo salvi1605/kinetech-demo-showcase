@@ -35,7 +35,8 @@ export async function checkConflictInDb(candidate: ConflictCheck): Promise<Confl
     .select(`
       id,
       start_time,
-      treatment_types!inner(name)
+      treatment_type_id,
+      treatment_types(name)
     `)
     .eq('practitioner_id', candidate.practitionerId)
     .eq('date', candidate.date)
