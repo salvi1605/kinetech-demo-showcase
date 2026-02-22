@@ -1,34 +1,73 @@
 
-# Validacion de excepciones en todos los flujos de citas
+
+# Normalizar formato de fecha a DD/MM/YYYY en toda la aplicacion
 
 ## Problema
 
-La validacion de `practitioner_block` (vacaciones, licencia, etc.) solo se agregó en `NewAppointmentDialog`. Faltan estos otros flujos:
+La fecha de nacimiento en Paciente > Ficha > Datos se muestra en formato YYYY-MM-DD (raw de la base de datos). Ademas, hay inconsistencias menores en otros puntos donde se usa `toLocaleDateString('es-ES')` que puede producir formatos variables segun el navegador.
 
-1. **AppointmentDetailDialog** (reprogramar/editar cita) - Permite cambiar fecha, hora o profesional sin verificar bloqueos.
-2. **MassCreateAppointmentDialog** (creacion masiva) - Crea multiples citas sin verificar si el profesional asignado tiene bloqueo en alguna de las fechas.
+## Hallazgos del analisis
 
-`FreeAppointmentDialog` solo elimina citas, no necesita esta validacion.
+### 1. Fecha de nacimiento en PatientDetailTabs (problema principal)
 
-## Cambios
+**Archivo**: `src/pages/PatientDetailTabs.tsx`, linea 468
 
-### 1. `src/components/dialogs/AppointmentDetailDialog.tsx`
+El campo usa un `<Input>` generico que muestra el valor raw de la BD (`YYYY-MM-DD`):
 
-Insertar la verificacion de `schedule_exceptions` justo antes de la validacion de disponibilidad (~linea 269), dentro del bloque `if (state.currentClinicId)`. La logica:
+```text
+value={patient.identificacion?.dateOfBirth || patient.birthDate || ''}
+```
 
-- Consultar `schedule_exceptions` filtrando por `clinic_id`, `practitioner_id`, `date` y `type = 'practitioner_block'`
-- Si existe un bloqueo, mostrar toast destructivo con el nombre del profesional y la razon (ej: "Telma Ayastuy tiene VACACIONES en esta fecha. No se puede reprogramar la cita.")
-- Retornar sin guardar cambios
+No hay formateo. El componente `DateOfBirthInput` (que si formatea a DD/MM/YYYY) existe pero no se usa aqui.
 
-### 2. `src/components/dialogs/MassCreateAppointmentDialog.tsx`
+**Solucion**: Formatear el valor para visualizacion usando `parseSmartDOB` + `formatDisplayDate` de `dateUtils.ts`. Cuando el campo esta en modo edicion, usar `DateOfBirthInput` o mantener el input formateado.
 
-Insertar la verificacion dentro del loop `for (const slot of allowedSlots)` (~linea 227), antes de verificar conflictos de citas existentes. La logica:
+### 2. Fechas de citas con `toLocaleDateString('es-ES')`
 
-- Para cada slot, consultar `schedule_exceptions` filtrando por `clinic_id`, `practitioner_id` del slot, `date` del slot y `type = 'practitioner_block'`
-- Si existe un bloqueo en **cualquier** slot, agregar ese slot a la lista de `failed` con mensaje descriptivo (ej: "Lun 10/03 08:00 - Profesional tiene VACACIONES")
-- **No insertar ninguna cita** si hay al menos un slot bloqueado (comportamiento consistente con el plan aprobado: "no se debe permitir agendar ninguna cita hasta que la cita con error sea corregida")
-- Mostrar toast destructivo listando los slots con conflicto
+Varios puntos usan `parseLocalDate(date).toLocaleDateString('es-ES')` que delega el formato al navegador (puede variar entre `22/2/2026` y `22/02/2026`). Mejor usar `formatDisplayDate` para consistencia estricta `DD/MM/YYYY`.
 
-## Detalle tecnico
+**Archivos afectados**:
 
-Ambas validaciones siguen el mismo patron ya implementado en `NewAppointmentDialog`: consulta directa a `supabase.from('schedule_exceptions')` sin usar hooks adicionales. El toast usa `variant: "destructive"` y muestra el nombre del profesional + razon del bloqueo.
+- `src/pages/PatientDetailTabs.tsx` - lineas 371, 377, 408, 675 (ultima visita, proxima cita, listados de turnos)
+- `src/pages/Patients.tsx` - lineas 244, 450, 456 (tabla y cards de pacientes)
+
+**Solucion**: Reemplazar `parseLocalDate(x).toLocaleDateString('es-ES')` por `formatDisplayDate(parseLocalDate(x))` que produce siempre `DD/MM/YYYY`.
+
+### 3. Fechas ya correctas (no requieren cambios)
+
+- Excepciones (`Exceptions.tsx`): usa `format(date, 'dd MMM yyyy')` - formato legible correcto
+- Dialogo de cita nueva (`NewAppointmentDialog.tsx`): usa `format(date, 'dd/MM/yyyy')` - correcto
+- Dialogo de detalle (`AppointmentDetailDialog.tsx`): usa `format(date, 'dd/MM/yyyy')` - correcto
+- Dialogo liberar (`FreeAppointmentDialog.tsx`): usa `format(date, 'EEE dd/MM')` - correcto
+- `ClinicalHistoryDialog.tsx`: usa `formatDisplayDate(parseSmartDOB(...))` - correcto
+- `DateOfBirthInput.tsx`: usa `formatDisplayDate` internamente - correcto
+
+## Cambios necesarios
+
+### Archivo 1: `src/pages/PatientDetailTabs.tsx`
+
+6 cambios puntuales:
+
+1. **Linea 468** - Campo fecha de nacimiento: formatear el valor con `parseSmartDOB` + `formatDisplayDate` para mostrar DD/MM/YYYY en vez del raw YYYY-MM-DD
+2. **Linea 371** - Ultima visita: cambiar `toLocaleDateString('es-ES')` por `formatDisplayDate(parseLocalDate(...))`
+3. **Linea 377** - Proxima cita: idem
+4. **Linea 408** - Lista proximos turnos: idem
+5. **Linea 675** - Historial de turnos: idem
+6. Agregar import de `formatDisplayDate` desde `@/utils/dateUtils` (ya importa `parseLocalDate` de ahi)
+
+### Archivo 2: `src/pages/Patients.tsx`
+
+3 cambios puntuales:
+
+1. **Linea 244** - Tabla ultima visita: cambiar `toLocaleDateString('es-ES')` por `formatDisplayDate(parseLocalDate(...))`
+2. **Linea 450** - Card ultima visita: idem
+3. **Linea 456** - Card proxima cita: idem
+4. Agregar import de `formatDisplayDate` desde `@/utils/dateUtils`
+
+## Impacto
+
+- Solo afecta visualizacion, no modifica datos almacenados
+- No cambia logica de comparacion de fechas (las comparaciones internas siguen usando YYYY-MM-DD)
+- `parseSmartDOB` maneja ambos formatos (YYYY-MM-DD antiguo y DD-MM-YYYY nuevo), asi que es retrocompatible
+- Resultado: todas las fechas visibles al usuario mostraran DD/MM/YYYY de forma consistente
+
