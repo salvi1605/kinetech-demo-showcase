@@ -190,6 +190,26 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
 
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
     const subSlot = selectedSlot.subSlot ?? 1;
+
+    // Verificar si el profesional tiene un bloqueo (vacaciones, licencia, etc.) en esta fecha
+    const { data: blocks, error: blockError } = await supabase
+      .from('schedule_exceptions')
+      .select('reason, type')
+      .eq('clinic_id', state.currentClinicId)
+      .eq('practitioner_id', data.practitionerId)
+      .eq('date', appointmentDate)
+      .eq('type', 'practitioner_block');
+
+    if (!blockError && blocks && blocks.length > 0) {
+      const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+      const reason = blocks[0].reason?.toUpperCase() || 'BLOQUEO';
+      toast({
+        title: "Profesional no disponible",
+        description: `${practitionerName} tiene ${reason} en esta fecha. No se puede agendar la cita.`,
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Verificar disponibilidad del profesional
     if (state.currentClinicId) {
