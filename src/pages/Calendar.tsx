@@ -901,9 +901,22 @@ export const Calendar = () => {
                   {WEEKDAYS.map((day, index) => {
                     const dateISO = format(weekDates[index], 'yyyy-MM-dd');
                     const dayExceptions = exceptionsMap.get(dateISO) || [];
-                    const isClosed = dayExceptions.some(e => e.type === 'clinic_closed' || e.isHoliday);
-                    const hasBlock = dayExceptions.some(e => e.type === 'practitioner_block');
-                    const closedReason = dayExceptions.find(e => e.type === 'clinic_closed' || e.isHoliday);
+                    
+                    // Filtrar excepciones relevantes según el profesional seleccionado
+                    const relevantExceptions = state.filterPractitionerId
+                      ? dayExceptions.filter(e => 
+                          e.type === 'clinic_closed' || e.isHoliday || 
+                          (e.type === 'practitioner_block' && e.practitionerId === state.filterPractitionerId)
+                        )
+                      : dayExceptions;
+                    
+                    const isClosed = relevantExceptions.some(e => e.type === 'clinic_closed' || e.isHoliday);
+                    const hasBlock = relevantExceptions.some(e => e.type === 'practitioner_block');
+                    const closedReason = relevantExceptions.find(e => e.type === 'clinic_closed' || e.isHoliday);
+                    
+                    // Para el tooltip: mostrar todas pero con nombre del profesional
+                    const tooltipExceptions = state.filterPractitionerId ? relevantExceptions : dayExceptions;
+                    const hasTooltip = isClosed || hasBlock || (!state.filterPractitionerId && dayExceptions.some(e => e.type === 'practitioner_block'));
                     
                     return (
                       <Tooltip key={day}>
@@ -929,10 +942,17 @@ export const Calendar = () => {
                             )}
                           </div>
                         </TooltipTrigger>
-                        {(isClosed || hasBlock) && (
+                        {hasTooltip && (
                           <TooltipContent>
-                            {dayExceptions.map((e, i) => (
-                              <p key={i}>{e.isHoliday ? `🏖️ ${e.holidayName}` : `⚠️ ${e.reason || TYPE_LABELS_CAL[e.type] || e.type}`}</p>
+                            {tooltipExceptions.map((e, i) => (
+                              <p key={i}>
+                                {e.isHoliday 
+                                  ? `🏖️ ${e.holidayName}` 
+                                  : e.type === 'practitioner_block' && e.practitionerName
+                                    ? `⚠️ ${e.practitionerName}: ${e.reason || TYPE_LABELS_CAL[e.type] || e.type}`
+                                    : `⚠️ ${e.reason || TYPE_LABELS_CAL[e.type] || e.type}`
+                                }
+                              </p>
                             ))}
                           </TooltipContent>
                         )}
