@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText } from 'lucide-react';
+import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText, CalendarPlus } from 'lucide-react';
 import { parseSmartDOB, parseLocalDate, formatDisplayDate } from '@/utils/dateUtils';
 import { formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
@@ -278,6 +278,24 @@ export const Patients = () => {
                                     className="h-9 w-9"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      navigate(`/calendar?patientId=${patient.id}`);
+                                    }}
+                                  >
+                                    <CalendarPlus className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Crear cita</TooltipContent>
+                              </Tooltip>
+                            </RoleGuard>
+                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       handleEdit(patient);
                                     }}
                                   >
@@ -389,6 +407,16 @@ export const Patients = () => {
                           onClick={() => setHistoryPatient(patient)}
                         >
                           <ScrollText className="h-4 w-4" />
+                        </Button>
+                      </RoleGuard>
+                      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => navigate(`/calendar?patientId=${patient.id}`)}
+                        >
+                          <CalendarPlus className="h-4 w-4" />
                         </Button>
                       </RoleGuard>
                       <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>

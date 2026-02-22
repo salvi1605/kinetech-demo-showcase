@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -126,6 +127,18 @@ export const Calendar = () => {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
+  const [preselectedPatientId, setPreselectedPatientId] = useState<string | null>(null);
+
+  // Leer patientId desde query params para abrir diálogo con paciente pre-seleccionado
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const patientId = searchParams.get('patientId');
+    if (patientId) {
+      setPreselectedPatientId(patientId);
+      setShowNewAppointmentModal(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Obtener fechas de la semana laboral (memoizado para evitar re-renders)
   const weekDates = useMemo(() => {
@@ -1136,8 +1149,12 @@ export const Calendar = () => {
       {/* Modal Nuevo Turno */}
       <NewAppointmentDialog
         open={showNewAppointmentModal}
-        onOpenChange={setShowNewAppointmentModal}
+        onOpenChange={(open) => {
+          setShowNewAppointmentModal(open);
+          if (!open) setPreselectedPatientId(null);
+        }}
         selectedSlot={selectedSlot}
+        preselectedPatientId={preselectedPatientId ?? undefined}
       />
 
       <AppointmentDetailDialog

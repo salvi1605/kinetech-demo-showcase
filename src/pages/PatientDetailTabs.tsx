@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, CalendarPlus, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
 import { format, subMonths, addMonths } from 'date-fns';
 import { parseSmartDOB, formatDisplayDate, parseLocalDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { PatientUploadDocumentDialog, type PatientDocument } from '@/components/patients/PatientUploadDocumentDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { usePatientDocuments } from '@/hooks/usePatientDocuments';
+import { RoleGuard } from '@/components/shared/RoleGuard';
 
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
@@ -270,6 +271,12 @@ export const PatientDetailTabs = () => {
           <p className="text-muted-foreground">Información completa y gestión</p>
         </div>
         <div className="flex gap-2">
+          <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+            <Button variant="outline" onClick={() => navigate(`/calendar?patientId=${patient.id}`)}>
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Crear cita
+            </Button>
+          </RoleGuard>
           <Button onClick={() => setShowWizard(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Editar Paciente

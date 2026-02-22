@@ -42,9 +42,10 @@ interface NewAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedSlot: { day: number; time: string; date: Date; subSlot?: number } | null;
+  preselectedPatientId?: string;
 }
 
-export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAppointmentDialogProps) => {
+export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, preselectedPatientId }: NewAppointmentDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [patientSearch, setPatientSearch] = useState('');
@@ -89,6 +90,17 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot }: NewAp
       form.setValue('startTime', selectedSlot.time);
     }
   }, [selectedSlot, open, form]);
+
+  // Pre-seleccionar paciente cuando viene desde otra vista
+  useEffect(() => {
+    if (open && preselectedPatientId) {
+      form.setValue('patientId', preselectedPatientId);
+      const patient = state.patients.find(p => p.id === preselectedPatientId);
+      if (patient) {
+        setPatientSearch(formatPatientShortName(patient));
+      }
+    }
+  }, [open, preselectedPatientId, state.patients, form]);
 
   // Filtrar pacientes por búsqueda
   const filteredPatients = state.patients.filter(patient => {
