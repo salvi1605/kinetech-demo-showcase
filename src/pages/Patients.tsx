@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText } from 'lucide-react';
-import { parseSmartDOB, parseLocalDate } from '@/utils/dateUtils';
+import { parseSmartDOB, parseLocalDate, formatDisplayDate } from '@/utils/dateUtils';
 import { formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -241,7 +241,7 @@ export const Patients = () => {
                       <TableCell>
                         {patient.lastVisit ? (
                           <span className="text-sm">
-                            {parseLocalDate(patient.lastVisit).toLocaleDateString('es-ES')}
+                            {formatDisplayDate(parseLocalDate(patient.lastVisit))}
                           </span>
                         ) : (
                           <span className="text-sm text-muted-foreground">-</span>
@@ -447,13 +447,13 @@ export const Patients = () => {
                     {patient.lastVisit && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>Última visita: {parseLocalDate(patient.lastVisit).toLocaleDateString('es-ES')}</span>
+                        <span>Última visita: {formatDisplayDate(parseLocalDate(patient.lastVisit))}</span>
                       </div>
                     )}
                     {patient.nextAppointment && (
                       <div className="flex items-center gap-2 text-accent">
                         <Calendar className="h-4 w-4" />
-                        <span>Próxima cita: {parseLocalDate(patient.nextAppointment).toLocaleDateString('es-ES')}</span>
+                        <span>Próxima cita: {formatDisplayDate(parseLocalDate(patient.nextAppointment))}</span>
                       </div>
                     )}
                   </div>
