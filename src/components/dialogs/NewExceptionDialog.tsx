@@ -106,6 +106,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
   const watchType = form.watch('type');
   const watchDateFrom = form.watch('dateFrom');
   const watchDateTo = form.watch('dateTo');
+  const watchPractitionerId = form.watch('practitionerId');
 
   const rangeDayCount = watchDateFrom && watchDateTo
     ? differenceInCalendarDays(watchDateTo, watchDateFrom) + 1
@@ -135,7 +136,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
     }
   }, [editingException, open, form]);
 
-  // Check affected appointments when date/type changes
+  // Check affected appointments when date/type/practitioner changes
   useEffect(() => {
     const checkAffected = async () => {
       if (!watchDateFrom || !state.currentClinicId) {
@@ -158,9 +159,8 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
         .lte('date', dateToISO)
         .in('status', ['scheduled', 'confirmed']);
 
-      const practId = form.getValues('practitionerId');
-      if (watchType === 'practitioner_block' && practId) {
-        query = query.eq('practitioner_id', practId);
+      if (watchType === 'practitioner_block' && watchPractitionerId) {
+        query = query.eq('practitioner_id', watchPractitionerId);
       }
 
       const { count } = await query;
@@ -168,7 +168,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
     };
 
     checkAffected();
-  }, [watchDateFrom, watchDateTo, watchType, state.currentClinicId, form]);
+  }, [watchDateFrom, watchDateTo, watchType, watchPractitionerId, state.currentClinicId]);
 
   const practitionerOptions = state.practitioners.map(p => ({
     value: p.id,
