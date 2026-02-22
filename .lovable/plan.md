@@ -1,73 +1,74 @@
 
 
-# Normalizar formato de fecha a DD/MM/YYYY en toda la aplicacion
+# Crear cita desde lista de pacientes y detalle del paciente
 
-## Problema
+## Resumen
 
-La fecha de nacimiento en Paciente > Ficha > Datos se muestra en formato YYYY-MM-DD (raw de la base de datos). Ademas, hay inconsistencias menores en otros puntos donde se usa `toLocaleDateString('es-ES')` que puede producir formatos variables segun el navegador.
+Agregar un boton "Crear cita" con icono de calendario en **cada paciente individual**, tanto en la lista de pacientes como en el detalle del paciente. Al presionarlo, navega al calendario con el dialogo de nuevo turno abierto y el paciente pre-seleccionado.
 
-## Hallazgos del analisis
+## Donde aparece el boton
 
-### 1. Fecha de nacimiento en PatientDetailTabs (problema principal)
+1. **Lista de pacientes (desktop)**: Nuevo icono en la fila de acciones de cada paciente (junto a historial, editar, eliminar) - linea ~270 de `Patients.tsx`
+2. **Lista de pacientes (mobile cards)**: Nuevo icono en la barra de acciones de cada card - linea ~383 de `Patients.tsx`
+3. **Detalle del paciente (header)**: Nuevo boton junto a "Editar Paciente" en la cabecera - linea ~272 de `PatientDetailTabs.tsx`
 
-**Archivo**: `src/pages/PatientDetailTabs.tsx`, linea 468
+Todos envueltos en `RoleGuard` con roles `['admin_clinic', 'tenant_owner', 'receptionist']` (los que pueden crear citas).
 
-El campo usa un `<Input>` generico que muestra el valor raw de la BD (`YYYY-MM-DD`):
+## Flujo del usuario
 
 ```text
-value={patient.identificacion?.dateOfBirth || patient.birthDate || ''}
+Paciente (lista o detalle)
+  |
+  v
+Click en icono calendario
+  |
+  v
+Navega a /calendar?patientId=abc123
+  |
+  v
+Calendar.tsx lee el query param
+  |
+  v
+Abre NewAppointmentDialog con paciente pre-llenado
+  |
+  v
+Usuario elige fecha, hora, profesional y confirma
 ```
 
-No hay formateo. El componente `DateOfBirthInput` (que si formatea a DD/MM/YYYY) existe pero no se usa aqui.
+## Cambios tecnicos
 
-**Solucion**: Formatear el valor para visualizacion usando `parseSmartDOB` + `formatDisplayDate` de `dateUtils.ts`. Cuando el campo esta en modo edicion, usar `DateOfBirthInput` o mantener el input formateado.
+### Archivo 1: `src/pages/Patients.tsx`
 
-### 2. Fechas de citas con `toLocaleDateString('es-ES')`
+- Importar `CalendarPlus` de lucide-react
+- Agregar boton con icono `CalendarPlus` en la tabla desktop (entre historial y editar, linea ~270)
+  - `onClick`: `navigate('/calendar?patientId=' + patient.id)`
+  - Tooltip: "Crear cita"
+  - Envuelto en `RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}`
+- Agregar el mismo boton en las mobile cards (linea ~393, entre historial y editar)
 
-Varios puntos usan `parseLocalDate(date).toLocaleDateString('es-ES')` que delega el formato al navegador (puede variar entre `22/2/2026` y `22/02/2026`). Mejor usar `formatDisplayDate` para consistencia estricta `DD/MM/YYYY`.
+### Archivo 2: `src/pages/PatientDetailTabs.tsx`
 
-**Archivos afectados**:
+- Importar `CalendarPlus` de lucide-react
+- Agregar boton "Crear cita" con icono `CalendarPlus` en el header, junto al boton "Editar Paciente" (linea ~272)
+  - `onClick`: `navigate('/calendar?patientId=' + patient.id)`
+  - Solo visible para roles admin/receptionist via RoleGuard
+- Importar `RoleGuard` desde shared
 
-- `src/pages/PatientDetailTabs.tsx` - lineas 371, 377, 408, 675 (ultima visita, proxima cita, listados de turnos)
-- `src/pages/Patients.tsx` - lineas 244, 450, 456 (tabla y cards de pacientes)
+### Archivo 3: `src/pages/Calendar.tsx`
 
-**Solucion**: Reemplazar `parseLocalDate(x).toLocaleDateString('es-ES')` por `formatDisplayDate(parseLocalDate(x))` que produce siempre `DD/MM/YYYY`.
+- Importar `useSearchParams` de react-router-dom
+- Al montar, leer `searchParams.get('patientId')`
+- Si existe `patientId`:
+  - Setear `showNewAppointmentModal = true`
+  - Guardar el patientId en un nuevo estado `preselectedPatientId`
+  - Limpiar el query param con `setSearchParams` (para evitar re-aperturas)
+- Pasar `preselectedPatientId` como nueva prop a `NewAppointmentDialog`
 
-### 3. Fechas ya correctas (no requieren cambios)
+### Archivo 4: `src/components/dialogs/NewAppointmentDialog.tsx`
 
-- Excepciones (`Exceptions.tsx`): usa `format(date, 'dd MMM yyyy')` - formato legible correcto
-- Dialogo de cita nueva (`NewAppointmentDialog.tsx`): usa `format(date, 'dd/MM/yyyy')` - correcto
-- Dialogo de detalle (`AppointmentDetailDialog.tsx`): usa `format(date, 'dd/MM/yyyy')` - correcto
-- Dialogo liberar (`FreeAppointmentDialog.tsx`): usa `format(date, 'EEE dd/MM')` - correcto
-- `ClinicalHistoryDialog.tsx`: usa `formatDisplayDate(parseSmartDOB(...))` - correcto
-- `DateOfBirthInput.tsx`: usa `formatDisplayDate` internamente - correcto
-
-## Cambios necesarios
-
-### Archivo 1: `src/pages/PatientDetailTabs.tsx`
-
-6 cambios puntuales:
-
-1. **Linea 468** - Campo fecha de nacimiento: formatear el valor con `parseSmartDOB` + `formatDisplayDate` para mostrar DD/MM/YYYY en vez del raw YYYY-MM-DD
-2. **Linea 371** - Ultima visita: cambiar `toLocaleDateString('es-ES')` por `formatDisplayDate(parseLocalDate(...))`
-3. **Linea 377** - Proxima cita: idem
-4. **Linea 408** - Lista proximos turnos: idem
-5. **Linea 675** - Historial de turnos: idem
-6. Agregar import de `formatDisplayDate` desde `@/utils/dateUtils` (ya importa `parseLocalDate` de ahi)
-
-### Archivo 2: `src/pages/Patients.tsx`
-
-3 cambios puntuales:
-
-1. **Linea 244** - Tabla ultima visita: cambiar `toLocaleDateString('es-ES')` por `formatDisplayDate(parseLocalDate(...))`
-2. **Linea 450** - Card ultima visita: idem
-3. **Linea 456** - Card proxima cita: idem
-4. Agregar import de `formatDisplayDate` desde `@/utils/dateUtils`
-
-## Impacto
-
-- Solo afecta visualizacion, no modifica datos almacenados
-- No cambia logica de comparacion de fechas (las comparaciones internas siguen usando YYYY-MM-DD)
-- `parseSmartDOB` maneja ambos formatos (YYYY-MM-DD antiguo y DD-MM-YYYY nuevo), asi que es retrocompatible
-- Resultado: todas las fechas visibles al usuario mostraran DD/MM/YYYY de forma consistente
+- Agregar prop opcional `preselectedPatientId?: string`
+- En un `useEffect`, cuando `open` es `true` y `preselectedPatientId` tiene valor:
+  - Setear `form.setValue('patientId', preselectedPatientId)`
+  - Buscar el paciente en `state.patients` y setear `patientSearch` con su nombre para que se muestre visualmente seleccionado
+- El usuario puede cambiar el paciente si lo desea (no es fijo)
 
