@@ -266,6 +266,28 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return; // Impedir persistencia
     }
     
+    // Verificar si el profesional tiene un bloqueo (vacaciones, licencia, etc.)
+    if (state.currentClinicId) {
+      const { data: blocks, error: blockError } = await supabase
+        .from('schedule_exceptions')
+        .select('reason, type')
+        .eq('clinic_id', state.currentClinicId)
+        .eq('practitioner_id', data.practitionerId)
+        .eq('date', data.date)
+        .eq('type', 'practitioner_block');
+
+      if (!blockError && blocks && blocks.length > 0) {
+        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+        const reason = blocks[0].reason?.toUpperCase() || 'BLOQUEO';
+        toast({
+          title: "Profesional no disponible",
+          description: `${practitionerName} tiene ${reason} en esta fecha. No se puede reprogramar la cita.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Validar disponibilidad del profesional
     if (state.currentClinicId) {
       const availCheck = await checkPractitionerAvailability({
