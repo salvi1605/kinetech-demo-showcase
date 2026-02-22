@@ -129,16 +129,20 @@ export const Calendar = () => {
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
   const [preselectedPatientId, setPreselectedPatientId] = useState<string | null>(null);
 
-  // Leer patientId desde query params para abrir diálogo con paciente pre-seleccionado
+  // Leer patientId desde query params para filtrar calendario por paciente
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const patientId = searchParams.get('patientId');
     if (patientId) {
+      // Buscar nombre del paciente para setear el filtro visual
+      const patient = state.patients.find(p => p.id === patientId);
+      if (patient) {
+        dispatch({ type: 'SET_FILTER_PATIENT_SEARCH', payload: patient.name });
+      }
       setPreselectedPatientId(patientId);
-      setShowNewAppointmentModal(true);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, state.patients, dispatch]);
 
   // Obtener fechas de la semana laboral (memoizado para evitar re-renders)
   const weekDates = useMemo(() => {
