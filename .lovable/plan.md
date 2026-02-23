@@ -1,74 +1,62 @@
 
+# Validar bloqueo de profesional al seleccionar slots (antes de confirmar)
 
-# Crear cita desde lista de pacientes y detalle del paciente
+## Problema
 
-## Resumen
+Cuando el usuario selecciona horarios en modo multi-seleccion y elige un profesional que esta de vacaciones (o tiene algun bloqueo), el sistema permite seleccionar los slots sin problema. Recien al presionar "Confirmar seleccion" y completar el formulario, se muestra el error de que el profesional no esta disponible.
 
-Agregar un boton "Crear cita" con icono de calendario en **cada paciente individual**, tanto en la lista de pacientes como en el detalle del paciente. Al presionarlo, navega al calendario con el dialogo de nuevo turno abierto y el paciente pre-seleccionado.
+El comportamiento esperado es: al intentar seleccionar un slot, si el profesional elegido (`selectedPractitionerId`) tiene un bloqueo (vacaciones, licencia, etc.) en esa fecha, mostrar el mensaje de advertencia inmediatamente y no permitir la seleccion.
 
-## Donde aparece el boton
+## Causa raiz
 
-1. **Lista de pacientes (desktop)**: Nuevo icono en la fila de acciones de cada paciente (junto a historial, editar, eliminar) - linea ~270 de `Patients.tsx`
-2. **Lista de pacientes (mobile cards)**: Nuevo icono en la barra de acciones de cada card - linea ~383 de `Patients.tsx`
-3. **Detalle del paciente (header)**: Nuevo boton junto a "Editar Paciente" en la cabecera - linea ~272 de `PatientDetailTabs.tsx`
+En `onSubSlotClick` (Calendar.tsx, linea 394), la validacion de bloqueo usa `state.filterPractitionerId` (el filtro visual del calendario), no `state.selectedPractitionerId` (el profesional asignado para crear citas). Son dos campos distintos:
 
-Todos envueltos en `RoleGuard` con roles `['admin_clinic', 'tenant_owner', 'receptionist']` (los que pueden crear citas).
+- `filterPractitionerId`: filtra que citas se muestran en la grilla
+- `selectedPractitionerId`: el profesional al que se le asignaran las nuevas citas
 
-## Flujo del usuario
+El usuario puede tener el filtro en "Todos" y seleccionar un profesional especifico para las citas. En ese caso, la validacion de bloqueo no detecta la restriccion.
+
+## Solucion
+
+### Archivo: `src/pages/Calendar.tsx`
+
+**Cambio 1 - En `onSubSlotClick` (linea ~426)**: Antes de ejecutar `toggleSelect(key)` en modo multi-seleccion, agregar una validacion que verifique si `state.selectedPractitionerId` tiene un bloqueo en la fecha del slot seleccionado usando `isSlotBlocked`.
 
 ```text
-Paciente (lista o detalle)
-  |
-  v
-Click en icono calendario
-  |
-  v
-Navega a /calendar?patientId=abc123
-  |
-  v
-Calendar.tsx lee el query param
-  |
-  v
-Abre NewAppointmentDialog con paciente pre-llenado
-  |
-  v
-Usuario elige fecha, hora, profesional y confirma
+if (isMultiSelectEnabled) {
+  // NUEVO: Verificar bloqueo del profesional seleccionado para creacion
+  if (state.selectedPractitionerId) {
+    const practitionerBlockCheck = isSlotBlocked(dateISO, meta.time, state.selectedPractitionerId);
+    if (practitionerBlockCheck.blocked) {
+      toast({
+        title: "Profesional no disponible",
+        description: practitionerBlockCheck.reason || 'El profesional tiene un bloqueo en este horario',
+        variant: "destructive",
+      });
+      return;
+    }
+  }
+  toggleSelect(key);
+}
 ```
 
-## Cambios tecnicos
+**Cambio 2 - En la validacion existente (linea ~394)**: Extender la validacion de `isSlotBlocked` para que tambien considere `state.selectedPractitionerId` ademas de `state.filterPractitionerId`, para cubrir el caso del click individual (no multi-select).
 
-### Archivo 1: `src/pages/Patients.tsx`
+La validacion actual:
+```text
+const blockCheck = isSlotBlocked(dateISO, meta.time, state.filterPractitionerId || undefined);
+```
 
-- Importar `CalendarPlus` de lucide-react
-- Agregar boton con icono `CalendarPlus` en la tabla desktop (entre historial y editar, linea ~270)
-  - `onClick`: `navigate('/calendar?patientId=' + patient.id)`
-  - Tooltip: "Crear cita"
-  - Envuelto en `RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}`
-- Agregar el mismo boton en las mobile cards (linea ~393, entre historial y editar)
+Se complementa con una segunda verificacion para el profesional de creacion si es distinto del filtro.
 
-### Archivo 2: `src/pages/PatientDetailTabs.tsx`
+### Archivos afectados
 
-- Importar `CalendarPlus` de lucide-react
-- Agregar boton "Crear cita" con icono `CalendarPlus` en el header, junto al boton "Editar Paciente" (linea ~272)
-  - `onClick`: `navigate('/calendar?patientId=' + patient.id)`
-  - Solo visible para roles admin/receptionist via RoleGuard
-- Importar `RoleGuard` desde shared
+| Archivo | Cambio |
+|---------|--------|
+| `src/pages/Calendar.tsx` | Agregar validacion de bloqueo contra `selectedPractitionerId` en `onSubSlotClick`, tanto para multi-select como para click individual |
 
-### Archivo 3: `src/pages/Calendar.tsx`
+### Impacto
 
-- Importar `useSearchParams` de react-router-dom
-- Al montar, leer `searchParams.get('patientId')`
-- Si existe `patientId`:
-  - Setear `showNewAppointmentModal = true`
-  - Guardar el patientId en un nuevo estado `preselectedPatientId`
-  - Limpiar el query param con `setSearchParams` (para evitar re-aperturas)
-- Pasar `preselectedPatientId` como nueva prop a `NewAppointmentDialog`
-
-### Archivo 4: `src/components/dialogs/NewAppointmentDialog.tsx`
-
-- Agregar prop opcional `preselectedPatientId?: string`
-- En un `useEffect`, cuando `open` es `true` y `preselectedPatientId` tiene valor:
-  - Setear `form.setValue('patientId', preselectedPatientId)`
-  - Buscar el paciente en `state.patients` y setear `patientSearch` con su nombre para que se muestre visualmente seleccionado
-- El usuario puede cambiar el paciente si lo desea (no es fijo)
-
+- Solo afecta la logica de seleccion en el calendario
+- No modifica la base de datos ni las validaciones del dialogo de confirmacion (que se mantienen como segunda barrera)
+- La validacion usa el mismo hook `isSlotBlocked` (de `useScheduleExceptions`) que ya esta cargado
