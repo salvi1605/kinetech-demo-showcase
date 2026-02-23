@@ -129,6 +129,10 @@ export const Calendar = () => {
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
   const [preselectedPatientId, setPreselectedPatientId] = useState<string | null>(null);
 
+  // Scroll preservation refs
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const savedScrollHour = useRef<string | null>(null);
+
   // Leer patientId desde query params para filtrar calendario por paciente
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -243,6 +247,46 @@ export const Calendar = () => {
   };
 
   // Effect to update loading when week changes and clean past selections
+  // Capture scroll position before view changes
+  const captureScrollHour = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || TIME_SLOTS.length === 0) return;
+    const timeRows = container.querySelectorAll<HTMLElement>('[data-time-row]');
+    const containerTop = container.scrollTop + container.offsetTop;
+    let closestHour: string | null = null;
+    for (const row of timeRows) {
+      if (row.offsetTop <= containerTop + 10) {
+        closestHour = row.getAttribute('data-time-row');
+      } else {
+        break;
+      }
+    }
+    savedScrollHour.current = closestHour || TIME_SLOTS[0];
+  }, [TIME_SLOTS]);
+
+  // Save scroll before week/filter changes
+  useEffect(() => {
+    captureScrollHour();
+  }, [state.calendarWeekStart, state.filterPractitionerId, state.filterPatientSearch]);
+
+  // Restore scroll after data loads
+  useEffect(() => {
+    if (loadingAppointments || loadingSettings || !savedScrollHour.current) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const targetRow = container.querySelector<HTMLElement>(`[data-time-row="${savedScrollHour.current}"]`);
+    if (targetRow) {
+      container.scrollTo({ top: targetRow.offsetTop - container.offsetTop, behavior: 'instant' as ScrollBehavior });
+    } else {
+      // If saved hour exceeds available slots, scroll to last row
+      const allRows = container.querySelectorAll<HTMLElement>('[data-time-row]');
+      if (allRows.length > 0) {
+        const lastRow = allRows[allRows.length - 1];
+        container.scrollTo({ top: lastRow.offsetTop - container.offsetTop, behavior: 'instant' as ScrollBehavior });
+      }
+    }
+  }, [loadingAppointments, loadingSettings, state.calendarWeekStart, state.filterPractitionerId]);
+
   useEffect(() => {
     if (state.calendarWeekStart) {
       // Clean past day selections only for non-admin users
@@ -928,7 +972,7 @@ export const Calendar = () => {
                 <div className="flex justify-end px-2 py-1 bg-background">
                   <WeekNavigatorCompact />
                 </div>
-                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
+                <div ref={scrollContainerRef} className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
                   <div 
                     className="w-full"
                     style={{ 
@@ -1007,7 +1051,7 @@ export const Calendar = () => {
                   {/* Slots de tiempo - 6 celdas directas del grid por fila */}
                   {TIME_SLOTS.map((time) => (
                     <React.Fragment key={time}>
-                      <div className="p-2 text-sm text-muted-foreground border-r-2 border-b border-gray-400 bg-muted/10 flex items-center">
+                      <div data-time-row={time} className="p-2 text-sm text-muted-foreground border-r-2 border-b border-gray-400 bg-muted/10 flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
                         {time}
                       </div>
