@@ -400,6 +400,19 @@ export const Calendar = () => {
       });
       return;
     }
+
+    // Verificar bloqueo del profesional seleccionado para creación (si es distinto del filtro)
+    if (!appointment && state.selectedPractitionerId && state.selectedPractitionerId !== state.filterPractitionerId) {
+      const selectedBlockCheck = isSlotBlocked(dateISO, meta.time, state.selectedPractitionerId);
+      if (selectedBlockCheck.blocked) {
+        toast({
+          title: "Profesional no disponible",
+          description: selectedBlockCheck.reason || 'El profesional seleccionado tiene un bloqueo en este horario',
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     // Verificar si está ocupado por otro profesional
     if (isOccupiedByOtherPractitioner(key)) {
@@ -424,7 +437,18 @@ export const Calendar = () => {
       setAgendaBanner(null); // Admin o día actual/futuro
       
       if (isMultiSelectEnabled) {
-        // Alternar selección si está libre y multi-select está habilitado
+        // Verificar bloqueo del profesional seleccionado antes de permitir multi-select
+        if (state.selectedPractitionerId) {
+          const practitionerBlockCheck = isSlotBlocked(dateISO, meta.time, state.selectedPractitionerId);
+          if (practitionerBlockCheck.blocked) {
+            toast({
+              title: "Profesional no disponible",
+              description: practitionerBlockCheck.reason || 'El profesional tiene un bloqueo en este horario',
+              variant: "destructive",
+            });
+            return;
+          }
+        }
         toggleSelect(key);
       } else {
         // Abrir nuevo turno (para rol kinesio)
