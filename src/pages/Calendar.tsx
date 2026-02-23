@@ -401,18 +401,6 @@ export const Calendar = () => {
       return;
     }
 
-    // Verificar bloqueo del profesional seleccionado para creación (si es distinto del filtro)
-    if (!appointment && state.selectedPractitionerId && state.selectedPractitionerId !== state.filterPractitionerId) {
-      const selectedBlockCheck = isSlotBlocked(dateISO, meta.time, state.selectedPractitionerId);
-      if (selectedBlockCheck.blocked) {
-        toast({
-          title: "Profesional no disponible",
-          description: selectedBlockCheck.reason || 'El profesional seleccionado tiene un bloqueo en este horario',
-          variant: "destructive",
-        });
-        return;
-      }
-    }
     
     // Verificar si está ocupado por otro profesional
     if (isOccupiedByOtherPractitioner(key)) {
@@ -437,18 +425,6 @@ export const Calendar = () => {
       setAgendaBanner(null); // Admin o día actual/futuro
       
       if (isMultiSelectEnabled) {
-        // Verificar bloqueo del profesional seleccionado antes de permitir multi-select
-        if (state.selectedPractitionerId) {
-          const practitionerBlockCheck = isSlotBlocked(dateISO, meta.time, state.selectedPractitionerId);
-          if (practitionerBlockCheck.blocked) {
-            toast({
-              title: "Profesional no disponible",
-              description: practitionerBlockCheck.reason || 'El profesional tiene un bloqueo en este horario',
-              variant: "destructive",
-            });
-            return;
-          }
-        }
         toggleSelect(key);
       } else {
         // Abrir nuevo turno (para rol kinesio)
@@ -478,6 +454,32 @@ export const Calendar = () => {
       });
       return;
     }
+
+    // Verificar bloqueos del profesional seleccionado en los slots elegidos
+    if (state.selectedPractitionerId) {
+      const blockedSlots: string[] = [];
+      for (const slotKey of state.selectedSlots) {
+        // slotKey format: "dayIndex-HH:mm-subSlot"
+        const parts = slotKey.split('-');
+        const dayIndex = parseInt(parts[0], 10);
+        const time = `${parts[1]}:${parts[2]}`; // HH:mm
+        const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+        const blockCheck = isSlotBlocked(dateISO, time, state.selectedPractitionerId);
+        if (blockCheck.blocked) {
+          const dayName = format(weekDates[dayIndex], 'EEE dd/MM', { locale: es });
+          blockedSlots.push(`${dayName} ${time} — ${blockCheck.reason || 'No disponible'}`);
+        }
+      }
+      if (blockedSlots.length > 0) {
+        toast({
+          title: "Profesional no disponible",
+          description: `El profesional tiene bloqueos en: ${blockedSlots.join('; ')}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setShowMassCreateModal(true);
   };
 
