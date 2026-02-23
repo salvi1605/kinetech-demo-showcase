@@ -459,15 +459,16 @@ export const Calendar = () => {
     if (state.selectedPractitionerId) {
       const blockedSlots: string[] = [];
       for (const slotKey of state.selectedSlots) {
-        // slotKey format: "dayIndex-HH:mm-subSlot"
-        const parts = slotKey.split('-');
-        const dayIndex = parseInt(parts[0], 10);
-        const time = `${parts[1]}:${parts[2]}`; // HH:mm
-        const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
-        const blockCheck = isSlotBlocked(dateISO, time, state.selectedPractitionerId);
+        const { dateISO, hour } = parseSlotKey(slotKey);
+
+        if (!dateISO || !hour) {
+          continue;
+        }
+
+        const blockCheck = isSlotBlocked(dateISO, hour, state.selectedPractitionerId);
         if (blockCheck.blocked) {
-          const dayName = format(weekDates[dayIndex], 'EEE dd/MM', { locale: es });
-          blockedSlots.push(`${dayName} ${time} — ${blockCheck.reason || 'No disponible'}`);
+          const dayName = format(parseISO(dateISO), 'EEE dd/MM', { locale: es });
+          blockedSlots.push(`${dayName} ${hour} — ${blockCheck.reason || 'No disponible'}`);
         }
       }
       if (blockedSlots.length > 0) {
