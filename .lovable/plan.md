@@ -1,62 +1,30 @@
 
-# Validar bloqueo de profesional al seleccionar slots (antes de confirmar)
+
+# Plan: Pasar paciente pre-seleccionado al dialog de cita masiva
 
 ## Problema
+Cuando el usuario viene desde la ficha de un paciente (`/calendar?patientId=X`), el paciente se pre-carga en el dialog de cita **individual** pero **no** en el de cita **masiva**. El usuario tiene que buscarlo manualmente.
 
-Cuando el usuario selecciona horarios en modo multi-seleccion y elige un profesional que esta de vacaciones (o tiene algun bloqueo), el sistema permite seleccionar los slots sin problema. Recien al presionar "Confirmar seleccion" y completar el formulario, se muestra el error de que el profesional no esta disponible.
+## Cambios
 
-El comportamiento esperado es: al intentar seleccionar un slot, si el profesional elegido (`selectedPractitionerId`) tiene un bloqueo (vacaciones, licencia, etc.) en esa fecha, mostrar el mensaje de advertencia inmediatamente y no permitir la seleccion.
+### 1. MassCreateAppointmentDialog (src/components/dialogs/MassCreateAppointmentDialog.tsx)
 
-## Causa raiz
+- Agregar prop `preselectedPatientId?: string` a la interfaz `MassCreateAppointmentDialogProps`
+- Agregar un `useEffect` (igual al que ya existe en `NewAppointmentDialog`) que cuando el dialog se abra con `preselectedPatientId`, setee `patientId` y `patientSearch` automaticamente con los datos del paciente
 
-En `onSubSlotClick` (Calendar.tsx, linea 394), la validacion de bloqueo usa `state.filterPractitionerId` (el filtro visual del calendario), no `state.selectedPractitionerId` (el profesional asignado para crear citas). Son dos campos distintos:
+### 2. Calendar (src/pages/Calendar.tsx)
 
-- `filterPractitionerId`: filtra que citas se muestran en la grilla
-- `selectedPractitionerId`: el profesional al que se le asignaran las nuevas citas
+- Pasar `preselectedPatientId={preselectedPatientId ?? undefined}` al componente `MassCreateAppointmentDialog` (linea ~1242)
+- En el `onOpenChange` del `MassCreateAppointmentDialog`, limpiar `preselectedPatientId` cuando se cierre (mismo patron que ya se usa en `NewAppointmentDialog` en linea ~1229)
 
-El usuario puede tener el filtro en "Todos" y seleccionar un profesional especifico para las citas. En ese caso, la validacion de bloqueo no detecta la restriccion.
+## Resultado
 
-## Solucion
+Ambos dialogs (individual y masivo) recibiran el paciente pre-seleccionado cuando el usuario venga desde la ficha del paciente. Sin esa prop, ambos funcionan igual que antes.
 
-### Archivo: `src/pages/Calendar.tsx`
-
-**Cambio 1 - En `onSubSlotClick` (linea ~426)**: Antes de ejecutar `toggleSelect(key)` en modo multi-seleccion, agregar una validacion que verifique si `state.selectedPractitionerId` tiene un bloqueo en la fecha del slot seleccionado usando `isSlotBlocked`.
-
-```text
-if (isMultiSelectEnabled) {
-  // NUEVO: Verificar bloqueo del profesional seleccionado para creacion
-  if (state.selectedPractitionerId) {
-    const practitionerBlockCheck = isSlotBlocked(dateISO, meta.time, state.selectedPractitionerId);
-    if (practitionerBlockCheck.blocked) {
-      toast({
-        title: "Profesional no disponible",
-        description: practitionerBlockCheck.reason || 'El profesional tiene un bloqueo en este horario',
-        variant: "destructive",
-      });
-      return;
-    }
-  }
-  toggleSelect(key);
-}
-```
-
-**Cambio 2 - En la validacion existente (linea ~394)**: Extender la validacion de `isSlotBlocked` para que tambien considere `state.selectedPractitionerId` ademas de `state.filterPractitionerId`, para cubrir el caso del click individual (no multi-select).
-
-La validacion actual:
-```text
-const blockCheck = isSlotBlocked(dateISO, meta.time, state.filterPractitionerId || undefined);
-```
-
-Se complementa con una segunda verificacion para el profesional de creacion si es distinto del filtro.
-
-### Archivos afectados
+## Archivos afectados
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/pages/Calendar.tsx` | Agregar validacion de bloqueo contra `selectedPractitionerId` en `onSubSlotClick`, tanto para multi-select como para click individual |
+| `src/components/dialogs/MassCreateAppointmentDialog.tsx` | Nueva prop + useEffect |
+| `src/pages/Calendar.tsx` | Pasar prop + limpiar al cerrar |
 
-### Impacto
-
-- Solo afecta la logica de seleccion en el calendario
-- No modifica la base de datos ni las validaciones del dialogo de confirmacion (que se mantienen como segunda barrera)
-- La validacion usa el mismo hook `isSlotBlocked` (de `useScheduleExceptions`) que ya esta cargado
