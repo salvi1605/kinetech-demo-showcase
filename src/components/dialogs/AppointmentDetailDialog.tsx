@@ -414,25 +414,37 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     }
   };
 
-  // Copiar todas las citas del paciente - computed from store each render
+  // Copiar todas las citas del paciente - consulta directa a BD
   const handleCopyAllPatientAppointments = async () => {
-    if (!appointment) return;
+    if (!appointment || !state.currentClinicId) return;
     
-    // Get all appointments for this patient from the store, excluding continuations
-    const allAppointments = state.appointments.filter(apt => 
-      apt.patientId === appointment.patientId && !apt.isContinuation
-    );
+    const today = format(new Date(), 'yyyy-MM-dd');
     
-    if (allAppointments.length === 0) return;
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('date, start_time, practitioner_id, treatment_type_id, treatment_types(name)')
+      .eq('clinic_id', state.currentClinicId)
+      .eq('patient_id', appointment.patientId)
+      .eq('status', 'scheduled')
+      .gte('date', today)
+      .order('date')
+      .order('start_time');
+    
+    if (error || !data || data.length === 0) {
+      toast({
+        title: "Sin turnos",
+        description: "No se encontraron turnos futuros para este paciente",
+      });
+      return;
+    }
     
     const { formatCopyLine } = await import('@/utils/copyFormat');
     
-    const items = allAppointments
-      .map(apt => {
-        const doctor = state.practitioners.find(p => p.id === apt.practitionerId);
-        return formatCopyLine(apt.date, apt.startTime, doctor, apt.treatmentType);
-      })
-      .sort();
+    const items = data.map(apt => {
+      const doctor = state.practitioners.find(p => p.id === apt.practitioner_id);
+      const treatmentName = (apt.treatment_types as any)?.name || undefined;
+      return formatCopyLine(apt.date, apt.start_time, doctor ? { name: doctor.name } : null, treatmentName);
+    });
     
     await copyToClipboard(items.join('\n'));
     
