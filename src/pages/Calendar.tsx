@@ -1241,8 +1241,12 @@ export const Calendar = () => {
 
       <MassCreateAppointmentDialog
         open={showMassCreateModal}
-        onOpenChange={setShowMassCreateModal}
+        onOpenChange={(open) => {
+          setShowMassCreateModal(open);
+          if (!open) setPreselectedPatientId(null);
+        }}
         selectedSlotKeys={Array.from(state.selectedSlots)}
+        preselectedPatientId={preselectedPatientId ?? undefined}
       />
 
 

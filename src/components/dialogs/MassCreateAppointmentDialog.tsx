@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -24,6 +24,7 @@ interface MassCreateAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedSlotKeys: string[];
+  preselectedPatientId?: string;
 }
 
 interface SlotInfo {
@@ -36,7 +37,7 @@ interface SlotInfo {
 }
 
 
-export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKeys }: MassCreateAppointmentDialogProps) => {
+export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKeys, preselectedPatientId }: MassCreateAppointmentDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   
@@ -48,6 +49,17 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const [failedSlots, setFailedSlots] = useState<string[]>([]);
   const [perItemPractitioner, setPerItemPractitioner] = useState<Record<string, string>>({});
   const [perItemTreatment, setPerItemTreatment] = useState<Record<string, TreatmentType>>({});
+
+  // Pre-seleccionar paciente cuando viene desde otra vista
+  useEffect(() => {
+    if (open && preselectedPatientId) {
+      setPatientId(preselectedPatientId);
+      const patient = state.patients.find(p => p.id === preselectedPatientId);
+      if (patient) {
+        setPatientSearch(formatPatientShortName(patient));
+      }
+    }
+  }, [open, preselectedPatientId, state.patients]);
 
   // Preparar slots ordenados con tratamiento prefijado
   const sortedSlots: SlotInfo[] = selectedSlotKeys
