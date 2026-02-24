@@ -13,7 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel, formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
-import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2 } from 'lucide-react';
+import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2, UserPlus } from 'lucide-react';
+import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
@@ -49,6 +50,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   const [failedSlots, setFailedSlots] = useState<string[]>([]);
   const [perItemPractitioner, setPerItemPractitioner] = useState<Record<string, string>>({});
   const [perItemTreatment, setPerItemTreatment] = useState<Record<string, TreatmentType>>({});
+  const [showNewPatientDialog, setShowNewPatientDialog] = useState(false);
 
   // Pre-seleccionar paciente cuando viene desde otra vista
   useEffect(() => {
@@ -543,7 +545,19 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
             {/* Búsqueda y selección de paciente */}
             <div>
-              <Label htmlFor="patient">Paciente *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="patient">Paciente *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => setShowNewPatientDialog(true)}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Nuevo
+                </Button>
+              </div>
               <div className="space-y-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -646,6 +660,19 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <NewPatientDialogV2
+        open={showNewPatientDialog}
+        onOpenChange={setShowNewPatientDialog}
+        onSuccess={(id, name) => {
+          if (id && name) {
+            setPatientId(id);
+            setPatientSearch(name);
+          }
+          setShowNewPatientDialog(false);
+          window.dispatchEvent(new Event('patientsUpdated'));
+        }}
+      />
     </>
   );
 };
