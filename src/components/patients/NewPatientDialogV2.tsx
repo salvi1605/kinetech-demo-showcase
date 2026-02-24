@@ -46,7 +46,7 @@ interface PatientFormData {
 interface NewPatientDialogV2Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (patientId?: string, patientName?: string) => void;
 }
 
 const steps = [
@@ -236,7 +236,7 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
       });
 
       // Notify parent to refresh list
-      onSuccess?.();
+      onSuccess?.(data.id, fullName);
 
       // Reset and close
       onOpenChange(false);
