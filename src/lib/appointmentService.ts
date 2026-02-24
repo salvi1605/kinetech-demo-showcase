@@ -41,6 +41,30 @@ const mapStatusToDb = (status: 'scheduled' | 'completed' | 'no_show' | 'cancelle
 };
 
 export const createAppointment = async (input: CreateAppointmentInput) => {
+  // Resolver treatment_type_id por nombre
+  let treatmentTypeId: string | null = null;
+  if (input.treatmentType && input.clinicId) {
+    const nameMap: Record<TreatmentType, string> = {
+      fkt: 'FKT',
+      atm: 'ATM',
+      drenaje: 'Drenaje linfático',
+      drenaje_ultra: 'Drenaje + Ultrasonido',
+      masaje: 'Masaje',
+      vestibular: 'Vestibular',
+      otro: 'Otro',
+    };
+    const treatmentName = nameMap[input.treatmentType];
+    if (treatmentName) {
+      const { data: tt } = await supabase
+        .from('treatment_types')
+        .select('id')
+        .eq('clinic_id', input.clinicId)
+        .eq('name', treatmentName)
+        .maybeSingle();
+      treatmentTypeId = tt?.id || null;
+    }
+  }
+
   const { data, error } = await supabase
     .from('appointments')
     .insert({
@@ -54,7 +78,7 @@ export const createAppointment = async (input: CreateAppointmentInput) => {
       status: 'scheduled',
       notes: input.notes || '',
       mode: input.mode || 'in_person',
-      treatment_type_id: null, // TODO: mapear treatmentType a ID real
+      treatment_type_id: treatmentTypeId,
     })
     .select()
     .single();
@@ -73,10 +97,8 @@ export const updateAppointment = async (id: string, updates: UpdateAppointmentIn
   if (updates.subSlot !== undefined) dbUpdates.sub_slot = updates.subSlot;
   if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
   if (updates.status) dbUpdates.status = mapStatusToDb(updates.status);
-  if (updates.treatmentType) {
-    // TODO: mapear treatmentType a ID real
-    dbUpdates.treatment_type_id = null;
-  }
+  // treatmentType mapping is handled at call site if needed
+  // For now, treatment_type_id updates are not supported via this method
 
   const { data, error } = await supabase
     .from('appointments')
