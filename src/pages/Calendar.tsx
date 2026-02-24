@@ -246,6 +246,17 @@ export const Calendar = () => {
     return apt !== undefined && apt.practitionerId !== state.filterPractitionerId;
   };
 
+  // Verificar si un slot está ocupado por otro paciente (cuando hay filtro de paciente activo)
+  const isOccupiedByOtherPatient = (key: string): boolean => {
+    if (!state.filterPatientSearch) return false;
+    const apt = allAppointmentsBySlotKey.get(key);
+    if (!apt || !apt.patientId) return false;
+    const patient = state.patients.find(p => p.id === apt.patientId);
+    if (!patient) return false;
+    const searchLower = state.filterPatientSearch.toLowerCase();
+    return !matchesPatientSearch(patient, searchLower);
+  };
+
   // Effect to update loading when week changes and clean past selections
   // Capture scroll position before view changes
   const captureScrollHour = useCallback(() => {
@@ -450,6 +461,15 @@ export const Calendar = () => {
     if (isOccupiedByOtherPractitioner(key)) {
       toast({
         title: "Slot no disponible",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verificar si está ocupado por otro paciente
+    if (isOccupiedByOtherPatient(key)) {
+      toast({
+        title: "Slot ocupado por otro paciente",
         variant: "destructive",
       });
       return;
@@ -678,6 +698,30 @@ export const Calendar = () => {
                   </Tooltip>
                 );
               }
+
+              // Verificar si está ocupado por otro paciente
+              if (isOccupiedByOtherPatient(key)) {
+                const occupyingApt = allAppointmentsBySlotKey.get(key);
+                const occupyingPatient = occupyingApt
+                  ? state.patients.find(p => p.id === occupyingApt.patientId)
+                  : null;
+                
+                return (
+                  <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
+                        aria-label={`Ocupado por ${occupyingPatient ? formatPatientShortName(occupyingPatient) : 'otro paciente'}`}
+                      >
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ocupado por {occupyingPatient ? formatPatientShortName(occupyingPatient) : 'otro paciente'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
               
               const isSelected = state.selectedSlots.has(key);
               
@@ -736,6 +780,30 @@ export const Calendar = () => {
                  </TooltipTrigger>
                  <TooltipContent>
                    <p>Ocupado por {occupyingPractitioner?.name || 'otro profesional'}</p>
+                 </TooltipContent>
+               </Tooltip>
+             );
+           }
+
+           // Verificar si está ocupado por otro paciente
+           if (isOccupiedByOtherPatient(key)) {
+             const occupyingApt = allAppointmentsBySlotKey.get(key);
+             const occupyingPatient = occupyingApt
+               ? state.patients.find(p => p.id === occupyingApt.patientId)
+               : null;
+             
+             return (
+               <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
+                 <TooltipTrigger asChild>
+                   <div
+                     className="text-xs p-1 rounded bg-muted border border-border flex items-center justify-center cursor-not-allowed"
+                     aria-label={`Ocupado por ${occupyingPatient ? formatPatientShortName(occupyingPatient) : 'otro paciente'}`}
+                   >
+                     <X className="h-3 w-3 text-muted-foreground" />
+                   </div>
+                 </TooltipTrigger>
+                 <TooltipContent>
+                   <p>Ocupado por {occupyingPatient ? formatPatientShortName(occupyingPatient) : 'otro paciente'}</p>
                  </TooltipContent>
                </Tooltip>
              );
@@ -1172,19 +1240,33 @@ export const Calendar = () => {
                                   const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
                                   const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
                                   
-                                  // Verificar si está ocupado por otro profesional
-                                  if (isOccupiedByOtherPractitioner(key)) {
-                                    return (
-                                      <Card
-                                        key={`${time}-${subIndex}`}
-                                        className="p-3 border-dashed bg-muted cursor-not-allowed"
-                                      >
-                                        <div className="flex items-center justify-center">
-                                          <X className="h-4 w-4 text-muted-foreground" />
-                                        </div>
-                                      </Card>
-                                    );
-                                  }
+                                   // Verificar si está ocupado por otro profesional
+                                   if (isOccupiedByOtherPractitioner(key)) {
+                                     return (
+                                       <Card
+                                         key={`${time}-${subIndex}`}
+                                         className="p-3 border-dashed bg-muted cursor-not-allowed"
+                                       >
+                                         <div className="flex items-center justify-center">
+                                           <X className="h-4 w-4 text-muted-foreground" />
+                                         </div>
+                                       </Card>
+                                     );
+                                   }
+
+                                   // Verificar si está ocupado por otro paciente
+                                   if (isOccupiedByOtherPatient(key)) {
+                                     return (
+                                       <Card
+                                         key={`${time}-${subIndex}`}
+                                         className="p-3 border-dashed bg-muted cursor-not-allowed"
+                                       >
+                                         <div className="flex items-center justify-center">
+                                           <X className="h-4 w-4 text-muted-foreground" />
+                                         </div>
+                                       </Card>
+                                     );
+                                   }
                                   
                                   const isSelected = state.selectedSlots.has(key);
                                   
