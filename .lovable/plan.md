@@ -1,53 +1,39 @@
 
+# Fix: Ocultar "No se encontraron pacientes" cuando ya hay paciente seleccionado
 
-# Plan: Boton "Nuevo Paciente" en el dialogo de cita masiva
+## Problema
 
-## Objetivo
+Cuando seleccionas un paciente en el dialogo de cita masiva, el campo de busqueda se actualiza con el nombre formateado del paciente. Pero como el texto de busqueda sigue siendo truthy, el dropdown de resultados permanece visible. El filtro entonces busca con ese texto nuevo y no encuentra coincidencia exacta, mostrando "No se encontraron pacientes" debajo del paciente ya seleccionado (que aparece como Badge).
 
-Agregar un boton junto al label "Paciente *" en `MassCreateAppointmentDialog` que abra el formulario de nuevo paciente (`NewPatientDialogV2`). Al terminar de crear el paciente, este queda automaticamente seleccionado en el campo de paciente del dialogo de cita masiva.
+## Solucion
 
-## Cambios
+En `MassCreateAppointmentDialog.tsx`, cambiar la condicion que muestra el dropdown de resultados para que solo se muestre cuando hay texto de busqueda Y no hay un paciente seleccionado.
 
-### 1. `src/components/patients/NewPatientDialogV2.tsx`
+**Linea ~572**, cambiar:
 
-Modificar la prop `onSuccess` para que pase el ID y nombre del paciente recien creado:
-
-- Cambiar la interfaz: `onSuccess?: (patientId: string, patientName: string) => void`
-- En `handleSubmit`, despues de la insercion exitosa, llamar `onSuccess(data.id, fullName)` pasando los datos del nuevo paciente
-
-### 2. `src/components/dialogs/MassCreateAppointmentDialog.tsx`
-
-- Agregar estado `showNewPatientDialog` (boolean, default false)
-- Junto al label "Paciente *" (linea 546), agregar un boton "+ Nuevo" que abra el dialogo de nuevo paciente
-- Renderizar `NewPatientDialogV2` con:
-  - `open={showNewPatientDialog}`
-  - `onOpenChange={setShowNewPatientDialog}`
-  - `onSuccess={(id, name) => { setPatientId(id); setPatientSearch(name); setShowNewPatientDialog(false); }}` -- esto auto-selecciona el paciente recien creado
-- Tambien disparar refresh de pacientes (`window.dispatchEvent(new Event('patientsUpdated'))` o similar) para que el estado global tenga al nuevo paciente
-
-## Detalle tecnico
-
-```text
-MassCreateAppointmentDialog
-  |
-  +-- Label "Paciente *"  [+ Nuevo]  <-- boton nuevo
-  |     |
-  |     +-- Input busqueda
-  |     +-- Lista resultados
-  |
-  +-- NewPatientDialogV2 (condicional)
-        |
-        +-- onSuccess(patientId, fullName)
-              |
-              +-- setPatientId(patientId)
-              +-- setPatientSearch(fullName)
-              +-- refresh patients list
+```
+{patientSearch && (
 ```
 
-## Archivos afectados
+por:
+
+```
+{patientSearch && !patientId && (
+```
+
+Esto oculta la lista de resultados (y el mensaje "No se encontraron pacientes") en cuanto se selecciona un paciente. Si el usuario borra el texto o cambia la busqueda, `patientId` se deberia limpiar para reactivar la busqueda.
+
+Ademas, agregar un `setPatientId('')` cuando el usuario modifica el campo de busqueda (en el `onChange` del Input) para que al escribir nuevamente se reactive el dropdown:
+
+```typescript
+onChange={(e) => {
+  setPatientSearch(e.target.value);
+  setPatientId('');  // limpiar seleccion al buscar de nuevo
+}}
+```
+
+## Archivo afectado
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/components/patients/NewPatientDialogV2.tsx` | Modificar firma de `onSuccess` para pasar `(patientId, patientName)` |
-| `src/components/dialogs/MassCreateAppointmentDialog.tsx` | Agregar boton "+ Nuevo", estado para el dialogo, renderizar `NewPatientDialogV2`, auto-seleccionar paciente creado |
-
+| `src/components/dialogs/MassCreateAppointmentDialog.tsx` | Agregar `!patientId` a la condicion del dropdown y limpiar `patientId` al cambiar busqueda |
