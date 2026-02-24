@@ -33,6 +33,7 @@ const newAppointmentSchema = z.object({
   }),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
   patientId: z.string().optional(),
+  treatmentType: z.string().min(1, 'Selecciona un tipo de tratamiento'),
   notes: z.string().optional(),
 });
 
@@ -64,6 +65,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       startTime: '',
       practitionerId: '',
       patientId: '',
+      treatmentType: 'fkt',
       notes: '',
     }
   });
@@ -266,7 +268,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       date: appointmentDate,
       startTime: data.startTime,
       practitionerId: data.practitionerId,
-      treatmentType: 'fkt', // Tratamiento por defecto
+      treatmentType: (data.treatmentType || 'fkt') as TreatmentType,
       clinicId: state.currentClinicId,
     });
     
@@ -290,7 +292,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
         startTime: data.startTime,
         subSlot: subSlot,
         notes: data.notes || '',
-        treatmentType: 'fkt',
+        treatmentType: (data.treatmentType || 'fkt') as TreatmentType,
       });
 
       const patient = state.patients.find(p => p.id === data.patientId);
@@ -578,6 +580,34 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                 )}
               </div>
             </div>
+
+            {/* Tipo de tratamiento */}
+            <FormField
+              control={form.control}
+              name="treatmentType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    Tipo de tratamiento
+                  </FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tratamiento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(treatmentLabel)
+                          .filter(([key]) => key !== '')
+                          .map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Notas */}
             <FormField
