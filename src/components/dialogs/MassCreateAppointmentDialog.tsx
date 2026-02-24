@@ -245,15 +245,15 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       const failed: string[] = [];
       const conflictingSlots: string[] = [];
 
-      // Mapeo de tratamientos a IDs
-      const treatmentTypeMapping: Record<TreatmentType, string> = {
-        fkt: 'fkt',
-        atm: 'atm',
-        drenaje: 'drenaje',
-        drenaje_ultra: 'drenaje_ultra',
-        masaje: 'masaje',
-        vestibular: 'vestibular',
-        otro: 'otro',
+      // Mapeo de tratamientos internos a nombres en BD
+      const treatmentNameMap: Record<TreatmentType, string> = {
+        fkt: 'FKT',
+        atm: 'ATM',
+        drenaje: 'Drenaje linfático',
+        drenaje_ultra: 'Drenaje + Ultrasonido',
+        masaje: 'Masaje',
+        vestibular: 'Vestibular',
+        otro: 'Otro',
       };
 
       for (const slot of allowedSlots) {
@@ -291,11 +291,12 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           continue;
         }
 
-        // Get treatment type ID
+        // Get treatment type ID using proper DB name
+        const treatmentDbName = treatmentNameMap[slotTreatmentType as TreatmentType] || slotTreatmentType;
         const { data: treatmentData } = await supabase
           .from('treatment_types')
           .select('id')
-          .eq('name', slotTreatmentType)
+          .eq('name', treatmentDbName)
           .eq('clinic_id', state.currentClinicId!)
           .maybeSingle();
 
