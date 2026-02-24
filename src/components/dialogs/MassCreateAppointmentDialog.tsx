@@ -565,11 +565,11 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                   <Input
                     placeholder="Buscar paciente..."
                     value={patientSearch}
-                    onChange={(e) => setPatientSearch(e.target.value)}
+                    onChange={(e) => { setPatientSearch(e.target.value); setPatientId(''); }}
                     className="pl-10"
                   />
                 </div>
-                {patientSearch && (
+                {patientSearch && !patientId && (
                   <div className="border rounded-md max-h-40 overflow-y-auto">
                     {filteredPatients.length > 0 ? (
                       filteredPatients.map((patient) => (
