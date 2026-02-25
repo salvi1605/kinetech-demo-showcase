@@ -32,7 +32,7 @@ export function useAvailableUsersForPractitioner(
       setLoading(true);
       try {
         // 1. Obtener todos los usuarios con rol health_pro en esta clínica
-        const { data: healthProUsers, error: usersError } = await supabase
+        const { data: clinicUsers, error: usersError } = await supabase
           .from('user_roles')
           .select(`
             user_id,
@@ -43,7 +43,6 @@ export function useAvailableUsersForPractitioner(
             )
           `)
           .eq('clinic_id', clinicId)
-          .eq('role_id', 'health_pro')
           .eq('active', true);
 
         if (usersError) throw usersError;
@@ -68,9 +67,14 @@ export function useAvailableUsersForPractitioner(
           (linkedPractitioners || []).map(p => p.user_id).filter(Boolean)
         );
 
-        // 3. Filtrar usuarios que NO están vinculados
-        const availableUsers: AvailableUser[] = (healthProUsers || [])
-          .filter(ur => !linkedUserIds.has(ur.user_id))
+        // 3. Deduplicar por user_id y filtrar usuarios que NO están vinculados
+        const seen = new Set<string>();
+        const availableUsers: AvailableUser[] = (clinicUsers || [])
+          .filter(ur => {
+            if (seen.has(ur.user_id) || linkedUserIds.has(ur.user_id)) return false;
+            seen.add(ur.user_id);
+            return true;
+          })
           .map(ur => ({
             id: ur.users.id,
             full_name: ur.users.full_name,

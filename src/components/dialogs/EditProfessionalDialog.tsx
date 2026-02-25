@@ -427,7 +427,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
               <div className="space-y-2 pt-2 border-t">
                 <Label htmlFor="linkedUser">Usuario asociado (login)</Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Opcional. Vincula este profesional a un usuario con rol "Profesional" para que pueda iniciar sesión.
+                  Opcional. Vincula este profesional a un usuario de la clínica para que pueda iniciar sesión y ver su agenda.
                 </p>
                 {loadingUsers ? (
                   <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
