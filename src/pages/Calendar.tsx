@@ -133,6 +133,10 @@ export const Calendar = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const savedScrollHour = useRef<string | null>(null);
 
+  // Mobile scroll preservation refs
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const savedMobileScrollHour = useRef<string | null>(null);
+
   // Leer patientId desde query params para filtrar calendario por paciente
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -297,6 +301,21 @@ export const Calendar = () => {
       }
     }
   }, [loadingAppointments, loadingSettings, state.calendarWeekStart, state.filterPractitionerId]);
+
+  // Restore mobile scroll position after day change
+  useEffect(() => {
+    if (!savedMobileScrollHour.current) return;
+    const container = mobileScrollRef.current;
+    if (!container) return;
+    // Small delay to let TabsContent render
+    requestAnimationFrame(() => {
+      const target = container.querySelector<HTMLElement>(`[data-time-row-mobile="${savedMobileScrollHour.current}"]`);
+      if (target) {
+        container.scrollTo({ top: target.offsetTop - container.offsetTop, behavior: 'instant' as ScrollBehavior });
+      }
+    });
+  }, [selectedDay]);
+
 
   useEffect(() => {
     if (state.calendarWeekStart) {
@@ -1137,166 +1156,188 @@ export const Calendar = () => {
           </div>
 
           {/* Vista Mobile - Tabs por día */}
-          <div className="md:hidden">
-            {/* Navegador de semana compacto para móvil */}
-            <div className="flex justify-end mb-2">
-              <WeekNavigatorCompact />
-            </div>
-            <Tabs value={selectedDay.toString()} onValueChange={(v) => setSelectedDay(parseInt(v))}>
-              <TabsList className="grid w-full grid-cols-5">
-                {MOBILE_WEEKDAYS.map((day, index) => (
-                  <TabsTrigger key={index} value={index.toString()} className="text-xs">
-                    <div className="text-center">
-                      <div>{day}</div>
-                      <div className="text-xs">{format(weekDates[index], 'd', { locale: es })}</div>
-                    </div>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+          <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
+            <Tabs value={selectedDay.toString()} onValueChange={(v) => {
+              // Capture current scroll hour before switching day
+              const container = mobileScrollRef.current;
+              if (container && TIME_SLOTS.length > 0) {
+                const rows = container.querySelectorAll<HTMLElement>('[data-time-row-mobile]');
+                const containerTop = container.scrollTop;
+                let closestHour: string | null = null;
+                for (const row of rows) {
+                  if (row.offsetTop - container.offsetTop <= containerTop + 10) {
+                    closestHour = row.getAttribute('data-time-row-mobile');
+                  } else {
+                    break;
+                  }
+                }
+                savedMobileScrollHour.current = closestHour || TIME_SLOTS[0];
+              }
+              setSelectedDay(parseInt(v));
+            }} className="flex flex-col flex-1 min-h-0">
+              {/* Sticky header: week nav + day tabs */}
+              <div className="sticky top-0 z-10 bg-background pb-2 border-b">
+                <div className="flex justify-end mb-2">
+                  <WeekNavigatorCompact />
+                </div>
+                <TabsList className="grid w-full grid-cols-5">
+                  {MOBILE_WEEKDAYS.map((day, index) => (
+                    <TabsTrigger key={index} value={index.toString()} className="text-xs">
+                      <div className="text-center">
+                        <div>{day}</div>
+                        <div className="text-xs">{format(weekDates[index], 'd', { locale: es })}</div>
+                      </div>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
 
-              {WEEKDAYS.map((_, dayIndex) => (
-                <TabsContent key={dayIndex} value={dayIndex.toString()} className="mt-4">
-                  {(loadingAppointments || loadingSettings) ? (
-                    <LoadingSkeleton variant="cards" />
-                  ) : (
-                    <div className="space-y-1">
-                       {TIME_SLOTS.map((time) => {
-                          const capacity = getSlotCapacity(dayIndex, time);
-                          const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
-                          
-                          // Obtener citas usando el índice de sub-slots
-                          const slotAppointments = Array.from({ length: 5 }, (_, subIndex) => {
-                            const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
-                            return appointmentsBySlotKey.get(key);
-                          });
-                          
-                          const appointmentCount = slotAppointments.filter(apt => apt !== undefined).length;
-                         
-                         return (
-                           <div key={time} className="space-y-1">
-                             <div className="flex items-center gap-2 mb-2">
-                               <Clock className="h-4 w-4 text-muted-foreground" />
-                               <span className="font-medium">{time}</span>
-                               <span className="text-xs text-muted-foreground">
-                                 ({appointmentCount}/{capacity})
-                               </span>
-                             </div>
-                             
-                             {Array.from({ length: capacity }).map((_, subIndex) => {
-                               const appointment = slotAppointments[subIndex];
-                              
-                               if (appointment) {
-                                 const patient = state.patients.find(p => p.id === appointment.patientId);
-                                 const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
-                                 const styles = getPractitionerStyles(appointment.practitionerId);
-                                 const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
-                                 const isCompleted = appointment.status === 'completed';
-                                 const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
-                                 
-                                  return (
-                                    <Card
-                                      key={`${time}-${subIndex}`}
-                                      className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors"
-                                      style={{ borderLeftColor: getPractitionerColor(appointment.practitionerId) }}
-                                      onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                    >
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <div className="font-medium text-sm truncate">
-                                              {patient ? formatPatientShortName(patient) : 'Paciente'}
+              {/* Scrollable content */}
+              <div ref={mobileScrollRef} className="flex-1 overflow-y-auto mt-2">
+                {WEEKDAYS.map((_, dayIndex) => (
+                  <TabsContent key={dayIndex} value={dayIndex.toString()} className="mt-0">
+                    {(loadingAppointments || loadingSettings) ? (
+                      <LoadingSkeleton variant="cards" />
+                    ) : (
+                      <div className="space-y-1">
+                         {TIME_SLOTS.map((time) => {
+                            const capacity = getSlotCapacity(dayIndex, time);
+                            const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+                            
+                            // Obtener citas usando el índice de sub-slots
+                            const slotAppointments = Array.from({ length: 5 }, (_, subIndex) => {
+                              const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+                              return appointmentsBySlotKey.get(key);
+                            });
+                            
+                            const appointmentCount = slotAppointments.filter(apt => apt !== undefined).length;
+                           
+                           return (
+                             <div key={time} data-time-row-mobile={time} className="space-y-1">
+                               <div className="flex items-center gap-2 mb-2">
+                                 <Clock className="h-4 w-4 text-muted-foreground" />
+                                 <span className="font-medium">{time}</span>
+                                 <span className="text-xs text-muted-foreground">
+                                   ({appointmentCount}/{capacity})
+                                 </span>
+                               </div>
+                               
+                               {Array.from({ length: capacity }).map((_, subIndex) => {
+                                 const appointment = slotAppointments[subIndex];
+                                
+                                 if (appointment) {
+                                   const patient = state.patients.find(p => p.id === appointment.patientId);
+                                   const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
+                                   const styles = getPractitionerStyles(appointment.practitionerId);
+                                   const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
+                                   const isCompleted = appointment.status === 'completed';
+                                   const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
+                                   
+                                    return (
+                                      <Card
+                                        key={`${time}-${subIndex}`}
+                                        className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors"
+                                        style={{ borderLeftColor: getPractitionerColor(appointment.practitionerId) }}
+                                        onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <div className="font-medium text-sm truncate">
+                                                {patient ? formatPatientShortName(patient) : 'Paciente'}
+                                              </div>
+                                               <span className={`inline-block px-2 py-1 text-xs rounded ${
+                                                 appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                                                 appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                 appointment.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                                                 'bg-gray-100 text-gray-800'
+                                               }`}>
+                                                  {statusLabel(appointment.status as AppointmentStatus)}
+                                               </span>
                                             </div>
-                                             <span className={`inline-block px-2 py-1 text-xs rounded ${
-                                               appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                                               appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                               appointment.status === 'no_show' ? 'bg-red-100 text-red-800' :
-                                               'bg-gray-100 text-gray-800'
-                                             }`}>
-                                                {statusLabel(appointment.status as AppointmentStatus)}
-                                             </span>
+                                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                              <User className="h-3 w-3" />
+                                              <span className="truncate">{practitioner?.name || 'Profesional'}</span>
+                                            </div>
                                           </div>
-                                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                            <User className="h-3 w-3" />
-                                            <span className="truncate">{practitioner?.name || 'Profesional'}</span>
-                                          </div>
+                          {hasPermission && appointment.practitionerId && appointment.patientId && (
+                            <button
+                              type="button"
+                              role="checkbox"
+                              aria-checked={statusToChecked(appointment.status as Status) === true ? 'true' : statusToChecked(appointment.status as Status) === 'indeterminate' ? 'mixed' : 'false'}
+                              onClick={(e) => { e.stopPropagation(); onTriToggle(appointment); }}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-sm border border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer bg-background ml-2"
+                              data-state={statusToChecked(appointment.status as Status) === true ? 'checked' : statusToChecked(appointment.status as Status) === 'indeterminate' ? 'indeterminate' : 'unchecked'}
+                            >
+                              {statusToChecked(appointment.status as Status) === true && <Check className="h-4 w-4 text-green-600" />}
+                              {statusToChecked(appointment.status as Status) === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
+                            </button>
+                          )}
                                         </div>
-                        {hasPermission && appointment.practitionerId && appointment.patientId && (
-                          <button
-                            type="button"
-                            role="checkbox"
-                            aria-checked={statusToChecked(appointment.status as Status) === true ? 'true' : statusToChecked(appointment.status as Status) === 'indeterminate' ? 'mixed' : 'false'}
-                            onClick={(e) => { e.stopPropagation(); onTriToggle(appointment); }}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-sm border border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer bg-background ml-2"
-                            data-state={statusToChecked(appointment.status as Status) === true ? 'checked' : statusToChecked(appointment.status as Status) === 'indeterminate' ? 'indeterminate' : 'unchecked'}
-                          >
-                            {statusToChecked(appointment.status as Status) === true && <Check className="h-4 w-4 text-green-600" />}
-                            {statusToChecked(appointment.status as Status) === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
-                          </button>
-                        )}
-                                      </div>
-                                    </Card>
-                                  );
-                                } else {
-                                  const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
-                                  const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
-                                  
-                                   // Verificar si está ocupado por otro profesional
-                                   if (isOccupiedByOtherPractitioner(key)) {
-                                     return (
-                                       <Card
-                                         key={`${time}-${subIndex}`}
-                                         className="p-3 border-dashed bg-muted cursor-not-allowed"
-                                       >
-                                         <div className="flex items-center justify-center">
-                                           <X className="h-4 w-4 text-muted-foreground" />
-                                         </div>
-                                       </Card>
-                                     );
-                                   }
+                                      </Card>
+                                    );
+                                  } else {
+                                    const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+                                    const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+                                    
+                                     // Verificar si está ocupado por otro profesional
+                                     if (isOccupiedByOtherPractitioner(key)) {
+                                       return (
+                                         <Card
+                                           key={`${time}-${subIndex}`}
+                                           className="p-3 border-dashed bg-muted cursor-not-allowed"
+                                         >
+                                           <div className="flex items-center justify-center">
+                                             <X className="h-4 w-4 text-muted-foreground" />
+                                           </div>
+                                         </Card>
+                                       );
+                                     }
 
-                                   // Verificar si está ocupado por otro paciente
-                                   if (isOccupiedByOtherPatient(key)) {
-                                     return (
-                                       <Card
-                                         key={`${time}-${subIndex}`}
-                                         className="p-3 border-dashed bg-muted cursor-not-allowed"
-                                       >
-                                         <div className="flex items-center justify-center">
-                                           <X className="h-4 w-4 text-muted-foreground" />
-                                         </div>
-                                       </Card>
-                                     );
-                                   }
-                                  
-                                  const isSelected = state.selectedSlots.has(key);
-                                  
-                                  return (
-                                    <Card
-                                      key={`${time}-${subIndex}`}
-                                      className={`p-3 cursor-pointer border-dashed transition-colors ${
-                                        isSelected 
-                                          ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' 
-                                          : 'border-green-300 bg-green-50 hover:bg-green-100'
-                                      }`}
-                                      onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                    >
-                                      <div className="flex items-center justify-center">
-                                        <span className={`text-lg ${isSelected ? 'text-blue-600' : 'text-green-600'}`}>
-                                          {isSelected ? '✓' : <Plus className="h-4 w-4" />}
-                                        </span>
-                                      </div>
-                                    </Card>
-                                  );
-                                }
-                              return null;
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
+                                     // Verificar si está ocupado por otro paciente
+                                     if (isOccupiedByOtherPatient(key)) {
+                                       return (
+                                         <Card
+                                           key={`${time}-${subIndex}`}
+                                           className="p-3 border-dashed bg-muted cursor-not-allowed"
+                                         >
+                                           <div className="flex items-center justify-center">
+                                             <X className="h-4 w-4 text-muted-foreground" />
+                                           </div>
+                                         </Card>
+                                       );
+                                     }
+                                    
+                                    const isSelected = state.selectedSlots.has(key);
+                                    
+                                    return (
+                                      <Card
+                                        key={`${time}-${subIndex}`}
+                                        className={`p-3 cursor-pointer border-dashed transition-colors ${
+                                          isSelected 
+                                            ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' 
+                                            : 'border-green-300 bg-green-50 hover:bg-green-100'
+                                        }`}
+                                        onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                      >
+                                        <div className="flex items-center justify-center">
+                                          <span className={`text-lg ${isSelected ? 'text-blue-600' : 'text-green-600'}`}>
+                                            {isSelected ? '✓' : <Plus className="h-4 w-4" />}
+                                          </span>
+                                        </div>
+                                      </Card>
+                                    );
+                                  }
+                                return null;
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </TabsContent>
+                ))}
+              </div>
             </Tabs>
           </div>
         </CardContent>
