@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const allowedOrigins = [
+  'https://agendixpro.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') || '';
+  const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.lovable.app');
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
+}
 
 // Cryptographically secure password generation
 function generateSecurePassword(length: number = 16): string {
@@ -17,6 +27,8 @@ function generateSecurePassword(length: number = 16): string {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -85,7 +97,6 @@ serve(async (req) => {
     let result: any = {};
 
     if (action === 'update_profile') {
-      // Update user profile
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({ full_name: fullName, email: email })
@@ -93,7 +104,6 @@ serve(async (req) => {
 
       if (updateError) throw updateError;
 
-      // Update auth email if changed
       const { data: targetUser } = await supabaseAdmin
         .from('users')
         .select('auth_user_id')
@@ -108,7 +118,6 @@ serve(async (req) => {
     }
 
     if (action === 'update_role') {
-      // Update or insert user role
       const { error: deleteError } = await supabaseAdmin
         .from('user_roles')
         .delete()
@@ -143,7 +152,6 @@ serve(async (req) => {
     }
 
     if (action === 'reset_password') {
-      // Generate cryptographically secure temporary password
       const tempPassword = generateSecurePassword(16);
 
       const { data: targetUser } = await supabaseAdmin
@@ -172,10 +180,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in update-user function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in update-user function');
+    return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

@@ -1,12 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+const allowedOrigins = [
+  'https://agendixpro.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') || '';
+  const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.lovable.app');
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -82,8 +94,6 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Creating/adding user: ${email} with role ${roleId} for clinic ${clinicId}`)
-
     let authUserId: string | null = null
     let userId: string
 
@@ -95,11 +105,8 @@ serve(async (req) => {
       .maybeSingle()
 
     if (existingPublicUser) {
-      // User already exists in public.users
       userId = existingPublicUser.id
       authUserId = existingPublicUser.auth_user_id
-
-      console.log(`Found existing public user: ${userId}`)
 
       // Check if user already has a role in this clinic
       const { data: existingRole } = await supabaseAdmin
@@ -125,14 +132,11 @@ serve(async (req) => {
         })
 
         if (authError) {
-          // Check if it's because user already exists in auth
           if (authError.message.includes('already been registered')) {
-            // Get auth user by email
             const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
             const existingAuthUser = authUsers?.users?.find(u => u.email === email)
             if (existingAuthUser) {
               authUserId = existingAuthUser.id
-              // Update public.users with auth_user_id
               await supabaseAdmin
                 .from('users')
                 .update({ auth_user_id: authUserId })
@@ -143,7 +147,6 @@ serve(async (req) => {
           }
         } else {
           authUserId = authData.user.id
-          // Update public.users with auth_user_id
           await supabaseAdmin
             .from('users')
             .update({ 
@@ -155,8 +158,6 @@ serve(async (req) => {
         }
       }
     } else {
-      // User doesn't exist, create new
-      // First try to create auth user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -164,7 +165,6 @@ serve(async (req) => {
       })
 
       if (authError) {
-        // If user already exists in auth but not in public.users
         if (authError.message.includes('already been registered')) {
           const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
           const existingAuthUser = authUsers?.users?.find(u => u.email === email)
@@ -186,7 +186,6 @@ serve(async (req) => {
         authUserId = authData.user.id
       }
 
-      // Create public.users record
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('users')
         .insert({
@@ -198,13 +197,12 @@ serve(async (req) => {
         .single()
 
       if (insertError) {
-        console.error('Error creating public.users record:', insertError)
+        console.error('Error creating user record')
         throw insertError
       }
       userId = newUser.id
     }
 
-    // Asignar rol para esta clínica
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
@@ -215,11 +213,9 @@ serve(async (req) => {
       })
 
     if (roleError) {
-      console.error('Error assigning role:', roleError)
+      console.error('Error assigning role')
       throw roleError
     }
-
-    console.log(`Successfully created/added user ${email} with role ${roleId}`)
 
     return new Response(
       JSON.stringify({ 
@@ -234,10 +230,10 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in create-user function:', error)
+    console.error('Error in create-user function')
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Error interno del servidor' }),
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   }
 })
