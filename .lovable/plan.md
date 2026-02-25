@@ -1,64 +1,64 @@
 
 
-# Fix: Copiar Horarios y Liberar Cita muestran solo turnos de la semana visible
+# Fix: Permitir vincular cualquier usuario de la clinica a un profesional
 
 ## Problema
 
-Tanto "Copiar Horarios" (en `AppointmentDetailDialog`) como "Liberar Cita" (`FreeAppointmentDialog`) filtran turnos desde `state.appointments`, que solo contiene los turnos cargados para la semana que se esta viendo en el calendario. Por eso, si la paciente "Torti Elizabeth Rita" tiene 16 turnos futuros pero solo 3 caen en la semana actual, solo se muestran esos 3.
+El hook `useAvailableUsersForPractitioner` filtra usuarios exclusivamente por el rol `health_pro`. Esto impide vincular a Telma (que es `tenant_owner`) como profesional, a pesar de que ella tambien ejerce como kinesióloga en la clinica.
+
+Lo mismo ocurre en `LinkPractitionerModal`, que usa `useUnlinkedPractitioners` pero el flujo inverso (vincular usuario a profesional desde UserManagement) probablemente tiene la misma restriccion.
 
 ## Solucion
 
-Reemplazar el filtrado de `state.appointments` por una consulta directa a la base de datos que traiga **todos** los turnos futuros del paciente, sin limite de semana.
+Modificar el hook `useAvailableUsersForPractitioner` para que cargue **todos los usuarios activos de la clinica** (sin importar su rol), en lugar de filtrar solo por `health_pro`.
 
-### Archivo 1: `src/components/dialogs/AppointmentDetailDialog.tsx`
+### Archivo: `src/hooks/useAvailableUsersForPractitioner.ts`
 
-**Cambio en `handleCopyAllPatientAppointments`** (~linea 418):
+**Cambio en la consulta (linea 35-47):**
 
-- En lugar de filtrar `state.appointments`, hacer una consulta directa a la BD:
-
+Reemplazar:
 ```typescript
-const { data } = await supabase
-  .from('appointments')
-  .select('id, date, start_time, practitioner_id, treatment_types(name)')
-  .eq('clinic_id', state.currentClinicId)
-  .eq('patient_id', appointment.patientId)
-  .eq('status', 'scheduled')
-  .gte('date', format(new Date(), 'yyyy-MM-dd'))
-  .order('date')
-  .order('start_time');
+const { data: healthProUsers, error: usersError } = await supabase
+  .from('user_roles')
+  .select(`user_id, users!inner (id, full_name, email)`)
+  .eq('clinic_id', clinicId)
+  .eq('role_id', 'health_pro')   // <-- ESTE FILTRO ES EL PROBLEMA
+  .eq('active', true);
 ```
 
-- Mapear los resultados y formatear para copiar al portapapeles
-
-### Archivo 2: `src/components/dialogs/FreeAppointmentDialog.tsx`
-
-**Cambio en `getFutureAppointments`** (~linea 32):
-
-- Convertir a funcion asincrona con `useEffect` + estado local
-- Consultar directamente la BD para obtener todos los turnos futuros del paciente:
-
+Por:
 ```typescript
-const { data } = await supabase
-  .from('appointments')
-  .select('id, date, start_time, sub_slot, status, notes, patient_id, practitioner_id')
-  .eq('clinic_id', state.currentClinicId)
-  .eq('patient_id', appointment.patientId)
-  .eq('status', 'scheduled')
-  .gte('date', format(new Date(), 'yyyy-MM-dd'))
-  .order('date')
-  .order('start_time');
+const { data: clinicUsers, error: usersError } = await supabase
+  .from('user_roles')
+  .select(`user_id, role_id, users!inner (id, full_name, email)`)
+  .eq('clinic_id', clinicId)
+  .eq('active', true);
 ```
 
-- Agregar estado `futureAppointments` con `useState` y un `useEffect` que haga el fetch al abrir el dialogo
-- Mantener la misma logica de seleccion/deseleccion y eliminacion
+Esto elimina el filtro por `health_pro` y permite que cualquier usuario de la clinica (tenant_owner, admin_clinic, receptionist, health_pro) pueda ser vinculado a un profesional.
+
+Tambien se deduplicaran los resultados por `user_id` (ya que un usuario puede tener multiples roles en la misma clinica).
+
+**Actualizar el texto descriptivo** en `NewProfessionalDialog.tsx` y `EditProfessionalDialog.tsx`:
+
+Cambiar:
+```
+Vincula este profesional a un usuario con rol "Profesional" para que pueda iniciar sesión.
+```
+
+Por:
+```
+Vincula este profesional a un usuario de la clinica para que pueda iniciar sesión y ver su agenda.
+```
 
 ## Archivos afectados
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/components/dialogs/AppointmentDetailDialog.tsx` | `handleCopyAllPatientAppointments`: consulta BD en vez de `state.appointments` |
-| `src/components/dialogs/FreeAppointmentDialog.tsx` | `getFutureAppointments`: consulta BD en vez de `state.appointments`, agregar estado y efecto para fetch |
+| `src/hooks/useAvailableUsersForPractitioner.ts` | Eliminar filtro `.eq('role_id', 'health_pro')`, deduplicar por user_id |
+| `src/components/dialogs/NewProfessionalDialog.tsx` | Actualizar texto descriptivo del campo |
+| `src/components/dialogs/EditProfessionalDialog.tsx` | Actualizar texto descriptivo del campo |
 
 ## Resultado esperado
 
-Al abrir "Copiar Horarios" o "Liberar Cita" para cualquier paciente, se mostraran **todos** sus turnos futuros (los 16 en el caso de Torti), no solo los de la semana visible.
+Al crear o editar un profesional, el selector "Usuario asociado" mostrara a todos los usuarios de la clinica (incluida Telma como tenant_owner), no solo a los que tienen rol `health_pro`.
