@@ -21,7 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const createUserSchema = z.object({
   email: z.string().email('Email inválido').min(1, 'El email es obligatorio'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   fullName: z.string().min(1, 'El nombre completo es obligatorio'),
   roleId: z.string().min(1, 'Debe seleccionar un rol'),
   clinicId: z.string().min(1, 'Debe seleccionar una clínica'),

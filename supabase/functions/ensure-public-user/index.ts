@@ -1,12 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const allowedOrigins = [
+  'https://agendixpro.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') || '';
+  const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.lovable.app');
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
+}
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -60,7 +72,6 @@ serve(async (req) => {
       });
     }
 
-    // Ensure there is a matching public.users record for this authenticated user
     const { data: upsertedUser, error: upsertError } = await supabaseAdmin
       .from("users")
       .upsert(
@@ -76,7 +87,7 @@ serve(async (req) => {
       .single();
 
     if (upsertError || !upsertedUser) {
-      console.error("ensure-public-user upsert error:", upsertError);
+      console.error("ensure-public-user upsert error");
       return new Response(JSON.stringify({ error: "Failed to ensure public user" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -91,10 +102,10 @@ serve(async (req) => {
       },
     );
   } catch (error) {
-    console.error("Error in ensure-public-user:", error);
-    return new Response(JSON.stringify({ error: error?.message ?? "Unknown error" }), {
+    console.error("Error in ensure-public-user");
+    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });
