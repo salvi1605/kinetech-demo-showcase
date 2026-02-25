@@ -1,64 +1,90 @@
 
 
-# Fix: Permitir vincular cualquier usuario de la clinica a un profesional
+# Calendario movil: header fijo y preservacion de scroll al cambiar de dia
 
-## Problema
+## Problema actual
 
-El hook `useAvailableUsersForPractitioner` filtra usuarios exclusivamente por el rol `health_pro`. Esto impide vincular a Telma (que es `tenant_owner`) como profesional, a pesar de que ella tambien ejerce como kinesióloga en la clinica.
+En la vista movil del calendario:
+1. Los tabs de dias (Lun, Mar, Mie, Jue, Vie) no quedan fijos al hacer scroll vertical -- se pierden de vista al bajar
+2. Al cambiar de dia seleccionado, el scroll vuelve al inicio en vez de mantener la misma hora visible
 
-Lo mismo ocurre en `LinkPractitionerModal`, que usa `useUnlinkedPractitioners` pero el flujo inverso (vincular usuario a profesional desde UserManagement) probablemente tiene la misma restriccion.
+En desktop esto ya funciona correctamente gracias a `sticky top-0` en los headers y al sistema de `savedScrollHour` / `scrollContainerRef`.
 
 ## Solucion
 
-Modificar el hook `useAvailableUsersForPractitioner` para que cargue **todos los usuarios activos de la clinica** (sin importar su rol), en lugar de filtrar solo por `health_pro`.
+### 1. Header de dias fijo (sticky) en movil
 
-### Archivo: `src/hooks/useAvailableUsersForPractitioner.ts`
+Envolver el `TabsList` y el `WeekNavigatorCompact` en un contenedor sticky que quede fijo en la parte superior del area de scroll. Para esto, el contenido de cada `TabsContent` necesita estar dentro de un contenedor con scroll controlado (similar al `scrollContainerRef` de desktop).
 
-**Cambio en la consulta (linea 35-47):**
+### 2. Preservar posicion de scroll al cambiar de dia
 
-Reemplazar:
+Agregar un `useRef` para el contenedor de scroll movil y capturar/restaurar la hora visible al cambiar de dia, reutilizando la misma logica que ya existe para desktop.
+
+## Cambios tecnicos
+
+### Archivo: `src/pages/Calendar.tsx`
+
+**Seccion movil (lineas ~1139-1301):**
+
+1. Agregar un ref para el scroll container movil: `mobileScrollRef`
+2. Capturar la hora visible antes de cambiar de dia en `onValueChange` del `Tabs`
+3. Restaurar la hora visible despues de que el nuevo dia se renderice (via `useEffect` que observe `selectedDay`)
+4. Reestructurar el layout movil para que:
+   - El `WeekNavigatorCompact` + `TabsList` queden en un bloque sticky
+   - El contenido de slots este dentro de un div con `overflow-y-auto` y `max-height` calculada (similar al desktop)
+   - Cada fila de hora tenga el atributo `data-time-row-mobile` para poder localizar la hora al restaurar scroll
+
+**Estructura resultante:**
+
+```text
+div.md:hidden (contenedor movil)
+  Tabs
+    div.sticky.top-0.z-10.bg-background
+      WeekNavigatorCompact
+      TabsList (Lun | Mar | Mie | Jue | Vie)
+    div ref={mobileScrollRef} overflow-y-auto max-h-[calc(100vh-Xpx)]
+      TabsContent (contenido de slots con data-time-row-mobile)
+```
+
+**Logica de scroll:**
+
 ```typescript
-const { data: healthProUsers, error: usersError } = await supabase
-  .from('user_roles')
-  .select(`user_id, users!inner (id, full_name, email)`)
-  .eq('clinic_id', clinicId)
-  .eq('role_id', 'health_pro')   // <-- ESTE FILTRO ES EL PROBLEMA
-  .eq('active', true);
-```
+// Nuevo ref para movil
+const mobileScrollRef = useRef<HTMLDivElement>(null);
+const savedMobileScrollHour = useRef<string | null>(null);
 
-Por:
-```typescript
-const { data: clinicUsers, error: usersError } = await supabase
-  .from('user_roles')
-  .select(`user_id, role_id, users!inner (id, full_name, email)`)
-  .eq('clinic_id', clinicId)
-  .eq('active', true);
-```
+// Capturar hora visible antes de cambiar dia
+const handleMobileDayChange = (newDay: string) => {
+  // Capturar scroll actual
+  const container = mobileScrollRef.current;
+  if (container) {
+    const rows = container.querySelectorAll('[data-time-row-mobile]');
+    // encontrar la hora mas cercana al top visible
+    ...
+  }
+  setSelectedDay(parseInt(newDay));
+};
 
-Esto elimina el filtro por `health_pro` y permite que cualquier usuario de la clinica (tenant_owner, admin_clinic, receptionist, health_pro) pueda ser vinculado a un profesional.
-
-Tambien se deduplicaran los resultados por `user_id` (ya que un usuario puede tener multiples roles en la misma clinica).
-
-**Actualizar el texto descriptivo** en `NewProfessionalDialog.tsx` y `EditProfessionalDialog.tsx`:
-
-Cambiar:
-```
-Vincula este profesional a un usuario con rol "Profesional" para que pueda iniciar sesión.
-```
-
-Por:
-```
-Vincula este profesional a un usuario de la clinica para que pueda iniciar sesión y ver su agenda.
+// Restaurar scroll despues del cambio de dia
+useEffect(() => {
+  if (!savedMobileScrollHour.current) return;
+  const container = mobileScrollRef.current;
+  if (!container) return;
+  const target = container.querySelector(`[data-time-row-mobile="${savedMobileScrollHour.current}"]`);
+  if (target) {
+    container.scrollTo({ top: target.offsetTop - container.offsetTop, behavior: 'instant' });
+  }
+}, [selectedDay]);
 ```
 
 ## Archivos afectados
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/hooks/useAvailableUsersForPractitioner.ts` | Eliminar filtro `.eq('role_id', 'health_pro')`, deduplicar por user_id |
-| `src/components/dialogs/NewProfessionalDialog.tsx` | Actualizar texto descriptivo del campo |
-| `src/components/dialogs/EditProfessionalDialog.tsx` | Actualizar texto descriptivo del campo |
+| `src/pages/Calendar.tsx` | Reestructurar vista movil: header sticky, scroll container con ref, preservacion de hora al cambiar dia |
 
 ## Resultado esperado
 
-Al crear o editar un profesional, el selector "Usuario asociado" mostrara a todos los usuarios de la clinica (incluida Telma como tenant_owner), no solo a los que tienen rol `health_pro`.
+- Al hacer scroll vertical en movil, los tabs de dias permanecen visibles en la parte superior
+- Al cambiar de dia (ej: de Lunes a Martes), el scroll se mantiene en la misma franja horaria que se estaba viendo
+- Comportamiento identico al de la vista desktop en cuanto a navegacion y persistencia visual
