@@ -137,6 +137,10 @@ export const Calendar = () => {
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const savedMobileScrollHour = useRef<string | null>(null);
 
+  // Mobile swipe refs
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
   // Leer patientId desde query params para filtrar calendario por paciente
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -169,6 +173,46 @@ export const Calendar = () => {
         clinicSettings.min_slot_minutes
       )
     : [];
+
+  // Capture mobile scroll hour and change day
+  const changeMobileDay = useCallback((newDay: number) => {
+    const container = mobileScrollRef.current;
+    if (container && TIME_SLOTS.length > 0) {
+      const rows = container.querySelectorAll<HTMLElement>('[data-time-row-mobile]');
+      const containerTop = container.scrollTop;
+      let closestHour: string | null = null;
+      for (const row of rows) {
+        if (row.offsetTop - container.offsetTop <= containerTop + 10) {
+          closestHour = row.getAttribute('data-time-row-mobile');
+        } else {
+          break;
+        }
+      }
+      savedMobileScrollHour.current = closestHour || TIME_SLOTS[0];
+    }
+    setSelectedDay(newDay);
+  }, [TIME_SLOTS]);
+
+  // Swipe handlers for mobile calendar
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0 && selectedDay < 4) {
+        changeMobileDay(selectedDay + 1);
+      } else if (deltaX > 0 && selectedDay > 0) {
+        changeMobileDay(selectedDay - 1);
+      }
+    }
+  }, [selectedDay, changeMobileDay]);
   
   // Fetch appointments from Supabase
   const { appointments: dbAppointments, isLoading: loadingAppointments, refetch } = useAppointmentsForClinic(
@@ -1157,24 +1201,7 @@ export const Calendar = () => {
 
           {/* Vista Mobile - Tabs por día */}
           <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
-            <Tabs value={selectedDay.toString()} onValueChange={(v) => {
-              // Capture current scroll hour before switching day
-              const container = mobileScrollRef.current;
-              if (container && TIME_SLOTS.length > 0) {
-                const rows = container.querySelectorAll<HTMLElement>('[data-time-row-mobile]');
-                const containerTop = container.scrollTop;
-                let closestHour: string | null = null;
-                for (const row of rows) {
-                  if (row.offsetTop - container.offsetTop <= containerTop + 10) {
-                    closestHour = row.getAttribute('data-time-row-mobile');
-                  } else {
-                    break;
-                  }
-                }
-                savedMobileScrollHour.current = closestHour || TIME_SLOTS[0];
-              }
-              setSelectedDay(parseInt(v));
-            }} className="flex flex-col flex-1 min-h-0">
+            <Tabs value={selectedDay.toString()} onValueChange={(v) => changeMobileDay(parseInt(v))} className="flex flex-col flex-1 min-h-0">
               {/* Sticky header: week nav + day tabs */}
               <div className="sticky top-0 z-10 bg-background pb-2 border-b">
                 <div className="flex justify-end mb-2">
@@ -1192,8 +1219,8 @@ export const Calendar = () => {
                 </TabsList>
               </div>
 
-              {/* Scrollable content */}
-              <div ref={mobileScrollRef} className="flex-1 overflow-y-auto mt-2">
+              {/* Scrollable content with swipe support */}
+              <div ref={mobileScrollRef} className="flex-1 overflow-y-auto mt-2" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                 {WEEKDAYS.map((_, dayIndex) => (
                   <TabsContent key={dayIndex} value={dayIndex.toString()} className="mt-0">
                     {(loadingAppointments || loadingSettings) ? (
