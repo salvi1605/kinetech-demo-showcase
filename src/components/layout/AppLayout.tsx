@@ -10,7 +10,7 @@ export const AppLayout = () => {
   return (
     <SidebarProvider defaultOpen={true}>
       <SkipLink />
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
         {/* Desktop Sidebar */}
         <AppSidebar />
 

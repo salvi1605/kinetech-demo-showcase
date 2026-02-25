@@ -183,7 +183,7 @@ export const Exceptions = () => {
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filtrar por tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -195,7 +195,7 @@ export const Exceptions = () => {
             </Select>
 
             <Select value={filterPractitioner} onValueChange={setFilterPractitioner}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filtrar por profesional" />
               </SelectTrigger>
               <SelectContent>
@@ -332,7 +332,7 @@ export const Exceptions = () => {
                       <TableCell className="font-medium">
                         {format(new Date(hol.date + 'T12:00:00'), 'dd MMM yyyy', { locale: es })}
                       </TableCell>
-                      <TableCell>{hol.name}</TableCell>
+                      <TableCell className="truncate max-w-[150px]">{hol.name}</TableCell>
                       <TableCell className="hidden md:table-cell">
                         {hol.country_code || '—'}
                       </TableCell>
