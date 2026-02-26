@@ -136,3 +136,12 @@ All colors MUST be HSL. Professional medical interface.
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Hide scrollbar but allow scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

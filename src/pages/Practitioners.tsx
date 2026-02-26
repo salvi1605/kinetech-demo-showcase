@@ -13,6 +13,7 @@ import { useApp } from '@/contexts/AppContext';
 import { usePractitioners, type PractitionerWithStatus } from '@/hooks/usePractitioners';
 import { NewProfessionalDialog } from '@/components/dialogs/NewProfessionalDialog';
 import { EditProfessionalDialog } from '@/components/dialogs/EditProfessionalDialog';
+import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
 import type { Practitioner } from '@/contexts/AppContext';
 
 export const Practitioners = () => {
@@ -64,7 +65,7 @@ export const Practitioners = () => {
               Mostrar inactivos
             </Label>
           </div>
-          <Button onClick={() => setShowNewProfessional(true)}>
+          <Button onClick={() => setShowNewProfessional(true)} className="hidden lg:flex">
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Profesional
           </Button>
@@ -212,6 +213,14 @@ export const Practitioners = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* FAB for mobile */}
+      <FloatingActionButton
+        onClick={() => setShowNewProfessional(true)}
+        ariaLabel="Nuevo Profesional"
+      >
+        <Plus className="h-6 w-6" />
+      </FloatingActionButton>
 
       {/* Dialogs */}
       {showNewProfessional && <NewProfessionalDialog onClose={() => setShowNewProfessional(false)} />}

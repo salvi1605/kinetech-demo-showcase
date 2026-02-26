@@ -312,11 +312,11 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto py-8 px-4 max-w-7xl pb-20 lg:pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-6 w-6 sm:h-8 sm:w-8" />
             Gestión de Usuarios
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -497,19 +497,19 @@ export default function UserManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
-                    <TableHead>Nombre</TableHead>
+                    <TableHead className="hidden md:table-cell">Nombre</TableHead>
                     <TableHead>Rol</TableHead>
-                    <TableHead>Profesional</TableHead>
-                    <TableHead>Clínica</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead className="hidden lg:table-cell">Profesional</TableHead>
+                    <TableHead className="hidden lg:table-cell">Clínica</TableHead>
+                    <TableHead className="hidden sm:table-cell">Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.email}</TableCell>
-                      <TableCell>{user.full_name}</TableCell>
+                      <TableCell className="font-medium truncate max-w-[180px]">{user.email}</TableCell>
+                      <TableCell className="hidden md:table-cell">{user.full_name}</TableCell>
                       <TableCell>
                         {(() => {
                           const primaryRole = getPrimaryRole(user.user_roles);
@@ -523,7 +523,7 @@ export default function UserManagement() {
                           );
                         })()}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           {/* Mostrar estado de vínculo solo para health_pro */}
                           {isHealthPro(user) ? (
                             userPractitionerMap[user.id] ? (
@@ -539,10 +539,10 @@ export default function UserManagement() {
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           {user.user_roles[0]?.clinics?.name || state.currentClinicName}
                         </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant={user.user_roles[0]?.active ? 'default' : 'secondary'}>
                           {user.user_roles[0]?.active ? 'Activo' : 'Inactivo'}
                         </Badge>

@@ -215,7 +215,7 @@ export const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <Label>Notificaciones por email</Label>
                 <p className="text-sm text-muted-foreground">Recibe notificaciones de citas</p>
@@ -223,7 +223,7 @@ export const Settings = () => {
               <Switch />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <Label>Notificaciones push</Label>
                 <p className="text-sm text-muted-foreground">Alertas en tiempo real</p>
@@ -231,7 +231,7 @@ export const Settings = () => {
               <Switch />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <Label>Tema oscuro</Label>
                 <p className="text-sm text-muted-foreground">Cambiar a modo oscuro</p>
@@ -239,7 +239,7 @@ export const Settings = () => {
               <Switch />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <Label>Vista compacta</Label>
                 <p className="text-sm text-muted-foreground">Usar interfaz más compacta</p>
@@ -247,7 +247,7 @@ export const Settings = () => {
               <Switch />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <Label>Cambiar contraseña</Label>
                 <p className="text-sm text-muted-foreground">Actualiza tu contraseña de acceso</p>
@@ -293,7 +293,7 @@ export const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Modo mantenimiento</Label>
                   <p className="text-sm text-muted-foreground">Activar para realizar actualizaciones</p>
@@ -301,7 +301,7 @@ export const Settings = () => {
                 <Switch />
               </div>
               <Separator />
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Backups automáticos</Label>
                   <p className="text-sm text-muted-foreground">Respaldar datos diariamente</p>
@@ -309,7 +309,7 @@ export const Settings = () => {
                 <Switch defaultChecked />
               </div>
               <Separator />
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Logs de auditoría</Label>
                   <p className="text-sm text-muted-foreground">Registrar acciones del sistema</p>
@@ -333,38 +333,38 @@ export const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Descargar Schema SQL</Label>
                   <p className="text-sm text-muted-foreground">Exportar estructura completa de la base de datos para respaldo</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={downloadSchemaAsSQL}>
+                <Button variant="outline" size="sm" onClick={downloadSchemaAsSQL} className="self-start sm:self-auto shrink-0">
                   <Download className="h-4 w-4 mr-2" />
                   Descargar .sql
                 </Button>
               </div>
               <Separator />
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Exportar datos</Label>
                   <p className="text-sm text-muted-foreground">Descargar backup completo en JSON</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleExportData}>
+                <Button variant="outline" size="sm" onClick={handleExportData} className="self-start sm:self-auto shrink-0">
                   Exportar
                 </Button>
               </div>
               <Separator />
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Limpiar caché</Label>
                   <p className="text-sm text-muted-foreground">Borrar datos temporales del sistema</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleClearCache}>
+                <Button variant="outline" size="sm" onClick={handleClearCache} className="self-start sm:self-auto shrink-0">
                   Limpiar
                 </Button>
               </div>
               <Separator />
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <Label>Estadísticas del sistema</Label>
                   <p className="text-sm text-muted-foreground">
@@ -373,7 +373,7 @@ export const Settings = () => {
                     Turnos: {stats.appointments}
                   </p>
                 </div>
-                <Badge variant="outline">UI-Only</Badge>
+                <Badge variant="outline" className="self-start sm:self-auto">UI-Only</Badge>
               </div>
             </CardContent>
           </Card>
