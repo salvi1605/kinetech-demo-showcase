@@ -262,24 +262,26 @@ export const PatientDetailTabs = () => {
   return (
     <div className="p-6 space-y-6 pb-20 lg:pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/patients')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">Ficha del Paciente</h1>
-          <p className="text-muted-foreground">Información completa y gestión</p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/patients')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold">Ficha del Paciente</h1>
+            <p className="text-muted-foreground text-sm">Información completa y gestión</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 pl-10 sm:pl-0">
           <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
-            <Button variant="outline" onClick={() => navigate(`/calendar?patientId=${patient.id}`)}>
-              <CalendarPlus className="h-4 w-4 mr-2" />
-              Crear cita
+            <Button variant="outline" size="sm" onClick={() => navigate(`/calendar?patientId=${patient.id}`)}>
+              <CalendarPlus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Crear cita</span>
             </Button>
           </RoleGuard>
-          <Button onClick={() => setShowWizard(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar Paciente
+          <Button size="sm" onClick={() => setShowWizard(true)}>
+            <Edit className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Editar Paciente</span>
           </Button>
         </div>
       </div>
@@ -301,13 +303,13 @@ export const PatientDetailTabs = () => {
                   : <span className="text-muted-foreground">-</span>
                 } • DNI: {patient.identificacion?.documentId || <span className="text-muted-foreground">Sin documento</span>}
               </CardDescription>
-              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  {patient.email}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 truncate">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{patient.email}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
+                  <Phone className="h-4 w-4 shrink-0" />
                   {patient.phone}
                 </div>
               </div>
@@ -318,7 +320,7 @@ export const PatientDetailTabs = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="resumen" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
+        <TabsList className="flex w-full overflow-x-auto no-scrollbar">
           <TabsTrigger value="resumen" className="gap-2">
             <FileText className="h-4 w-4" />
             Resumen
@@ -442,7 +444,7 @@ export const PatientDetailTabs = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Nombre Completo</Label>
                   <Input
@@ -501,7 +503,7 @@ export const PatientDetailTabs = () => {
 
               <div>
                 <h4 className="font-medium mb-3">Contacto de Emergencia</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Nombre</Label>
                     <Input
@@ -607,7 +609,7 @@ export const PatientDetailTabs = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Obra Social/Seguro</Label>
                   <Select
