@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfWeek } from 'date-fns';
 import { parseLocalDate, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { es } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
@@ -286,15 +286,38 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         return;
       }
 
-      const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
-      const statusLabel = getStatusInfo(data.status).label;
+      // Detectar si hubo reprogramación (cambio de fecha, hora o profesional)
+      const isReschedule = data.date !== appointment.date || data.startTime !== appointment.startTime || data.practitionerId !== appointment.practitionerId;
 
-      toast({
-        title: "Turno actualizado",
-        description: `Turno de ${patient ? formatPatientFullName(patient) : 'Sin paciente'} con ${updatedPractitioner?.name} actualizado a ${statusLabel}`,
-      });
+      if (isReschedule) {
+        const newDate = parseLocalDate(data.date);
+        const formattedDate = format(newDate, "EEEE d 'de' MMMM", { locale: es });
+        const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
-      setIsEditing(false);
+        toast({
+          title: "Turno reprogramado",
+          description: `Reprogramado al ${capitalizedDate} a las ${data.startTime}`,
+        });
+
+        // Navegar el calendario a la semana de la nueva fecha
+        const weekStart = startOfWeek(newDate, { weekStartsOn: 1 });
+        const weekStartISO = format(weekStart, 'yyyy-MM-dd');
+        dispatch({ type: 'SET_CALENDAR_WEEK', payload: weekStartISO });
+
+        // Cerrar diálogo para que el usuario vea el calendario actualizado
+        onOpenChange(false);
+      } else {
+        const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
+        const statusLabel = getStatusInfo(data.status).label;
+
+        toast({
+          title: "Turno actualizado",
+          description: `Turno de ${patient ? formatPatientFullName(patient) : 'Sin paciente'} con ${updatedPractitioner?.name} actualizado a ${statusLabel}`,
+        });
+
+        setIsEditing(false);
+      }
+
       window.dispatchEvent(new Event('appointmentUpdated'));
     } catch (error: any) {
       console.error('Error updating appointment:', error);
