@@ -5,7 +5,6 @@ import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientClinicalNotes } from '@/hooks/usePatientClinicalNotes';
-import { ensureEvolutionStubs } from '@/lib/clinicalNotesService';
 import { getTodayISO, getLatestSummaryBefore } from '@/lib/clinicalSummaryHelpers';
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { differenceInYears } from 'date-fns';
@@ -27,7 +26,6 @@ export const ClinicalHistoryDialog = ({
   const { state } = useApp();
   const { toast } = useToast();
   const [tempPrefill, setTempPrefill] = useState<ClinicalSummaryDay['clinicalData'] | null>(null);
-  const [stubsCreated, setStubsCreated] = useState(false);
 
   // Fetch clinical notes from database
   const { evolutions, snapshots, isLoading, refetch } = usePatientClinicalNotes(
@@ -35,48 +33,7 @@ export const ClinicalHistoryDialog = ({
     state.currentClinicId
   );
 
-  // Create stubs for today's appointments when modal opens
-  useEffect(() => {
-    if (!open || !patient.id || !state.currentClinicId || stubsCreated) return;
-
-    const createStubs = async () => {
-      const today = getTodayISO(state.testCurrentDate);
-      
-      // Get today's appointments for this patient
-      const todayAppointments = state.appointments
-        .filter(a => 
-          a.patientId === patient.id && 
-          a.date === today &&
-          a.status !== 'cancelled'
-        )
-        .map(a => ({
-          id: a.id,
-          date: a.date,
-          startTime: a.startTime,
-          treatmentType: a.treatmentType,
-          practitionerId: a.practitionerId,
-        }));
-
-      if (todayAppointments.length > 0) {
-        console.log('[ClinicalHistoryDialog] Creating stubs for', todayAppointments.length, 'appointments');
-        await ensureEvolutionStubs(
-          patient.id,
-          state.currentClinicId!,
-          todayAppointments,
-          state.currentUserId
-        );
-        setStubsCreated(true);
-        refetch();
-      }
-    };
-
-    createStubs();
-  }, [open, patient.id, state.currentClinicId, state.appointments, state.currentUserId, state.testCurrentDate, stubsCreated, refetch]);
-
-  // Reset stubsCreated when patient changes
-  useEffect(() => {
-    setStubsCreated(false);
-  }, [patient.id]);
+  // Stubs are now auto-created by the RPC when appointments are created
 
   // Calculate temp prefill from snapshots
   useEffect(() => {
@@ -126,6 +83,9 @@ export const ClinicalHistoryDialog = ({
   const birthDateFormatted = patient.birthDate 
     ? formatDisplayDate(parseSmartDOB(patient.birthDate))
     : null;
+
+  // Receptionist has no access
+  if (state.userRole === 'receptionist') return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

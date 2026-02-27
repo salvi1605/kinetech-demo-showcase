@@ -4,16 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { History } from 'lucide-react';
 import { todayYMD } from '@/lib/historyStubs';
 import { 
   upsertEvolutionNote, 
   deleteSnapshotByDate,
+  saveNoteVersion,
+  getNoteIdByAppointment,
 } from '@/lib/clinicalNotesService';
 import type { EvolutionEntry } from '@/types/patient';
 import type { Patient, ClinicalSummaryDay } from '@/contexts/AppContext';
 import { treatmentLabel } from '@/utils/formatters';
 import { ClinicalSnapshotBlock } from './ClinicalSnapshotBlock';
 import { PatientClinicoModal } from './PatientClinicoModal';
+import { NoteVersionHistory } from './NoteVersionHistory';
 import { useToast } from '@/hooks/use-toast';
 
 interface ClinicalHistoryBlockProps {
@@ -49,18 +53,43 @@ export const ClinicalHistoryBlock = ({
   const [clinicoOpen, setClinicoOpen] = useState(false);
   const [editingSnapshotDate, setEditingSnapshotDate] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [versionNoteId, setVersionNoteId] = useState<string | null>(null);
+  const [versionNoteType, setVersionNoteType] = useState<'evolution' | 'snapshot'>('evolution');
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+
+  // Check for offline drafts on mount
+  useEffect(() => {
+    historyByAppointment.forEach((e) => {
+      try {
+        const draftJson = localStorage.getItem(`clinical-draft-${e.appointmentId}`);
+        if (draftJson) {
+          const draft = JSON.parse(draftJson);
+          toast({
+            title: 'Borrador pendiente',
+            description: `Hay cambios sin sincronizar para la cita del ${e.date} ${e.time}.`,
+          });
+        }
+      } catch {}
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const today = todayYMD(testCurrentDate);
     
-    console.log('[ClinicalHistoryBlock] historyByAppointment recibido:', historyByAppointment.length, 'entradas');
-    
     // Only show entries up to today (no future)
     const visibleEntries = historyByAppointment.filter((e) => e.date <= today);
     
-    // Initialize drafts
+    // Initialize drafts, preferring offline drafts
     const initialDrafts: Record<string, string> = {};
     visibleEntries.forEach((e) => {
+      try {
+        const draftJson = localStorage.getItem(`clinical-draft-${e.appointmentId}`);
+        if (draftJson) {
+          const draft = JSON.parse(draftJson);
+          initialDrafts[e.appointmentId] = draft.text;
+          return;
+        }
+      } catch {}
       initialDrafts[e.appointmentId] = e.text;
     });
 
@@ -71,36 +100,69 @@ export const ClinicalHistoryBlock = ({
   const canEdit = (entry: EvolutionEntry): boolean => {
     const today = todayYMD(testCurrentDate);
     
+    // Receptionist: no edit access
+    if (currentUserRole === 'receptionist') return false;
+    
+    // Admin/owner: can edit any date
     if (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner') {
       return true;
     }
     
-    if (currentUserRole === 'receptionist' || currentUserRole === 'health_pro') {
+    // Health pro: only today
+    if (currentUserRole === 'health_pro') {
       return entry.date === today;
     }
     
     return false;
   };
 
-  // Debounced save to database
+  // Save to database with version tracking and offline fallback
   const saveToDb = useCallback(async (entry: EvolutionEntry) => {
     if (!clinicId) return;
     
+    const today = todayYMD(testCurrentDate);
+    const isEditingPast = entry.date < today;
+    
     setSavingId(entry.appointmentId);
     try {
+      // If admin editing past date, save version first
+      if (isEditingPast && (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner')) {
+        const noteId = await getNoteIdByAppointment(entry.appointmentId);
+        if (noteId) {
+          // Find the original text before this edit
+          const originalEntry = historyByAppointment.find(e => e.appointmentId === entry.appointmentId);
+          if (originalEntry && originalEntry.text !== entry.text) {
+            await saveNoteVersion(noteId, originalEntry.text, null, currentUserId, 'Edición de fecha pasada');
+          }
+        }
+      }
+      
       await upsertEvolutionNote(patient.id, clinicId, entry);
+      
+      // Clear offline draft on success
+      try { localStorage.removeItem(`clinical-draft-${entry.appointmentId}`); } catch {}
+      
       console.log('[ClinicalHistoryBlock] Saved evolution to DB:', entry.appointmentId);
     } catch (error) {
       console.error('[ClinicalHistoryBlock] Error saving evolution:', error);
+      
+      // Offline fallback: save to localStorage
+      try {
+        localStorage.setItem(`clinical-draft-${entry.appointmentId}`, JSON.stringify({
+          text: entry.text,
+          updatedAt: new Date().toISOString(),
+        }));
+      } catch {}
+      
       toast({
-        title: 'Error',
-        description: 'No se pudo guardar la evolución',
+        title: 'Error de conexión',
+        description: 'Cambios guardados localmente. Se sincronizarán al recuperar conexión.',
         variant: 'destructive',
       });
     } finally {
       setSavingId(null);
     }
-  }, [clinicId, patient.id, toast]);
+  }, [clinicId, patient.id, toast, testCurrentDate, currentUserRole, currentUserId, historyByAppointment]);
 
   const handleTextChange = (appointmentId: string, value: string) => {
     const limited = value.slice(0, 3000);
@@ -212,6 +274,30 @@ export const ClinicalHistoryBlock = ({
     }
   };
 
+  const handleShowVersions = async (appointmentId: string) => {
+    const noteId = await getNoteIdByAppointment(appointmentId);
+    if (noteId) {
+      setVersionNoteId(noteId);
+      setVersionNoteType('evolution');
+      setVersionDialogOpen(true);
+    } else {
+      toast({ title: 'Sin versiones', description: 'No hay historial de versiones para esta nota.' });
+    }
+  };
+
+  const handleShowSnapshotVersions = async (date: string) => {
+    if (!clinicId) return;
+    const { getSnapshotNoteId } = await import('@/lib/clinicalNotesService');
+    const noteId = await getSnapshotNoteId(patient.id, clinicId, date);
+    if (noteId) {
+      setVersionNoteId(noteId);
+      setVersionNoteType('snapshot');
+      setVersionDialogOpen(true);
+    } else {
+      toast({ title: 'Sin versiones', description: 'No hay historial de versiones para este resumen.' });
+    }
+  };
+
   // Group entries by date
   const entriesByDate: Record<string, EvolutionEntry[]> = {};
   sortedForDisplay.forEach(entry => {
@@ -275,8 +361,10 @@ export const ClinicalHistoryBlock = ({
                       isToday={isToday}
                       canEdit={canEditSnapshot(date)}
                       canDelete={canDeleteSnapshot}
+                      canViewVersions={true}
                       onEdit={() => handleEditSnapshot(date)}
                       onDelete={() => handleDeleteSnapshot(date)}
+                      onShowVersions={() => handleShowSnapshotVersions(date)}
                     />
                   ) : null;
                 })()}
@@ -300,15 +388,27 @@ export const ClinicalHistoryBlock = ({
                             </Badge>
                           )}
                         </div>
-                        {canEdit(entry) && (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner') && entry.date < today && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemove(entry.appointmentId)}
-                          >
-                            Borrar
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {currentUserRole !== 'receptionist' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleShowVersions(entry.appointmentId)}
+                              title="Ver historial de versiones"
+                            >
+                              <History className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {canEdit(entry) && (currentUserRole === 'admin_clinic' || currentUserRole === 'tenant_owner') && entry.date < today && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemove(entry.appointmentId)}
+                            >
+                              Borrar
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <Textarea
                         value={drafts[entry.appointmentId] || ''}
@@ -356,6 +456,15 @@ export const ClinicalHistoryBlock = ({
           patient={patient}
           tempPrefill={tempPrefill}
           clinicId={clinicId}
+        />
+      )}
+
+      {versionNoteId && (
+        <NoteVersionHistory
+          open={versionDialogOpen}
+          onOpenChange={setVersionDialogOpen}
+          noteId={versionNoteId}
+          noteType={versionNoteType}
         />
       )}
     </>

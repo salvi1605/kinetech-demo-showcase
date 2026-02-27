@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ClinicalHistoryDialog } from './ClinicalHistoryDialog';
 import { Patient } from '@/contexts/AppContext';
+import { useApp } from '@/contexts/AppContext';
 
 interface PatientHistoryButtonProps {
   patient?: Patient | null;
@@ -19,6 +20,10 @@ export const PatientHistoryButton = ({
   size = 'sm'
 }: PatientHistoryButtonProps) => {
   const [open, setOpen] = useState(false);
+  const { state } = useApp();
+  
+  // Receptionist has no access to clinical history
+  if (state.userRole === 'receptionist') return null;
   
   const canOpen = !!patient?.id && !disabled;
   

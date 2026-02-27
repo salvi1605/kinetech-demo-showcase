@@ -1,4 +1,4 @@
-import { Stethoscope, MoreVertical } from 'lucide-react';
+import { Stethoscope, MoreVertical, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -26,8 +26,10 @@ interface ClinicalSnapshotBlockProps {
   isToday: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canViewVersions?: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onShowVersions?: () => void;
 }
 
 export const ClinicalSnapshotBlock = ({
@@ -36,8 +38,10 @@ export const ClinicalSnapshotBlock = ({
   isToday,
   canEdit,
   canDelete,
+  canViewVersions = false,
   onEdit,
   onDelete,
+  onShowVersions,
 }: ClinicalSnapshotBlockProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -103,6 +107,16 @@ export const ClinicalSnapshotBlock = ({
             Resumen Clínico del {formatDate(date)}
           </CardTitle>
           <div className="flex items-center gap-2">
+            {canViewVersions && onShowVersions && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onShowVersions}
+                title="Ver historial de versiones"
+              >
+                <History className="h-4 w-4" />
+              </Button>
+            )}
             {canEdit && (
               <Button
                 variant="outline"
