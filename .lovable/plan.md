@@ -1,42 +1,30 @@
 
+# Plan: Hacer citas clickeables en detalle de paciente
 
-# Plan: Backfill de datos historicos de citas y notas clinicas
+## Objetivo
+En la ficha del paciente, tanto en "Proximos Turnos" (tab Resumen) como en la tab "Historial", cada cita sera un boton clickeable que abre el `AppointmentDetailDialog` (el mismo que se usa desde el calendario).
 
-## Resumen
+## Problema tecnico
+El `AppointmentDetailDialog` lee la cita desde `state.appointmentsById`, pero las citas del paciente se cargan localmente en `PatientDetailTabs` y no estan en el store global. Hay que inyectarlas antes de abrir el dialog.
 
-Actualizar los datos existentes en la base de datos para que todas las citas pasadas reflejen estado "completed" (Asistio) y tengan sus entradas de historial clinico correspondientes.
+## Cambios en un solo archivo
 
-## Datos actuales
+**`src/pages/PatientDetailTabs.tsx`**
 
-- **41 citas pasadas** (8 pacientes unicos)
-- 22 con estado `no_show`, 19 con estado `completed`
-- Solo **6 de 41** tienen evolution stub creado
-- Solo **3 de 8** pacientes tienen al menos un snapshot clinico
+1. **Importar** `AppointmentDetailDialog` y agregar estado para controlar el dialog:
+   - `selectedAppointmentId: string | null`
+   - `showAppointmentDetail: boolean`
 
-## Operaciones a ejecutar (3 queries de datos)
+2. **Funcion `handleOpenAppointment`**: recibe una `Appointment` local, la despacha al store global con `dispatch({ type: 'ADD_APPOINTMENT', payload: apt })` para que `appointmentsById` la contenga, luego setea el `selectedAppointmentId` y abre el dialog.
 
-### 1. Marcar todas las citas pasadas como "completed"
+3. **Proximos Turnos** (lineas ~414-422): convertir cada `div` de cita en un elemento clickeable (cursor-pointer, hover) que llama a `handleOpenAppointment(apt)`.
 
-Actualizar las 22 citas en estado `no_show` a `completed` para que figuren como que el paciente asistio.
+4. **Historial** (lineas ~673-698): convertir cada `div` de cita en un elemento clickeable con el mismo comportamiento.
 
-### 2. Crear evolution stubs faltantes
+5. **Renderizar `AppointmentDetailDialog`** al final del componente, pasando `appointmentId={selectedAppointmentId}` y un callback `onAppointmentChange` que refresque las citas locales (`fetchPatientAppointments`).
 
-Insertar una nota clinica de tipo `evolution` con body vacio para cada una de las ~35 citas pasadas que no tienen una. Usa los datos de la cita (clinic_id, practitioner_id, patient_id, date, start_time, appointment_id).
+## Detalles tecnicos
 
-### 3. Crear un snapshot clinico para pacientes sin uno
-
-Para los 5 pacientes que no tienen ningun snapshot, insertar una nota de tipo `snapshot` con body vacio y clinical_data vacio (`{}`) en la fecha de su primera cita. Esto permite que el admin pueda editarlo despues.
-
-## Archivos modificados
-
-Ninguno. Son unicamente operaciones de datos (UPDATE e INSERT) sobre tablas existentes:
-- `appointments` (UPDATE status)
-- `patient_clinical_notes` (INSERT evolutions y snapshots)
-
-## Criterios de aceptacion
-
-1. Todas las citas con `date < CURRENT_DATE` tienen status `completed`.
-2. Cada cita pasada tiene exactamente una nota de tipo `evolution` asociada por `appointment_id`.
-3. Cada paciente con citas pasadas tiene al menos un snapshot clinico en la fecha de su primera cita.
-4. No se modifica ningun archivo de codigo.
-
+- Se usa `ADD_APPOINTMENT` del reducer existente para inyectar la cita en el store. Si la cita ya existe (por estar en la semana actual del calendario), el dispatch no duplica.
+- El dialog se cierra normalmente y al cerrar se limpia `selectedAppointmentId`.
+- No se necesitan cambios en la base de datos ni en otros archivos.
