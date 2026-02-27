@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { usePatients } from '@/hooks/usePatients';
+import { supabase } from '@/integrations/supabase/client';
 import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 import { EditPatientDialogV2 } from '@/components/patients/EditPatientDialogV2';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
@@ -80,13 +81,28 @@ export const Patients = () => {
     setShowWizard(true);
   };
 
-  const handleDelete = (patientId: string) => {
-    dispatch({ type: 'DELETE_PATIENT', payload: patientId });
-    toast({
-      title: "Paciente eliminado",
-      description: "El paciente ha sido eliminado del sistema.",
-      variant: "destructive",
-    });
+  const handleDelete = async (patientId: string) => {
+    try {
+      const { error } = await supabase
+        .from('patients')
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq('id', patientId);
+
+      if (error) throw error;
+
+      await refetchPatients();
+      toast({
+        title: "Paciente desactivado",
+        description: "El paciente fue marcado como inactivo. Su información se conserva.",
+      });
+    } catch (err) {
+      console.error('Error deactivating patient:', err);
+      toast({
+        title: "Error",
+        description: "No se pudo desactivar el paciente.",
+        variant: "destructive",
+      });
+    }
     setDeletePatient(null);
   };
 
@@ -307,7 +323,7 @@ export const Patients = () => {
                               </Tooltip>
                             </RoleGuard>
                             
-                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -322,7 +338,7 @@ export const Patients = () => {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Eliminar</TooltipContent>
+                                <TooltipContent>Desactivar</TooltipContent>
                               </Tooltip>
                             </RoleGuard>
                           </div>
@@ -430,7 +446,7 @@ export const Patients = () => {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </RoleGuard>
-                      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+                      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
                         <Button 
                           variant="ghost" 
                           size="icon"
@@ -616,10 +632,10 @@ export const Patients = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              ¿Eliminar paciente {deletePatient?.name}?
+              ¿Desactivar paciente {deletePatient?.name}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer.
+              El paciente será marcado como inactivo y dejará de aparecer en las listas. Su información y historial clínico se conservan intactos. Solo un administrador puede realizar esta acción.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -628,7 +644,7 @@ export const Patients = () => {
               onClick={() => handleDelete(deletePatient?.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
             >
-              Eliminar
+              Desactivar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
