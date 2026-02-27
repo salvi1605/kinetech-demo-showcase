@@ -714,12 +714,6 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                     selectedTime={form.watch('startTime')}
                     onSelectSlot={(time) => form.setValue('startTime', time)}
                   />
-                  {form.watch('startTime') && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" />
-                      Hora seleccionada: <span className="font-medium text-foreground">{form.watch('startTime')}</span>
-                    </p>
-                  )}
                 </>
               ) : (
                 /* Fallback: Select de hora cuando no hay picker */

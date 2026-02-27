@@ -179,40 +179,50 @@ export const RescheduleSlotPicker = ({
                 {slot.time}
               </span>
               <div className="flex gap-1 flex-wrap">
-                {slot.subSlots.map((sub) => {
-                  if (sub.isCurrent) {
+                {(() => {
+                  let firstFreeMarked = false;
+                  return slot.subSlots.map((sub) => {
+                    if (sub.isCurrent) {
+                      return (
+                        <button
+                          key={sub.subSlot}
+                          type="button"
+                          onClick={() => onSelectSlot(slot.time)}
+                          className="h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-primary bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 transition-colors"
+                        >
+                          Actual
+                        </button>
+                      );
+                    }
+                    if (sub.appointmentId) {
+                      return (
+                        <div
+                          key={sub.subSlot}
+                          className="h-6 min-w-[3.5rem] px-1 rounded text-xs flex items-center justify-center bg-muted text-muted-foreground"
+                        >
+                          Ocupado
+                        </div>
+                      );
+                    }
+                    // Free slot: mark first one as "Actual" if this time is selected
+                    const isSelectedFree = !firstFreeMarked && slot.time === selectedTime;
+                    if (isSelectedFree) firstFreeMarked = true;
                     return (
                       <button
                         key={sub.subSlot}
                         type="button"
                         onClick={() => onSelectSlot(slot.time)}
-                        className="h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-primary bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 transition-colors"
+                        className={
+                          isSelectedFree
+                            ? "h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-primary bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 transition-colors"
+                            : "h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60 cursor-pointer transition-colors"
+                        }
                       >
-                        Actual
+                        {isSelectedFree ? 'Actual' : 'Libre'}
                       </button>
                     );
-                  }
-                  if (sub.appointmentId) {
-                    return (
-                      <div
-                        key={sub.subSlot}
-                        className="h-6 min-w-[3.5rem] px-1 rounded text-xs flex items-center justify-center bg-muted text-muted-foreground"
-                      >
-                        Ocupado
-                      </div>
-                    );
-                  }
-                  return (
-                    <button
-                      key={sub.subSlot}
-                      type="button"
-                      onClick={() => onSelectSlot(slot.time)}
-                      className="h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60 cursor-pointer transition-colors"
-                    >
-                      Libre
-                    </button>
-                  );
-                })}
+                  });
+                })()}
               </div>
             </div>
           );
