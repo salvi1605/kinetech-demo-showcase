@@ -41,7 +41,8 @@ import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
-import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
+import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb, updateAppointmentRpc } from '@/lib/appointmentService';
+import type { RpcUpdateResult } from '@/lib/appointmentService';
 import { supabase } from '@/integrations/supabase/client';
 
 const editAppointmentSchema = z.object({
@@ -266,126 +267,32 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       return; // Impedir persistencia
     }
     
-    // Verificar si el profesional tiene un bloqueo (vacaciones, licencia, etc.)
-    if (state.currentClinicId) {
-      const { data: blocks, error: blockError } = await supabase
-        .from('schedule_exceptions')
-        .select('reason, type')
-        .eq('clinic_id', state.currentClinicId)
-        .eq('practitioner_id', data.practitionerId)
-        .eq('date', data.date)
-        .eq('type', 'practitioner_block');
-
-      if (!blockError && blocks && blocks.length > 0) {
-        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-        const reason = blocks[0].reason?.toUpperCase() || 'BLOQUEO';
-        toast({
-          title: "Profesional no disponible",
-          description: `${practitionerName} tiene ${reason} en esta fecha. No se puede reprogramar la cita.`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Validar disponibilidad del profesional
-    if (state.currentClinicId) {
-      const availCheck = await checkPractitionerAvailability({
-        practitionerId: data.practitionerId,
-        date: data.date,
-        startTime: data.startTime,
-        clinicId: state.currentClinicId,
-      });
-
-      if (!availCheck.available && availCheck.hasAvailabilityConfigured) {
-        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-        toast({
-          title: "Fuera de horario",
-          description: `${practitionerName}: ${availCheck.message}`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Validar conflicto de tratamiento exclusivo desde BD
-    if (state.currentClinicId) {
-      const validation = await checkConflictInDb({
-        date: data.date,
-        startTime: data.startTime,
-        practitionerId: data.practitionerId,
-        treatmentType: data.treatmentType,
-        excludeId: appointment.id,
-        clinicId: state.currentClinicId,
-      });
-      
-      if (!validation.ok && validation.conflict) {
-        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-        toast({
-          title: "Conflicto de disponibilidad",
-          description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${validation.conflict.startTime}. No puede tomar otra cita en este horario.`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Calcular sub_slot disponible si cambia fecha u hora
-    let targetSubSlot: number | undefined;
-    const dateOrTimeChanged = data.date !== appointment.date || data.startTime !== appointment.startTime || data.practitionerId !== appointment.practitionerId;
-    
-    if (dateOrTimeChanged && state.currentClinicId) {
-      // Obtener sub_slots_per_block de clinic_settings
-      const { data: csData } = await supabase
-        .from('clinic_settings')
-        .select('sub_slots_per_block')
-        .eq('clinic_id', state.currentClinicId)
-        .single();
-      const maxSubSlots = csData?.sub_slots_per_block ?? 5;
-
-      // Buscar sub_slots ocupados en el nuevo bloque (excluyendo la cita actual)
-      const { data: occupied } = await supabase
-        .from('appointments')
-        .select('sub_slot')
-        .eq('clinic_id', state.currentClinicId)
-        .eq('practitioner_id', data.practitionerId)
-        .eq('date', data.date)
-        .eq('start_time', data.startTime)
-        .neq('status', 'cancelled')
-        .neq('id', appointment.id);
-
-      const usedSlots = new Set((occupied || []).map(a => a.sub_slot));
-      
-      // Encontrar primer sub_slot libre
-      let freeSlot: number | null = null;
-      for (let i = 1; i <= maxSubSlots; i++) {
-        if (!usedSlots.has(i)) {
-          freeSlot = i;
-          break;
-        }
-      }
-
-      if (freeSlot === null) {
-        toast({
-          title: "Bloque completo",
-          description: `Todos los turnos del bloque ${data.startTime} están ocupados (${maxSubSlots}/${maxSubSlots}). Elegí otro horario.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      targetSubSlot = freeSlot;
-    }
-    
+    // Usar RPC atómico: validación + update en 1 round-trip
     try {
-      await updateAppointmentInDb(appointment.id, {
+      const result: RpcUpdateResult = await updateAppointmentRpc(appointment.id, {
         date: data.date,
         startTime: data.startTime,
         practitionerId: data.practitionerId,
         status: data.status,
-        treatmentType: data.treatmentType as TreatmentType,
+        treatmentTypeKey: data.treatmentType,
         notes: data.notes || '',
-        ...(targetSubSlot !== undefined ? { subSlot: targetSubSlot } : {}),
       });
+
+      if (!result.success) {
+        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+        
+        const errorMessages: Record<string, { title: string; description: string }> = {
+          BLOCKED: { title: "Profesional no disponible", description: `${practitionerName}: ${result.error_message}` },
+          OUT_OF_HOURS: { title: "Fuera de horario", description: `${practitionerName}: ${result.error_message}` },
+          EXCLUSIVE_CONFLICT: { title: "Conflicto de disponibilidad", description: result.error_message || 'Conflicto de tratamiento exclusivo' },
+          SLOT_FULL: { title: "Bloque completo", description: result.error_message || 'No hay sub-slots disponibles' },
+          NOT_FOUND: { title: "Error", description: "Cita no encontrada" },
+        };
+
+        const err = errorMessages[result.error_code || ''] || { title: "Error", description: result.error_message || "No se pudo actualizar el turno" };
+        toast({ ...err, variant: "destructive" });
+        return;
+      }
 
       const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
       const statusLabel = getStatusInfo(data.status).label;
@@ -399,16 +306,9 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
       window.dispatchEvent(new Event('appointmentUpdated'));
     } catch (error: any) {
       console.error('Error updating appointment:', error);
-      const msg = error?.message || '';
-      let description = "No se pudo actualizar el turno";
-      if (msg.includes('unique') || msg.includes('duplicate') || msg.includes('23505')) {
-        description = "Ya existe un turno en ese horario y sub-slot. Intentá con otro horario.";
-      } else if (msg.includes('permission') || msg.includes('policy')) {
-        description = "No tenés permisos para modificar este turno.";
-      }
       toast({
         title: "Error",
-        description,
+        description: "No se pudo actualizar el turno",
         variant: "destructive",
       });
     }
