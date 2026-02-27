@@ -17,12 +17,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
-import { addMinutesStr } from '@/utils/dateUtils';
-import { checkConflictInDb, checkSlotConflictInDb } from '@/utils/appointments/checkConflictInDb';
-import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { treatmentLabel, formatPatientFullName, formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
-import { createAppointment as createAppointmentInDb } from '@/lib/appointmentService';
+import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointmentService';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -205,95 +202,49 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
     const subSlot = selectedSlot.subSlot ?? 1;
 
-    // Verificar si el profesional tiene un bloqueo (vacaciones, licencia, etc.) en esta fecha
-    const { data: blocks, error: blockError } = await supabase
-      .from('schedule_exceptions')
-      .select('reason, type')
-      .eq('clinic_id', state.currentClinicId)
-      .eq('practitioner_id', data.practitionerId)
-      .eq('date', appointmentDate)
-      .eq('type', 'practitioner_block');
-
-    if (!blockError && blocks && blocks.length > 0) {
-      const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-      const reason = blocks[0].reason?.toUpperCase() || 'BLOQUEO';
-      toast({
-        title: "Profesional no disponible",
-        description: `${practitionerName} tiene ${reason} en esta fecha. No se puede agendar la cita.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Verificar disponibilidad del profesional
-    if (state.currentClinicId) {
-      const availCheck = await checkPractitionerAvailability({
-        practitionerId: data.practitionerId,
-        date: appointmentDate,
-        startTime: data.startTime,
-        clinicId: state.currentClinicId,
-      });
-
-      if (!availCheck.available && availCheck.hasAvailabilityConfigured) {
-        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-        toast({
-          title: "Fuera de horario",
-          description: `${practitionerName}: ${availCheck.message}`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Verificar conflictos en el mismo subSlot desde BD
-    const slotConflict = await checkSlotConflictInDb(
-      state.currentClinicId,
-      data.practitionerId,
-      appointmentDate,
-      data.startTime,
-      subSlot
-    );
-    
-    if (slotConflict) {
-      toast({
-        title: "Conflicto de horario",
-        description: "El doctor ya tiene un turno en este Slot y horario.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validar conflicto de tratamiento exclusivo desde BD
-    const validation = await checkConflictInDb({
-      date: appointmentDate,
-      startTime: data.startTime,
-      practitionerId: data.practitionerId,
-      treatmentType: (data.treatmentType || 'fkt') as TreatmentType,
-      clinicId: state.currentClinicId,
-    });
-    
-    if (!validation.ok && validation.conflict) {
-      const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
-      toast({
-        title: "Conflicto de disponibilidad",
-        description: `${practitionerName} ya tiene un ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${validation.conflict.startTime}. No puede tomar otra cita en este horario.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      // Crear en BD
-      await createAppointmentInDb({
+      const result: RpcAppointmentResult = await createAppointmentRpc({
         clinicId: state.currentClinicId,
-        patientId: data.patientId,
+        patientId: data.patientId!,
         practitionerId: data.practitionerId,
         date: appointmentDate,
         startTime: data.startTime,
         subSlot: subSlot,
-        notes: data.notes || '',
         treatmentType: (data.treatmentType || 'fkt') as TreatmentType,
+        notes: data.notes || '',
       });
+
+      if (!result.success) {
+        // Mapear error_code a toast apropiado
+        const practitionerName = state.practitioners.find(p => p.id === data.practitionerId)?.name || 'El profesional';
+        
+        const errorMessages: Record<string, { title: string; description: string }> = {
+          BLOCKED: {
+            title: "Profesional no disponible",
+            description: `${practitionerName} tiene ${result.error_message || 'BLOQUEO'} en esta fecha. No se puede agendar la cita.`,
+          },
+          OUT_OF_HOURS: {
+            title: "Fuera de horario",
+            description: `${practitionerName}: ${result.error_message}`,
+          },
+          SLOT_TAKEN: {
+            title: "Conflicto de horario",
+            description: result.error_message || "El doctor ya tiene un turno en este Slot y horario.",
+          },
+          EXCLUSIVE_CONFLICT: {
+            title: "Conflicto de disponibilidad",
+            description: result.error_message || "Conflicto con tratamiento exclusivo en este horario.",
+          },
+        };
+
+        const msg = errorMessages[result.error_code || ''] || {
+          title: "Error",
+          description: result.error_message || "No se pudo crear el turno",
+        };
+
+        toast({ ...msg, variant: "destructive" });
+        return;
+      }
 
       const patient = state.patients.find(p => p.id === data.patientId);
       const practitioner = state.practitioners.find(p => p.id === data.practitionerId);
@@ -306,10 +257,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       form.reset();
       setPatientSearch('');
       
-      // Trigger refetch en Calendar antes de cerrar
       window.dispatchEvent(new Event('appointmentUpdated'));
-      
-      // Cerrar modal después de refrescar
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating appointment:', error);

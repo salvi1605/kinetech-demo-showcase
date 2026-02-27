@@ -1093,6 +1093,24 @@ export type Database = {
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
+      validate_and_create_appointment: {
+        Args: {
+          p_clinic_id: string
+          p_date: string
+          p_mode?: string
+          p_notes?: string
+          p_patient_id: string
+          p_practitioner_id: string
+          p_start_time: string
+          p_sub_slot?: number
+          p_treatment_type_key?: string
+        }
+        Returns: Json
+      }
+      validate_and_create_appointments_batch: {
+        Args: { p_appointments: Json }
+        Returns: Json
+      }
     }
     Enums: {
       appointment_mode: "in_person" | "virtual" | "home_visit"
