@@ -753,7 +753,7 @@ export const Calendar = () => {
                     {isExclusiveTreatment(appointment) && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 absolute top-1 right-1" />
+                          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 absolute top-0.5 right-0.5" />
                         </TooltipTrigger>
                         <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
                       </Tooltip>
