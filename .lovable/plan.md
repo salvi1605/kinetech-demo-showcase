@@ -1,56 +1,51 @@
-# Capacidad concurrente configurable por tratamiento
 
-## Problema actual
+# Plan: Soft-Delete de paciente LEVY LUISA + Boton "Desactivar" solo para Admins
 
-La exclusividad de tratamientos esta hardcodeada en `TREATMENTS_EXCLUSIVOS` (solo "drenaje" y "masaje"). Si se agrega un nuevo tratamiento exclusivo, hay que tocar codigo. El usuario quiere que esto sea configurable desde la UI al crear/editar cada tratamiento.
+## 1. Eliminar (soft-delete) al paciente LEVY LUISA (DNI 6691470)
 
-## Solucion
+Ejecutar un UPDATE en la base de datos para marcar `is_deleted = true` y `deleted_at = now()` en el paciente con id `8a645a44-a66b-4a9d-b310-bb96c767c55a`. Este paciente no tiene citas asociadas.
 
-Agregar un campo `max_concurrent` a la tabla `treatment_types` que define cuantos pacientes puede atender un profesional simultaneamente en un bloque de 30 minutos cuando tiene ese tratamiento asignado.
+## 2. Corregir la funcion `handleDelete` en `src/pages/Patients.tsx`
 
-- `max_concurrent = 1` --> Tratamiento exclusivo (ej: Drenaje, Masaje). El profesional no puede tener otra cita en ese bloque.
-- `max_concurrent = 5` (default) --> Comportamiento normal, limitado por `sub_slots_per_block` de la clinica.
+Actualmente el boton "Eliminar" solo ejecuta `dispatch({ type: 'DELETE_PATIENT' })` que solo modifica estado en memoria. Se reemplazara con una llamada real a la base de datos:
 
-## Cambios
+- Llamar a `supabase.from('patients').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', patientId)`
+- Luego llamar a `refetchPatients()` para refrescar la lista
+- Mostrar toast de exito o error segun el resultado
 
-### 1. Migracion de base de datos
+## 3. Restringir el boton "Eliminar" solo a admins
 
-- Agregar columna `max_concurrent INTEGER NOT NULL DEFAULT 2` a `treatment_types`
-- Valores validos: 1 a (el numero de sub-slots disponibles en la clínica)
+Cambiar el `RoleGuard` del boton de eliminar (tanto en desktop como en mobile) de:
+```
+allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}
+```
+a:
+```
+allowedRoles={['admin_clinic', 'tenant_owner']}
+```
 
-### 2. Actualizar RPCs de citas
+Esto asegura que solo administradores pueden desactivar pacientes. Recepcionistas y profesionales no veran el boton.
 
-Modificar `validate_and_create_appointment` y `validate_and_update_appointment`:
+## 4. Mejorar el dialogo de confirmacion
 
-- En lugar de comparar contra la lista hardcodeada `IN ('drenaje linfatico', 'masaje')`, consultar el campo `max_concurrent` del `treatment_type` de la cita candidata y de las citas existentes en el mismo bloque.
-- Si el tratamiento candidato tiene `max_concurrent = 1`, verificar que no haya ninguna otra cita en ese bloque para ese profesional.
-- Si ya existe una cita con un tratamiento que tiene `max_concurrent = 1` en ese bloque, rechazar cualquier nueva cita en el mismo bloque.
-- Si `max_concurrent > 1`, el limite es `MIN(max_concurrent, sub_slots_per_block)`.
+Actualizar el texto del `AlertDialog` para reflejar que es una desactivacion, no una eliminacion permanente:
 
-### 3. UI: Dialogs de tratamiento
+- Titulo: "Desactivar paciente {nombre}?"
+- Descripcion: "El paciente sera marcado como inactivo y dejara de aparecer en las listas. Su informacion y historial clinico se conservan intactos. Solo un administrador puede realizar esta accion."
+- Boton: "Desactivar" en lugar de "Eliminar"
 
-En `NewTreatmentDialog` y `EditTreatmentDialog`:
+## 5. Agregar RLS policy para permitir UPDATE de is_deleted solo a admins
 
-- Agregar un campo numerico "Pacientes simultaneos" con valor por defecto 2 (o el de la clinica).
-- Cuando el valor es 1, mostrar un badge/nota: "Exclusivo: el profesional no podra atender otros pacientes en el mismo horario".
-- Rango permitido: 1-(el numero de sub-slots disponibles en la clínica).
+Actualmente la politica `patients_recep_update` permite a recepcionistas hacer UPDATE en pacientes. Esto significa que tecnicamente podrian soft-deletear via la API. Se agregara una politica o se dejara como esta dado que el boton ya esta oculto en UI. La restriccion real ya existe: solo admin_clinic y tenant_owner veran el boton. La politica RLS de recepcionista permite editar datos del paciente (que es correcto para su funcion).
 
-### 4. UI: Tarjeta de tratamiento en la pagina Treatments
+---
 
-- Mostrar un indicador visual cuando `max_concurrent = 1` (badge "Exclusivo") para que sea claro desde el listado.
+### Archivos a modificar
 
-### 5. Limpiar constante hardcodeada
+| Archivo | Cambio |
+|---|---|
+| `src/pages/Patients.tsx` | Corregir `handleDelete` para persistir en BD; cambiar RoleGuard del boton eliminar a solo admins; actualizar textos del AlertDialog |
 
-- Eliminar `TREATMENTS_EXCLUSIVOS` de `src/constants/treatments.ts` y todas sus referencias en el codigo frontend (`checkConflictInDb.ts`, `validateExclusiveTreatment.ts`).
-- La validacion de exclusividad queda 100% del lado del servidor (RPCs) usando el campo `max_concurrent`.
+### Accion de datos
 
-### 6. Hook useTreatments
-
-- Incluir `max_concurrent` en el tipo `TreatmentWithPractitioners` para que la UI pueda mostrar el badge.
-
-## Secuencia
-
-1. Migracion DB (agregar columna)
-2. Actualizar RPCs con nueva logica
-3. Actualizar dialogs y pagina de tratamientos
-4. Limpiar codigo hardcodeado
+- UPDATE directo al paciente LEVY LUISA para marcarlo como eliminado
