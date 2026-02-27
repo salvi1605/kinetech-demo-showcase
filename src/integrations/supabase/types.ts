@@ -1089,6 +1089,10 @@ export type Database = {
       }
       current_auth_user_id: { Args: never; Returns: string }
       current_practitioner_id: { Args: never; Returns: string }
+      delete_appointments_batch: {
+        Args: { p_appointment_ids: string[] }
+        Returns: Json
+      }
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
@@ -1109,6 +1113,18 @@ export type Database = {
       }
       validate_and_create_appointments_batch: {
         Args: { p_appointments: Json }
+        Returns: Json
+      }
+      validate_and_update_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_date?: string
+          p_notes?: string
+          p_practitioner_id?: string
+          p_start_time?: string
+          p_status?: string
+          p_treatment_type_key?: string
+        }
         Returns: Json
       }
     }

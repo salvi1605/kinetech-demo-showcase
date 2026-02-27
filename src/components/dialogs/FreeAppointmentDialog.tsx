@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, type Appointment } from '@/contexts/AppContext';
-import { deleteAppointment as deleteAppointmentInDb } from '@/lib/appointmentService';
+import { deleteAppointment as deleteAppointmentInDb, deleteAppointmentsBatchRpc } from '@/lib/appointmentService';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FreeAppointmentDialogProps {
@@ -132,32 +132,34 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
 
   const handleDeleteAll = async () => {
     setIsLoading(true);
-    let deletedCount = 0;
-    let failedCount = 0;
+    const ids = selectedAppointments.map(apt => apt.id);
 
-    for (const apt of selectedAppointments) {
-      try {
-        await deleteAppointmentInDb(apt.id);
-        dispatch({ type: 'DELETE_APPOINTMENT', payload: apt.id });
-        deletedCount++;
-      } catch (error) {
-        console.error('Error deleting appointment:', error);
-        failedCount++;
+    try {
+      const result = await deleteAppointmentsBatchRpc(ids);
+
+      // Actualizar estado local
+      for (const id of ids) {
+        dispatch({ type: 'DELETE_APPOINTMENT', payload: id });
       }
+
+      if (state.selectedSlots.size > 0) {
+        dispatch({ type: 'CLEAR_SLOT_SELECTION' });
+      }
+
+      const failedCount = result.requested_count - result.deleted_count;
+      const message = failedCount > 0
+        ? `${result.deleted_count} turnos eliminados (${failedCount} fallidos)`
+        : `${result.deleted_count} turnos eliminados`;
+
+      toast({ title: "Turnos liberados", description: message });
+      window.dispatchEvent(new Event('appointmentUpdated'));
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error batch deleting appointments:', error);
+      toast({ title: "Error", description: "No se pudieron eliminar los turnos", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
-
-    if (state.selectedSlots.size > 0) {
-      dispatch({ type: 'CLEAR_SLOT_SELECTION' });
-    }
-
-    const message = failedCount > 0
-      ? `${deletedCount} turnos eliminados (${failedCount} fallidos)`
-      : `${deletedCount} turnos eliminados`;
-
-    toast({ title: "Turnos liberados", description: message });
-    window.dispatchEvent(new Event('appointmentUpdated'));
-    setIsLoading(false);
-    onOpenChange(false);
   };
 
   return (

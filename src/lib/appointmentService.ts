@@ -214,3 +214,53 @@ export const createAppointmentsBatchRpc = async (appointments: BatchAppointmentI
   if (error) throw error;
   return data as unknown as RpcBatchResult[];
 };
+
+// ── Batch delete (1 round-trip para N eliminaciones) ──
+
+export interface BatchDeleteResult {
+  deleted_count: number;
+  requested_count: number;
+}
+
+export const deleteAppointmentsBatchRpc = async (ids: string[]): Promise<BatchDeleteResult> => {
+  const { data, error } = await supabase.rpc('delete_appointments_batch', {
+    p_appointment_ids: ids,
+  });
+
+  if (error) throw error;
+  return data as unknown as BatchDeleteResult;
+};
+
+// ── Validate + Update en 1 round-trip ──
+
+export interface UpdateAppointmentRpcInput {
+  practitionerId?: string;
+  date?: string;
+  startTime?: string;
+  status?: string;
+  treatmentTypeKey?: string;
+  notes?: string;
+}
+
+export interface RpcUpdateResult {
+  success: boolean;
+  appointment_id?: string;
+  sub_slot?: number;
+  error_code?: 'NOT_FOUND' | 'BLOCKED' | 'OUT_OF_HOURS' | 'EXCLUSIVE_CONFLICT' | 'SLOT_FULL';
+  error_message?: string;
+}
+
+export const updateAppointmentRpc = async (id: string, updates: UpdateAppointmentRpcInput): Promise<RpcUpdateResult> => {
+  const { data, error } = await supabase.rpc('validate_and_update_appointment', {
+    p_appointment_id: id,
+    ...(updates.practitionerId ? { p_practitioner_id: updates.practitionerId } : {}),
+    ...(updates.date ? { p_date: updates.date } : {}),
+    ...(updates.startTime ? { p_start_time: updates.startTime } : {}),
+    ...(updates.status ? { p_status: updates.status } : {}),
+    ...(updates.treatmentTypeKey ? { p_treatment_type_key: updates.treatmentTypeKey } : {}),
+    ...(updates.notes !== undefined ? { p_notes: updates.notes } : {}),
+  });
+
+  if (error) throw error;
+  return data as unknown as RpcUpdateResult;
+};
