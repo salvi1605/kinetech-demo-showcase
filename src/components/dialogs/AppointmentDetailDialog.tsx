@@ -832,6 +832,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             open={showHistoryDialog}
             onOpenChange={setShowHistoryDialog}
             patient={patient}
+            scrollToDate={appointment?.date}
           />
         )}
       </DialogContent>

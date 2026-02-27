@@ -335,7 +335,7 @@ export const ClinicalHistoryBlock = ({
             const snapshot = snapshotsByDate[date];
 
             return (
-              <div key={date} className="space-y-3">
+              <div key={date} data-date={date} className="space-y-3">
                 <h3 className="text-center font-semibold text-base">
                   {formatDateHeader(date)}
                 </h3>
