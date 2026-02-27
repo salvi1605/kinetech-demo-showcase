@@ -68,12 +68,17 @@ export const ClinicalHistoryDialog = ({
     const timer = setTimeout(() => {
       const container = contentRef.current;
       if (!container) return;
-      const target = container.querySelector(`[data-date="${scrollToDate}"]`);
+      const target = container.querySelector(`[data-date="${scrollToDate}"]`) as HTMLElement | null;
       if (target) {
         const containerRect = container.getBoundingClientRect();
-        const targetRect = (target as HTMLElement).getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
         const offset = targetRect.top - containerRect.top + container.scrollTop - 16;
         container.scrollTo({ top: offset, behavior: 'smooth' });
+        // Flash highlight
+        target.classList.add('bg-primary/10', 'ring-2', 'ring-primary/30', 'rounded-lg', 'transition-all', 'duration-500');
+        setTimeout(() => {
+          target.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
+        }, 1500);
       } else {
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
       }
