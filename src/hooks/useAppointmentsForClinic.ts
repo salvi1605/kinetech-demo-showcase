@@ -99,6 +99,7 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
         notes: apt.notes || '',
         type: 'consultation' as const,
         treatmentType: mapTreatmentTypeToInternal(apt.treatment_type_id, apt.treatment_types?.name),
+        treatmentTypeId: apt.treatment_type_id || undefined,
       }));
 
       // Solo actualizar estado si los datos realmente cambiaron

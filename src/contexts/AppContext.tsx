@@ -192,6 +192,7 @@ export interface Appointment {
   notes?: string;
   subSlot: 1 | 2 | 3 | 4 | 5;
   treatmentType: TreatmentType;
+  treatmentTypeId?: string;           // UUID del treatment_type en BD
   isContinuation?: boolean;          // true si es la segunda media hora
   primaryAppointmentId?: string;     // id de la primaria (si continuation)
 }
