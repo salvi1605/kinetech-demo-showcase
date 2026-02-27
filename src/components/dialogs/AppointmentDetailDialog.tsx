@@ -268,6 +268,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         status: data.status,
         treatmentTypeKey: data.treatmentType,
         notes: data.notes || '',
+        subSlot: selectedSubSlot,
       });
 
       if (!result.success) {
