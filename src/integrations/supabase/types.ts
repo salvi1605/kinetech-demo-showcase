@@ -845,6 +845,52 @@ export type Database = {
           },
         ]
       }
+      practitioner_treatments: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          id: string
+          practitioner_id: string
+          treatment_type_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          practitioner_id: string
+          treatment_type_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          practitioner_id?: string
+          treatment_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_treatments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practitioner_treatments_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "practitioners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practitioner_treatments_treatment_type_id_fkey"
+            columns: ["treatment_type_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practitioners: {
         Row: {
           clinic_id: string
@@ -996,6 +1042,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           default_duration_minutes: number
+          description: string | null
           id: string
           is_active: boolean | null
           name: string
@@ -1006,6 +1053,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           default_duration_minutes: number
+          description?: string | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -1016,6 +1064,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           default_duration_minutes?: number
+          description?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
