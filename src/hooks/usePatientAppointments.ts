@@ -49,18 +49,33 @@ export const usePatientAppointments = (patientId: string) => {
           return;
         }
 
-        const mapped: Appointment[] = (data || []).map(apt => ({
-          id: apt.id,
-          patientId: apt.patient_id || '',
-          practitionerId: apt.practitioner_id,
-          date: apt.date,
-          startTime: apt.start_time.substring(0, 5), // Normalize to HH:MM
-          subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
-          status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
-          notes: apt.notes || '',
-          type: 'consultation' as const,
-          treatmentType: ((apt.treatment_types as any)?.name || 'fkt') as any,
-        }));
+        // Mapeo inverso: nombre BD → clave interna
+        const nameToKey: Record<string, string> = {
+          'FKT': 'fkt',
+          'ATM': 'atm',
+          'Drenaje linfático': 'drenaje',
+          'Drenaje + Ultrasonido': 'drenaje_ultra',
+          'Masaje': 'masaje',
+          'Vestibular': 'vestibular',
+          'Otro': 'otro',
+        };
+
+        const mapped: Appointment[] = (data || []).map(apt => {
+          const dbName = (apt.treatment_types as any)?.name || '';
+          const treatmentKey = nameToKey[dbName] || 'fkt';
+          return {
+            id: apt.id,
+            patientId: apt.patient_id || '',
+            practitionerId: apt.practitioner_id,
+            date: apt.date,
+            startTime: apt.start_time.substring(0, 5),
+            subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
+            status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
+            notes: apt.notes || '',
+            type: 'consultation' as const,
+            treatmentType: treatmentKey as any,
+          };
+        });
 
         setAppointments(mapped);
       } catch (err) {
