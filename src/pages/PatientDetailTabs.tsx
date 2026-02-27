@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, CalendarPlus, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
 import { format, subMonths, addMonths } from 'date-fns';
@@ -28,6 +28,7 @@ import { PatientUploadDocumentDialog, type PatientDocument } from '@/components/
 import { supabase } from '@/integrations/supabase/client';
 import { usePatientDocuments } from '@/hooks/usePatientDocuments';
 import { RoleGuard } from '@/components/shared/RoleGuard';
+import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,15 @@ export const PatientDetailTabs = () => {
   const [editingInsurance, setEditingInsurance] = useState(false);
   const [showUploadDocument, setShowUploadDocument] = useState(false);
   const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [showAppointmentDetail, setShowAppointmentDetail] = useState(false);
+
+  const handleOpenAppointment = useCallback((apt: Appointment) => {
+    // Inject into global store so AppointmentDetailDialog can find it
+    dispatch({ type: 'ADD_APPOINTMENT', payload: apt });
+    setSelectedAppointmentId(apt.id);
+    setShowAppointmentDetail(true);
+  }, [dispatch]);
 
   // Sincronizar pacientes de BD con AppContext
   useEffect(() => {
@@ -412,13 +422,18 @@ export const PatientDetailTabs = () => {
                     }
 
                     return futureAppointments.map(apt => (
-                      <div key={apt.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <button
+                        key={apt.id}
+                        type="button"
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg w-full text-left hover:bg-muted/70 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        onClick={() => handleOpenAppointment(apt)}
+                      >
                         <div>
                           <p className="font-medium">{formatDisplayDate(parseLocalDate(apt.date))}</p>
                           <p className="text-sm text-muted-foreground">{apt.startTime.substring(0, 5)}</p>
                         </div>
                         <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
-                      </div>
+                      </button>
                     ));
                   })()}
                 </div>
@@ -671,7 +686,12 @@ export const PatientDetailTabs = () => {
             <CardContent>
               <div className="space-y-4">
                 {patientAppointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                  <button
+                    key={appointment.id}
+                    type="button"
+                    className="flex items-start gap-4 p-4 border rounded-lg w-full text-left hover:bg-muted/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() => handleOpenAppointment(appointment)}
+                  >
                     <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
@@ -695,7 +715,7 @@ export const PatientDetailTabs = () => {
                         <p className="text-sm text-muted-foreground mt-2">{appointment.notes}</p>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))}
                 
                 {patientAppointments.length === 0 && (
@@ -844,6 +864,19 @@ export const PatientDetailTabs = () => {
         clinicId={state.currentClinicId || ''}
         onSave={() => {
           refetchDocuments();
+        }}
+      />
+
+      {/* Appointment Detail Dialog */}
+      <AppointmentDetailDialog
+        open={showAppointmentDetail}
+        onOpenChange={(open) => {
+          setShowAppointmentDetail(open);
+          if (!open) setSelectedAppointmentId(null);
+        }}
+        appointmentId={selectedAppointmentId}
+        onAppointmentChange={() => {
+          fetchPatientAppointments();
         }}
       />
     </div>
