@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
+import { PractitionerTreatmentEditor } from '@/components/practitioners/PractitionerTreatmentEditor';
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,6 +57,7 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
   const [availability, setAvailability] = useState<AvailabilityDay[]>(initialDays);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedTreatmentIds, setSelectedTreatmentIds] = useState<string[]>([]);
 
   // Obtener usuarios disponibles para vincular
   const { users: availableUsers, loading: loadingUsers } = useAvailableUsersForPractitioner(
@@ -193,9 +195,19 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
           if (availError) {
             console.error('Error inserting availability:', availError);
-            // No es crítico, continuamos
+             // No es crítico, continuamos
           }
         }
+      }
+
+      // Insertar vínculos de tratamientos
+      if (selectedTreatmentIds.length > 0 && newPractitioner) {
+        const treatmentRows = selectedTreatmentIds.map(tid => ({
+          clinic_id: state.currentClinicId!,
+          practitioner_id: newPractitioner.id,
+          treatment_type_id: tid,
+        }));
+        await supabase.from('practitioner_treatments').insert(treatmentRows);
       }
 
       // Disparar evento para refrescar listas
@@ -228,9 +240,10 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Tabs defaultValue="identificacion">
-            <TabsList className="grid grid-cols-4 mb-4">
+            <TabsList className="grid grid-cols-5 mb-4">
               <TabsTrigger value="identificacion">Identificación</TabsTrigger>
               <TabsTrigger value="profesional">Profesional</TabsTrigger>
+              <TabsTrigger value="tratamientos">Tratamientos</TabsTrigger>
               <TabsTrigger value="disponibilidad">Disponibilidad</TabsTrigger>
               <TabsTrigger value="visibilidad">Visibilidad</TabsTrigger>
             </TabsList>
@@ -351,6 +364,14 @@ export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) =
                   </Button>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Tratamientos */}
+            <TabsContent value="tratamientos" className="space-y-4">
+              <PractitionerTreatmentEditor
+                selectedTreatmentIds={selectedTreatmentIds}
+                onChange={setSelectedTreatmentIds}
+              />
             </TabsContent>
 
             {/* Disponibilidad */}

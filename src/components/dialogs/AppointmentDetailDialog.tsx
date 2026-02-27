@@ -8,6 +8,7 @@ import * as z from 'zod';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel, formatPatientFullName } from '@/utils/formatters';
 import { usePractitionerTreatments } from '@/hooks/useTreatments';
+import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { 
   Calendar, 
   Clock, 
@@ -792,32 +793,11 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <FormItem>
                     <FormLabel>Tratamiento *</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona tratamiento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredTreatments.length > 0 ? (
-                            filteredTreatments.map(t => (
-                              <SelectItem key={t.id} value={t.name.toLowerCase().replace(/\s+/g, '_').replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u') || t.id}>
-                                <div className="flex items-center gap-2">
-                                  {t.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />}
-                                  {t.name}
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <>
-                              <SelectItem value="fkt">FKT</SelectItem>
-                              <SelectItem value="atm">ATM</SelectItem>
-                              <SelectItem value="drenaje">Drenaje</SelectItem>
-                              <SelectItem value="masaje">Masaje</SelectItem>
-                              <SelectItem value="vestibular">Vestibular</SelectItem>
-                              <SelectItem value="otro">Otro</SelectItem>
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <DynamicTreatmentSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        practitionerId={editPractitionerId || undefined}
+                      />
                     </FormControl>
                     {hasAssignments && (
                       <p className="text-xs text-muted-foreground">Solo tratamientos asignados al profesional</p>

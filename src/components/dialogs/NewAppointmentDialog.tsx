@@ -21,6 +21,7 @@ import { treatmentLabel, formatPatientFullName, formatPatientShortName, matchesP
 import type { TreatmentType } from '@/types/appointments';
 import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointmentService';
 import { usePractitionerTreatments } from '@/hooks/useTreatments';
+import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -547,29 +548,11 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                     Tipo de tratamiento
                   </FormLabel>
                   <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tratamiento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredTreatments.length > 0 ? (
-                          filteredTreatments.map(t => (
-                            <SelectItem key={t.id} value={t.name.toLowerCase().replace(/\s+/g, '_').replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u') || t.id}>
-                              <div className="flex items-center gap-2">
-                                {t.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />}
-                                {t.name}
-                              </div>
-                            </SelectItem>
-                          ))
-                        ) : (
-                          Object.entries(treatmentLabel)
-                            .filter(([key]) => key !== '')
-                            .map(([key, label]) => (
-                              <SelectItem key={key} value={key}>{label}</SelectItem>
-                            ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                     <DynamicTreatmentSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      practitionerId={selectedPractitionerId || undefined}
+                    />
                   </FormControl>
                   {hasAssignments && (
                     <p className="text-xs text-muted-foreground">Solo se muestran los tratamientos asignados al profesional seleccionado</p>

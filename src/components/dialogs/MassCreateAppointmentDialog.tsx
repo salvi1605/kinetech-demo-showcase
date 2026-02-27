@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
+import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -371,7 +372,7 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
 
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground min-w-[80px]">Tratamiento:</span>
-                        <Select
+                        <DynamicTreatmentSelect
                           value={perItemTreatment[slot.key] ?? slot.treatmentType ?? ''}
                           onValueChange={(value) => {
                             if (value) {
@@ -387,19 +388,9 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
                               });
                             }
                           }}
-                        >
-                          <SelectTrigger className="h-8 text-xs flex-1">
-                            <SelectValue placeholder="Seleccionar tratamiento *" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fkt">FKT</SelectItem>
-                            <SelectItem value="atm">ATM</SelectItem>
-                            <SelectItem value="drenaje">Drenaje</SelectItem>
-                            <SelectItem value="masaje">Masaje</SelectItem>
-                            <SelectItem value="vestibular">Vestibular</SelectItem>
-                            <SelectItem value="otro">Otro</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          className="h-8 text-xs flex-1"
+                          practitionerId={currentPractitionerId || undefined}
+                        />
                       </div>
                       
                       {/* Warning de conflicto exclusivo */}

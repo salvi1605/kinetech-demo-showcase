@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel } from '@/utils/formatters';
+import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { getAccessibleTextColor } from '@/utils/colorUtils';
 import { statusLabel, type AppointmentStatus } from '@/utils/statusUtils';
 import { displaySelectedLabel, parseSlotKey, isPastDay } from '@/utils/dateUtils';
@@ -1022,22 +1023,12 @@ export const Calendar = () => {
                       placeholder="Selecciona Kinesiólogo"
                       className="text-xs"
                     />
-                    <Select
+                    <DynamicTreatmentSelect
                       value={state.selectedTreatmentType ?? ''}
                       onValueChange={(value) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPE', payload: value as TreatmentType })}
-                    >
-                      <SelectTrigger className="h-8 text-xs w-[200px]">
-                        <SelectValue placeholder="Selecciona tratamiento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fkt">FKT</SelectItem>
-                        <SelectItem value="atm">ATM</SelectItem>
-                        <SelectItem value="drenaje">Drenaje</SelectItem>
-                        <SelectItem value="masaje">Masaje</SelectItem>
-                        <SelectItem value="vestibular">Vestibular</SelectItem>
-                        <SelectItem value="otro">Otro</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      className="h-8 text-xs w-[200px]"
+                      practitionerId={state.selectedPractitionerId || undefined}
+                    />
                   </>
                 )}
               </div>
