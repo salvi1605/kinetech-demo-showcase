@@ -50,7 +50,6 @@ import { usePractitioners } from '@/hooks/usePractitioners';
 import { usePatients } from '@/hooks/usePatients';
 import { updateAppointmentStatus } from '@/lib/appointmentService';
 import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
-import { supabase } from '@/integrations/supabase/client';
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
@@ -223,42 +222,6 @@ export const Calendar = () => {
 
   // Fetch schedule exceptions and holidays for the visible week
   const { exceptionsMap, isBlocked: isSlotBlocked } = useScheduleExceptions(weekDates[0], weekDates[4]);
-
-  // Fetch practitioner availability when a practitioner filter is active
-  const [practitionerAvailability, setPractitionerAvailability] = useState<
-    { weekday: number; from_time: string; to_time: string }[]
-  >([]);
-  
-  useEffect(() => {
-    if (!state.filterPractitionerId || !state.currentClinicId) {
-      setPractitionerAvailability([]);
-      return;
-    }
-    const fetchAvail = async () => {
-      const { data } = await supabase
-        .from('practitioner_availability')
-        .select('weekday, from_time, to_time')
-        .eq('practitioner_id', state.filterPractitionerId!)
-        .eq('clinic_id', state.currentClinicId!);
-      setPractitionerAvailability(data || []);
-    };
-    fetchAvail();
-  }, [state.filterPractitionerId, state.currentClinicId]);
-
-  // Check if a time slot is within the filtered practitioner's availability
-  const isWithinAvailability = useCallback((dayIndex: number, time: string): boolean | null => {
-    if (!state.filterPractitionerId || practitionerAvailability.length === 0) return null; // no filter or no data
-    const weekday = (dayIndex + 1) % 7; // 0=Sun, 1=Mon, ...
-    const timeStr = time.length === 5 ? time : time.substring(0, 5);
-    return practitionerAvailability.some(
-      av => av.weekday === weekday && timeStr >= av.from_time.substring(0, 5) && timeStr < av.to_time.substring(0, 5)
-    );
-  }, [state.filterPractitionerId, practitionerAvailability]);
-
-  // Get the filtered practitioner's color for availability shading
-  const filteredPractitionerColor = state.filterPractitionerId
-    ? state.practitioners.find(p => p.id === state.filterPractitionerId)?.color
-    : undefined;
   
   // Effect to refetch when appointments are updated
   useEffect(() => {
@@ -1014,18 +977,6 @@ export const Calendar = () => {
               Paciente: "{state.filterPatientSearch}"
             </Badge>
           )}
-          {state.filterPractitionerId && practitionerAvailability.length > 0 && filteredPractitionerColor && (
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-sm border" style={{ backgroundColor: `${filteredPractitionerColor}20` }} />
-                Disponible
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-sm bg-muted border" />
-                Fuera de horario
-              </span>
-            </div>
-          )}
         </div>
         
         {agendaBanner?.type === 'error' && (
@@ -1235,26 +1186,11 @@ export const Calendar = () => {
                         <Clock className="h-3 w-3 mr-1" />
                         {time}
                       </div>
-                      {WEEKDAYS.map((_, dayIndex) => {
-                        const availStatus = isWithinAvailability(dayIndex, time);
-                        const cellBg = availStatus === true && filteredPractitionerColor
-                          ? { backgroundColor: `${filteredPractitionerColor}12` }
-                          : availStatus === false
-                            ? { backgroundColor: 'hsl(var(--muted) / 0.4)' }
-                            : undefined;
-                        return (
-                          <div
-                            key={`${time}-${dayIndex}`}
-                            className={cn(
-                              "border-r border-b border-gray-400 relative",
-                              availStatus === false && "bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,hsl(var(--muted)/0.3)_4px,hsl(var(--muted)/0.3)_5px)]"
-                            )}
-                            style={availStatus === true && filteredPractitionerColor ? { backgroundColor: `${filteredPractitionerColor}12` } : undefined}
-                          >
-                            {renderSlot(dayIndex, time)}
-                          </div>
-                        );
-                      })}
+                      {WEEKDAYS.map((_, dayIndex) => (
+                        <div key={`${time}-${dayIndex}`} className="border-r border-b border-gray-400">
+                          {renderSlot(dayIndex, time)}
+                        </div>
+                      ))}
                     </React.Fragment>
                   ))}
                 </div>
@@ -1303,17 +1239,8 @@ export const Calendar = () => {
                             
                             const appointmentCount = slotAppointments.filter(apt => apt !== undefined).length;
                            
-                           const mobileAvailStatus = isWithinAvailability(dayIndex, time);
                            return (
-                             <div
-                               key={time}
-                               data-time-row-mobile={time}
-                               className={cn(
-                                 "space-y-1 rounded-md p-1",
-                                 mobileAvailStatus === false && "bg-muted/40"
-                               )}
-                               style={mobileAvailStatus === true && filteredPractitionerColor ? { backgroundColor: `${filteredPractitionerColor}12` } : undefined}
-                             >
+                             <div key={time} data-time-row-mobile={time} className="space-y-1">
                                <div className="flex items-center gap-2 mb-2">
                                  <Clock className="h-4 w-4 text-muted-foreground" />
                                  <span className="font-medium">{time}</span>
