@@ -16,6 +16,7 @@ import { PractitionerColorPickerModal } from '@/components/practitioners/Practit
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
 import { supabase } from '@/integrations/supabase/client';
+import { dbAvailabilityToEditor, dayKeyToNumber } from '@/utils/availabilityHelpers';
 import { Loader2 } from 'lucide-react';
 import { useAvailableUsersForPractitioner } from '@/hooks/useAvailableUsersForPractitioner';
 
@@ -40,47 +41,7 @@ interface EditProfessionalDialogProps {
   onClose: () => void;
 }
 
-// Convertir availability de BD a AvailabilityDay[]
-const dbAvailabilityToEditor = (
-  dbAvailability: { weekday: number; from_time: string; to_time: string }[]
-): AvailabilityDay[] => {
-  const numberToDayKey: Record<number, DayKey> = {
-    0: 'dom',
-    1: 'lun',
-    2: 'mar',
-    3: 'mié',
-    4: 'jue',
-    5: 'vie',
-    6: 'sáb',
-  };
-
-  const allDays: DayKey[] = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
-  const daySlots: Record<DayKey, { from: string; to: string }[]> = {
-    lun: [],
-    mar: [],
-    mié: [],
-    jue: [],
-    vie: [],
-    sáb: [],
-    dom: [],
-  };
-
-  dbAvailability.forEach(s => {
-    const dayKey = numberToDayKey[s.weekday];
-    if (dayKey) {
-      daySlots[dayKey].push({ 
-        from: s.from_time.substring(0, 5), 
-        to: s.to_time.substring(0, 5) 
-      });
-    }
-  });
-
-  return allDays.map(day => ({
-    day,
-    active: daySlots[day].length > 0,
-    slots: daySlots[day],
-  }));
-};
+// dbAvailabilityToEditor and dayKeyToNumber imported from availabilityHelpers
 
 export const EditProfessionalDialog = ({ professional, onClose }: EditProfessionalDialogProps) => {
   const { state } = useApp();
@@ -254,15 +215,6 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
     setIsSubmitting(true);
 
     try {
-      const dayKeyToNumber: Record<DayKey, number> = {
-        lun: 1,
-        mar: 2,
-        mié: 3,
-        jue: 4,
-        vie: 5,
-        sáb: 6,
-        dom: 0,
-      };
 
       const displayName = data.displayName || 
         `${data.prefix !== 'none' ? data.prefix + ' ' : ''}${data.firstName} ${data.lastName}`.trim();
