@@ -174,7 +174,26 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     
     setIsSaving(true);
     try {
-      // UPDATE real en BD
+      // Verificar DNI duplicado antes de guardar
+      const docId = normalizedForm.identificacion.documentId?.trim();
+      if (docId && state.currentClinicId) {
+        const { data: existing } = await supabase
+          .from('patients')
+          .select('id, full_name')
+          .eq('clinic_id', state.currentClinicId)
+          .eq('document_id', docId)
+          .eq('is_deleted', false)
+          .neq('id', patient.id)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          setErrors({ documentId: `Ya existe un paciente con este DNI: ${existing[0].full_name}` });
+          setSection('identificacion');
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Construir full_name desde campos estructurados
       const fullName = [
         normalizedForm.identificacion.firstSurname.trim(),
@@ -219,11 +238,18 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       });
 
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating patient:', error);
+      const isDuplicateDni = error?.message?.includes('idx_patients_unique_document_per_clinic') || error?.code === '23505';
+      if (isDuplicateDni) {
+        setErrors({ documentId: 'Ya existe un paciente con este DNI en la clínica' });
+        setSection('identificacion');
+      }
       toast({
         title: "Error",
-        description: "No se pudo actualizar el paciente",
+        description: isDuplicateDni
+          ? "Ya existe un paciente con este DNI/documento en la clínica"
+          : "No se pudo actualizar el paciente",
         variant: "destructive",
       });
     } finally {
@@ -258,6 +284,26 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
     
     setIsSaving(true);
     try {
+      // Verificar DNI duplicado antes de guardar
+      const docId = normalizedForm.identificacion.documentId?.trim();
+      if (docId && state.currentClinicId) {
+        const { data: existing } = await supabase
+          .from('patients')
+          .select('id, full_name')
+          .eq('clinic_id', state.currentClinicId)
+          .eq('document_id', docId)
+          .eq('is_deleted', false)
+          .neq('id', patient.id)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          setErrors({ documentId: `Ya existe un paciente con este DNI: ${existing[0].full_name}` });
+          setSection('identificacion');
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Convertir fecha DD-MM-YYYY a YYYY-MM-DD para PostgreSQL
       const dobForDb = normalizedForm.identificacion.dateOfBirth 
         ? (() => {
@@ -319,11 +365,18 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
       });
 
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating patient:', error);
+      const isDuplicateDni = error?.message?.includes('idx_patients_unique_document_per_clinic') || error?.code === '23505';
+      if (isDuplicateDni) {
+        setErrors({ documentId: 'Ya existe un paciente con este DNI en la clínica' });
+        setSection('identificacion');
+      }
       toast({
         title: "Error",
-        description: "No se pudo actualizar el paciente",
+        description: isDuplicateDni
+          ? "Ya existe un paciente con este DNI/documento en la clínica"
+          : "No se pudo actualizar el paciente",
         variant: "destructive",
       });
     } finally {
@@ -392,13 +445,15 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
               </div>
 
               <div>
-                <Label htmlFor="documentId">DNI/Pasaporte</Label>
+                <Label htmlFor="documentId">DNI/Pasaporte *</Label>
                 <Input
                   id="documentId"
                   value={form.identificacion.documentId}
                   onChange={(e) => setForm(f => ({ ...f, identificacion: { ...f.identificacion, documentId: e.target.value } }))}
                   placeholder="DNI, Pasaporte, etc."
+                  className={errors.documentId ? 'border-destructive' : ''}
                 />
+                {errors.documentId && <p className="text-sm text-destructive mt-1">{errors.documentId}</p>}
               </div>
 
               <div className="col-span-2">
