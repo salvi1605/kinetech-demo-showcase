@@ -240,6 +240,7 @@ export interface UpdateAppointmentRpcInput {
   status?: string;
   treatmentTypeKey?: string;
   notes?: string;
+  subSlot?: number;
 }
 
 export interface RpcUpdateResult {
@@ -259,6 +260,7 @@ export const updateAppointmentRpc = async (id: string, updates: UpdateAppointmen
     ...(updates.status ? { p_status: updates.status } : {}),
     ...(updates.treatmentTypeKey ? { p_treatment_type_key: updates.treatmentTypeKey } : {}),
     ...(updates.notes !== undefined ? { p_notes: updates.notes } : {}),
+    ...(updates.subSlot !== undefined ? { p_sub_slot: updates.subSlot } : {}),
   });
 
   if (error) throw error;
