@@ -18,6 +18,7 @@ const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
   defaultDurationMinutes: z.coerce.number().min(5).max(480),
+  maxConcurrent: z.coerce.number().min(1).max(10),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -36,7 +37,7 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', description: '', defaultDurationMinutes: 30 },
+    defaultValues: { name: '', description: '', defaultDurationMinutes: 30, maxConcurrent: 2 },
   });
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
         name: treatment.name,
         description: treatment.description || '',
         defaultDurationMinutes: treatment.default_duration_minutes,
+        maxConcurrent: treatment.max_concurrent ?? 2,
       });
       setSelectedPractitioners(treatment.practitioners.map(p => p.id));
     }
@@ -68,6 +70,7 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
           name: data.name,
           default_duration_minutes: data.defaultDurationMinutes,
           description: data.description || null,
+          max_concurrent: data.maxConcurrent,
         } as any)
         .eq('id', treatment.id);
 
@@ -134,6 +137,17 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
               <FormItem>
                 <FormLabel>Duración (min) *</FormLabel>
                 <FormControl><Input type="number" min={5} max={480} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField control={form.control} name="maxConcurrent" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Pacientes simultáneos *</FormLabel>
+                <FormControl><Input type="number" min={1} max={10} {...field} /></FormControl>
+                {Number(field.value) === 1 && (
+                  <p className="text-xs text-amber-600 font-medium">⚠ Exclusivo: el profesional no podrá atender otros pacientes en el mismo horario.</p>
+                )}
                 <FormMessage />
               </FormItem>
             )} />

@@ -1045,6 +1045,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          max_concurrent: number
           name: string
           updated_at: string | null
         }
@@ -1056,6 +1057,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          max_concurrent?: number
           name: string
           updated_at?: string | null
         }
@@ -1067,6 +1069,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          max_concurrent?: number
           name?: string
           updated_at?: string | null
         }
@@ -1209,32 +1212,19 @@ export type Database = {
         Args: { p_appointments: Json }
         Returns: Json
       }
-      validate_and_update_appointment:
-        | {
-            Args: {
-              p_appointment_id: string
-              p_date?: string
-              p_notes?: string
-              p_practitioner_id?: string
-              p_start_time?: string
-              p_status?: string
-              p_treatment_type_key?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_appointment_id: string
-              p_date?: string
-              p_notes?: string
-              p_practitioner_id?: string
-              p_start_time?: string
-              p_status?: string
-              p_sub_slot?: number
-              p_treatment_type_key?: string
-            }
-            Returns: Json
-          }
+      validate_and_update_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_date?: string
+          p_notes?: string
+          p_practitioner_id?: string
+          p_start_time?: string
+          p_status?: string
+          p_sub_slot?: number
+          p_treatment_type_key?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       appointment_mode: "in_person" | "virtual" | "home_visit"
