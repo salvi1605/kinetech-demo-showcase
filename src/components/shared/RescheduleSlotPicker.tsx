@@ -11,7 +11,8 @@ interface RescheduleSlotPickerProps {
   date: string; // YYYY-MM-DD
   currentAppointmentId: string;
   selectedTime: string; // HH:mm
-  onSelectSlot: (time: string) => void;
+  selectedSubSlot?: number;
+  onSelectSlot: (time: string, subSlot: number) => void;
 }
 
 interface SlotInfo {
@@ -25,6 +26,7 @@ export const RescheduleSlotPicker = ({
   date,
   currentAppointmentId,
   selectedTime,
+  selectedSubSlot,
   onSelectSlot,
 }: RescheduleSlotPickerProps) => {
   const { settings, isLoading: settingsLoading } = useClinicSettings();
@@ -179,50 +181,45 @@ export const RescheduleSlotPicker = ({
                 {slot.time}
               </span>
               <div className="flex gap-1 flex-wrap">
-                {(() => {
-                  let firstFreeMarked = false;
-                  return slot.subSlots.map((sub) => {
-                    if (sub.isCurrent) {
-                      return (
-                        <button
-                          key={sub.subSlot}
-                          type="button"
-                          onClick={() => onSelectSlot(slot.time)}
-                          className="h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-primary bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 transition-colors"
-                        >
-                          Actual
-                        </button>
-                      );
-                    }
-                    if (sub.appointmentId) {
-                      return (
-                        <div
-                          key={sub.subSlot}
-                          className="h-6 min-w-[3.5rem] px-1 rounded text-xs flex items-center justify-center bg-muted text-muted-foreground"
-                        >
-                          Ocupado
-                        </div>
-                      );
-                    }
-                    // Free slot: mark first one as "Actual" if this time is selected
-                    const isSelectedFree = !firstFreeMarked && slot.time === selectedTime;
-                    if (isSelectedFree) firstFreeMarked = true;
+                {slot.subSlots.map((sub) => {
+                  if (sub.isCurrent) {
                     return (
                       <button
                         key={sub.subSlot}
                         type="button"
-                        onClick={() => onSelectSlot(slot.time)}
-                        className={
-                          isSelectedFree
-                            ? "h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-primary bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 transition-colors"
-                            : "h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60 cursor-pointer transition-colors"
-                        }
+                        onClick={() => onSelectSlot(slot.time, sub.subSlot)}
+                        className="h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-primary bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 transition-colors"
                       >
-                        {isSelectedFree ? 'Actual' : 'Libre'}
+                        Actual
                       </button>
                     );
-                  });
-                })()}
+                  }
+                  if (sub.appointmentId) {
+                    return (
+                      <div
+                        key={sub.subSlot}
+                        className="h-6 min-w-[3.5rem] px-1 rounded text-xs flex items-center justify-center bg-muted text-muted-foreground"
+                      >
+                        Ocupado
+                      </div>
+                    );
+                  }
+                  const isSelected = slot.time === selectedTime && sub.subSlot === selectedSubSlot;
+                  return (
+                    <button
+                      key={sub.subSlot}
+                      type="button"
+                      onClick={() => onSelectSlot(slot.time, sub.subSlot)}
+                      className={
+                        isSelected
+                          ? "h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium border-2 border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                          : "h-6 min-w-[3.5rem] px-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60 cursor-pointer transition-colors"
+                      }
+                    >
+                      {isSelected ? 'Nuevo' : 'Libre'}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

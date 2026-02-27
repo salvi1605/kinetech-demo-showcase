@@ -70,6 +70,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [isEditing, setIsEditing] = useState(false);
   const [showFreeDialog, setShowFreeDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [selectedSubSlot, setSelectedSubSlot] = useState<number | undefined>(undefined);
   const { settings: clinicSettings } = useClinicSettings();
   // Get appointment from store by ID
   const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
@@ -712,7 +713,11 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                     date={form.watch('date')}
                     currentAppointmentId={appointment.id}
                     selectedTime={form.watch('startTime')}
-                    onSelectSlot={(time) => form.setValue('startTime', time)}
+                    selectedSubSlot={selectedSubSlot}
+                    onSelectSlot={(time, subSlot) => {
+                      form.setValue('startTime', time);
+                      setSelectedSubSlot(subSlot);
+                    }}
                   />
                 </>
               ) : (
