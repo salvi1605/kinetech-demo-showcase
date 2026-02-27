@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel, formatPatientFullName } from '@/utils/formatters';
+import { usePractitionerTreatments } from '@/hooks/useTreatments';
 import { 
   Calendar, 
   Clock, 
@@ -72,6 +73,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [selectedSubSlot, setSelectedSubSlot] = useState<number | undefined>(undefined);
   const { settings: clinicSettings } = useClinicSettings();
+
   // Get appointment from store by ID
   const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
   
@@ -89,6 +91,9 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       notes: '',
     }
   });
+
+  const editPractitionerId = form.watch('practitionerId');
+  const { filteredTreatments, hasAssignments } = usePractitionerTreatments(editPractitionerId);
 
   // Generar slots de tiempo desde configuración de clínica
   const timeSlots = clinicSettings
@@ -280,6 +285,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
           EXCLUSIVE_CONFLICT: { title: "Conflicto de disponibilidad", description: result.error_message || 'Conflicto de tratamiento exclusivo' },
           SLOT_FULL: { title: "Bloque completo", description: result.error_message || 'No hay sub-slots disponibles' },
           NOT_FOUND: { title: "Error", description: "Cita no encontrada" },
+          TREATMENT_NOT_ALLOWED: { title: "Tratamiento no permitido", description: result.error_message || "El profesional no tiene asignado este tratamiento." },
         };
 
         const err = errorMessages[result.error_code || ''] || { title: "Error", description: result.error_message || "No se pudo actualizar el turno" };
@@ -791,15 +797,31 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                           <SelectValue placeholder="Selecciona tratamiento" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="fkt">FKT</SelectItem>
-                          <SelectItem value="atm">ATM</SelectItem>
-                          <SelectItem value="drenaje">Drenaje</SelectItem>
-                          <SelectItem value="masaje">Masaje</SelectItem>
-                          <SelectItem value="vestibular">Vestibular</SelectItem>
-                          <SelectItem value="otro">Otro</SelectItem>
+                          {filteredTreatments.length > 0 ? (
+                            filteredTreatments.map(t => (
+                              <SelectItem key={t.id} value={t.name.toLowerCase().replace(/\s+/g, '_').replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u') || t.id}>
+                                <div className="flex items-center gap-2">
+                                  {t.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />}
+                                  {t.name}
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <>
+                              <SelectItem value="fkt">FKT</SelectItem>
+                              <SelectItem value="atm">ATM</SelectItem>
+                              <SelectItem value="drenaje">Drenaje</SelectItem>
+                              <SelectItem value="masaje">Masaje</SelectItem>
+                              <SelectItem value="vestibular">Vestibular</SelectItem>
+                              <SelectItem value="otro">Otro</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </FormControl>
+                    {hasAssignments && (
+                      <p className="text-xs text-muted-foreground">Solo tratamientos asignados al profesional</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

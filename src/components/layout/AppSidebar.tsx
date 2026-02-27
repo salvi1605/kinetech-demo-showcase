@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
-  Building2
+  Building2,
+  Stethoscope
 } from 'lucide-react';
 import { useApp, type UserRole } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,12 @@ const navigationItems = [
     title: 'Profesionales',
     url: '/practitioners',
     icon: UserCheck,
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
+  },
+  {
+    title: 'Tratamientos',
+    url: '/treatments',
+    icon: Stethoscope,
     roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
   },
   {
