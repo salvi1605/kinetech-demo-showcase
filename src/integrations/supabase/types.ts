@@ -254,6 +254,51 @@ export type Database = {
           },
         ]
       }
+      clinical_note_versions: {
+        Row: {
+          body: string
+          change_reason: string | null
+          clinical_data: Json | null
+          edited_at: string
+          edited_by: string | null
+          id: string
+          note_id: string
+        }
+        Insert: {
+          body?: string
+          change_reason?: string | null
+          clinical_data?: Json | null
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          note_id: string
+        }
+        Update: {
+          body?: string
+          change_reason?: string | null
+          clinical_data?: Json | null
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_note_versions_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_note_versions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "patient_clinical_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinics: {
         Row: {
           country_code: string | null

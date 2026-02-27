@@ -252,8 +252,48 @@ export async function deleteSnapshotByDate(
   }
 }
 
-// Check if evolution note exists for appointment
-export async function evolutionNoteExists(appointmentId: string): Promise<boolean> {
+// Save a version of a clinical note before editing
+export async function saveNoteVersion(
+  noteId: string,
+  body: string,
+  clinicalData: any | null,
+  userId: string,
+  changeReason?: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('clinical_note_versions' as any)
+    .insert({
+      note_id: noteId,
+      body,
+      clinical_data: clinicalData,
+      edited_by: userId,
+      change_reason: changeReason || null,
+    });
+
+  if (error) {
+    console.error('[clinicalNotesService] Error saving note version:', error);
+    throw error;
+  }
+}
+
+// Fetch version history for a clinical note
+export async function fetchNoteVersions(noteId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('clinical_note_versions' as any)
+    .select('*')
+    .eq('note_id', noteId)
+    .order('edited_at', { ascending: false });
+
+  if (error) {
+    console.error('[clinicalNotesService] Error fetching note versions:', error);
+    throw error;
+  }
+
+  return data || [];
+}
+
+// Get note ID by appointment ID
+export async function getNoteIdByAppointment(appointmentId: string): Promise<string | null> {
   const { data } = await supabase
     .from('patient_clinical_notes')
     .select('id')
@@ -261,39 +301,23 @@ export async function evolutionNoteExists(appointmentId: string): Promise<boolea
     .eq('note_type', 'evolution')
     .maybeSingle();
 
-  return !!data;
+  return data?.id || null;
 }
 
-// Create stub evolution notes for today's appointments
-export async function ensureEvolutionStubs(
+// Get note ID by snapshot date
+export async function getSnapshotNoteId(
   patientId: string,
   clinicId: string,
-  todayAppointments: Array<{
-    id: string;
-    date: string;
-    startTime: string;
-    treatmentType?: string;
-    practitionerId: string;
-  }>,
-  currentUserId: string
-): Promise<void> {
-  for (const appt of todayAppointments) {
-    const exists = await evolutionNoteExists(appt.id);
-    if (!exists) {
-      const entry: EvolutionEntry = {
-        appointmentId: appt.id,
-        date: appt.date,
-        time: appt.startTime.substring(0, 5),
-        treatmentType: (appt.treatmentType as TreatmentType) || DEFAULT_TREATMENT,
-        doctorId: appt.practitionerId,
-        text: '',
-        completed: false,
-        createdBy: currentUserId,
-        updatedAt: new Date().toISOString(),
-        status: 'active',
-      };
-      
-      await upsertEvolutionNote(patientId, clinicId, entry);
-    }
-  }
+  date: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('patient_clinical_notes')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('clinic_id', clinicId)
+    .eq('note_date', date)
+    .eq('note_type', 'snapshot')
+    .maybeSingle();
+
+  return data?.id || null;
 }
