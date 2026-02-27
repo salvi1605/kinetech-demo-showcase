@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { treatmentLabel, formatPatientFullName, formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
 import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointmentService';
+import { usePractitionerTreatments } from '@/hooks/useTreatments';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -66,6 +67,9 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       notes: '',
     }
   });
+
+  const selectedPractitionerId = form.watch('practitionerId');
+  const { filteredTreatments, hasAssignments } = usePractitionerTreatments(selectedPractitionerId);
 
   // Generar slots de tiempo
   const generateTimeSlots = () => {
@@ -234,6 +238,10 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
           EXCLUSIVE_CONFLICT: {
             title: "Conflicto de disponibilidad",
             description: result.error_message || "Conflicto con tratamiento exclusivo en este horario.",
+          },
+          TREATMENT_NOT_ALLOWED: {
+            title: "Tratamiento no permitido",
+            description: result.error_message || "El profesional no tiene asignado este tratamiento.",
           },
         };
 
@@ -544,14 +552,28 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                         <SelectValue placeholder="Seleccionar tratamiento" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(treatmentLabel)
-                          .filter(([key]) => key !== '')
-                          .map(([key, label]) => (
-                            <SelectItem key={key} value={key}>{label}</SelectItem>
-                          ))}
+                        {filteredTreatments.length > 0 ? (
+                          filteredTreatments.map(t => (
+                            <SelectItem key={t.id} value={t.name.toLowerCase().replace(/\s+/g, '_').replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u') || t.id}>
+                              <div className="flex items-center gap-2">
+                                {t.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />}
+                                {t.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          Object.entries(treatmentLabel)
+                            .filter(([key]) => key !== '')
+                            .map(([key, label]) => (
+                              <SelectItem key={key} value={key}>{label}</SelectItem>
+                            ))
+                        )}
                       </SelectContent>
                     </Select>
                   </FormControl>
+                  {hasAssignments && (
+                    <p className="text-xs text-muted-foreground">Solo se muestran los tratamientos asignados al profesional seleccionado</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

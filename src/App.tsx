@@ -36,6 +36,7 @@ import { NoAccess } from "@/pages/NoAccess";
 import Welcome from "@/pages/Welcome";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
+import Treatments from "@/pages/Treatments";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
                 <Route path="patients" element={<Patients />} />
                 <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
                 <Route path="practitioners" element={<Practitioners />} />
+                <Route path="treatments" element={<Treatments />} />
                 <Route path="availability" element={<Availability />} />
                 <Route path="exceptions" element={<Exceptions />} />
                 <Route path="copy-schedule" element={<CopySchedule />} />
