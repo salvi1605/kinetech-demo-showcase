@@ -1,95 +1,129 @@
 
 
-# Plan: Optimizar liberacion masiva y reprogramacion de citas
+# Diagnostico y Plan: Rediseno del Historial Clinico
 
-## Problema actual
+## Diagnostico de Impacto
 
-### 1. Liberacion masiva (FreeAppointmentDialog)
-La funcion `handleDeleteAll` elimina citas una por una en un loop secuencial:
-```text
-for (const apt of selectedAppointments) {
-  await deleteAppointmentInDb(apt.id);  // 1 round-trip por cita
-}
-```
-Para 10 citas seleccionadas = 10 round-trips = ~2-5 segundos desde Argentina.
+### Estado Actual vs Requerido
 
-### 2. Reprogramacion de cita (AppointmentDetailDialog.onSubmit)
-Al editar/reprogramar una cita se ejecutan 5 consultas secuenciales:
-```text
-await query schedule_exceptions     -- bloqueos
-await checkPractitionerAvailability -- disponibilidad
-await checkConflictInDb             -- exclusividad
-await query clinic_settings         -- sub_slots_per_block
-await query appointments            -- slots ocupados
-await updateAppointmentInDb         -- actualizar
-TOTAL: 6 round-trips = ~1.5-3s
-```
+| Area | Estado actual | Requerido |
+|------|--------------|-----------|
+| Stub de evolucion | Se crea al abrir el modal (ClinicalHistoryDialog useEffect) | Crear al crear la cita (en RPC o post-insert) |
+| Reprogramacion | La evolucion NO se mueve con la cita | Mover fecha/hora de la evolucion al reprogramar |
+| Cancelacion | No hay logica especial | Vacia: eliminar. Con contenido: conservar + anotacion sistema |
+| Permisos receptionist | Ve boton y accede al historial (RoleGuard lo incluye en Patients.tsx) | Sin acceso al historial ni boton |
+| Permisos health_pro | Puede editar cualquier dia (canEdit retorna true si date === today) | Ver todo, editar solo hoy, ver historial de versiones |
+| Permisos admin | Edita todo sin registro de version | Edita todo + versionado obligatorio en fechas pasadas |
+| Versionado | No existe | Tabla de versiones, boton "Ver historial de versiones" |
+| Guardado offline | No existe | Guardar en memoria/localStorage como fallback de desconexion |
 
 ---
 
-## Solucion
+## Cambios Delta por Archivo
 
-### Paso 1: Crear funcion SQL `delete_appointments_batch`
-
-Nueva funcion PostgreSQL que recibe un array de UUIDs y los elimina en una sola transaccion. Retorna la cantidad eliminada y cualquier error.
-
-Parametros: `p_appointment_ids UUID[]`
-Retorna: `{ "deleted_count": N, "failed_ids": [...] }`
-
-### Paso 2: Crear funcion SQL `validate_and_update_appointment`
-
-Funcion que consolida la validacion y actualizacion de una cita en un solo round-trip. Replica las mismas reglas del frontend:
-
-1. Verificar bloqueos en `schedule_exceptions`
-2. Verificar disponibilidad en `practitioner_availability`
-3. Verificar conflicto de tratamiento exclusivo
-4. Calcular `sub_slot` libre automaticamente (si cambia fecha/hora/profesional)
-5. Ejecutar el `UPDATE` en `appointments`
-
-Parametros: id de la cita, campos nuevos (date, start_time, practitioner_id, status, treatment_type_key, notes)
-Retorna: `{ "success": true/false, "error_code": "...", "error_message": "..." }`
-
-### Paso 3: Agregar wrappers en `appointmentService.ts`
+### 1. Nueva tabla: `clinical_note_versions`
 
 ```text
-deleteAppointmentsBatchRpc(ids: string[]) -> supabase.rpc('delete_appointments_batch', ...)
-updateAppointmentRpc(id, updates)          -> supabase.rpc('validate_and_update_appointment', ...)
+clinical_note_versions
+  id           UUID PK
+  note_id      UUID FK -> patient_clinical_notes.id ON DELETE CASCADE
+  body         TEXT
+  clinical_data JSONB (nullable, para snapshots)
+  edited_by    UUID (user_id de public.users)
+  edited_at    TIMESTAMPTZ DEFAULT now()
+  change_reason TEXT (nullable)
 ```
 
-### Paso 4: Simplificar `FreeAppointmentDialog.tsx`
+- RLS: mismas politicas que `patient_clinical_notes` (lectura para admin/health_pro asignados; sin acceso receptionist).
+- Indice en `(note_id, edited_at DESC)`.
 
-Reemplazar el loop secuencial (lineas 133-161) por una sola llamada a `deleteAppointmentsBatchRpc(selectedIds)`.
+### 2. Migracion SQL
 
-Antes: N citas x 1 DELETE = N round-trips
-Despues: 1 round-trip para cualquier cantidad
+- CREATE TABLE `clinical_note_versions`.
+- Habilitar RLS.
+- Politicas: admin_clinic full, health_pro SELECT asignados, receptionist ninguna.
+- Modificar `validate_and_update_appointment` para: al cambiar fecha/hora/profesional, hacer UPDATE en `patient_clinical_notes` donde `appointment_id = p_appointment_id` para actualizar `note_date` y `start_time`.
+- Modificar `validate_and_create_appointment` para: despues del INSERT de la cita, insertar un stub en `patient_clinical_notes` con body vacio, note_type='evolution'.
+- Agregar logica en el status='cancelled' de `validate_and_update_appointment`: si la evolucion tiene body vacio, DELETE; si tiene contenido, agregar "[Sistema] Cita cancelada el DD/MM/YYYY" al body.
 
-### Paso 5: Simplificar `AppointmentDetailDialog.tsx`
+### 3. `src/components/patients/ClinicalHistoryDialog.tsx`
 
-Reemplazar las lineas 269-414 (6 consultas secuenciales de validacion + update) por una sola llamada a `updateAppointmentRpc()`. El manejo de errores traduce `error_code` al toast correspondiente.
+- Eliminar el useEffect de `ensureEvolutionStubs` (ya no es necesario, los stubs se crean en el RPC al crear la cita).
+- Agregar RoleGuard: si `receptionist`, no renderizar el dialog (fallback a null).
 
-Antes: 6 round-trips (~1.5-3s)
-Despues: 1 round-trip (~200-300ms)
+### 4. `src/components/patients/ClinicalHistoryBlock.tsx`
+
+- **canEdit**: cambiar logica:
+  - `health_pro`: solo `entry.date === today` (ya esta asi, pero verificar que no pueda editar pasado).
+  - `admin_clinic`/`tenant_owner`: siempre true, pero al guardar fecha pasada, crear version previa automaticamente.
+- **handleBlur / saveToDb**: antes de hacer upsert en una fecha pasada (admin), guardar version anterior en `clinical_note_versions`.
+- Agregar boton "Ver historial de versiones" por cada evolucion (visible para health_pro y admin).
+- Nuevo componente inline o dialog pequeno: `VersionHistoryPopover` que lista versiones de un note_id.
+
+### 5. `src/pages/Patients.tsx`
+
+- RoleGuard del boton Historial: quitar `'receptionist'` (ya no esta, pero verificar en mobile cards linea 402).
+- Confirmar que en ambas vistas (tabla desktop y cards mobile) el boton no se muestra a receptionist.
+
+### 6. `src/components/patients/PatientHistoryButton.tsx`
+
+- Envolver el boton en RoleGuard excluyendo receptionist (actualmente no tiene RoleGuard).
+
+### 7. `src/lib/clinicalNotesService.ts`
+
+- Nueva funcion `saveNoteVersion(noteId, body, clinicalData, userId)`: INSERT en `clinical_note_versions`.
+- Nueva funcion `fetchNoteVersions(noteId)`: SELECT desde `clinical_note_versions` ORDER BY edited_at DESC.
+- Modificar `upsertEvolutionNote`: antes de UPDATE, si la nota ya existe y es fecha pasada, llamar `saveNoteVersion`.
+
+### 8. `src/hooks/usePatientClinicalNotes.ts`
+
+- Sin cambios estructurales. El realtime ya escucha `patient_clinical_notes`.
+
+### 9. `src/components/patients/ClinicalSnapshotBlock.tsx`
+
+- Agregar boton "Ver historial de versiones" para snapshots (misma logica).
+- En `handleEdit` (admin editando snapshot pasado): guardar version previa antes de actualizar.
+
+### 10. Nuevo componente: `src/components/patients/NoteVersionHistory.tsx`
+
+- Dialog o Popover que recibe `noteId`.
+- Lista de versiones con fecha, usuario, texto (readonly).
+- Solo lectura, sin edicion.
+
+### 11. Guardado offline (fallback)
+
+- En `ClinicalHistoryBlock.handleBlur`: si el upsert falla por error de red, guardar draft en `localStorage` con key `clinical-draft-{appointmentId}`.
+- Al abrir el dialog, verificar si hay drafts pendientes y mostrar toast "Hay cambios sin guardar" con boton para reintentar.
+- Al guardar exitosamente, limpiar el draft de localStorage.
 
 ---
 
-## Impacto esperado
+## Tablas Afectadas
 
-| Escenario | Antes | Despues |
-|-----------|-------|---------|
-| Liberar 1 cita | ~300ms | ~300ms (sin cambio) |
-| Liberar 10 citas | 2-5s | 200-400ms |
-| Reprogramar cita | 1.5-3s | 200-300ms |
+| Tabla | Cambio |
+|-------|--------|
+| `clinical_note_versions` | NUEVA |
+| `patient_clinical_notes` | Sin cambio de schema. Logica de stub/move/cancel en RPCs |
+| `appointments` | Sin cambio de schema |
 
-## Archivos a crear/modificar
+## RLS Afectado
 
-1. **Nueva migracion SQL** - funciones `delete_appointments_batch` y `validate_and_update_appointment`
-2. **`src/lib/appointmentService.ts`** - agregar wrappers RPC
-3. **`src/components/dialogs/FreeAppointmentDialog.tsx`** - reemplazar loop por batch RPC
-4. **`src/components/dialogs/AppointmentDetailDialog.tsx`** - reemplazar validaciones secuenciales por RPC
+| Tabla | Politica | Detalle |
+|-------|----------|---------|
+| `clinical_note_versions` | admin_full_access (ALL) | `is_admin_clinic(clinic_id)` via JOIN a note -> patient |
+| `clinical_note_versions` | health_pro_view (SELECT) | Misma logica de pacientes asignados |
+| `clinical_note_versions` | receptionist | Ninguna politica (sin acceso) |
 
-## Seguridad
+## Criterios de Aceptacion
 
-- `delete_appointments_batch` usa `SECURITY DEFINER` y valida que las citas pertenezcan a la clinica del usuario
-- `validate_and_update_appointment` aplica las mismas reglas de negocio que el frontend actual
-- Las funciones frontend originales se mantienen como fallback
+1. Al crear una cita (individual o masiva), se crea automaticamente un stub de evolucion vacio en `patient_clinical_notes`.
+2. Al reprogramar una cita (cambio de fecha/hora), la evolucion asociada actualiza su `note_date` y `start_time`.
+3. Al cancelar una cita con evolucion vacia, la evolucion se elimina.
+4. Al cancelar una cita con evolucion con contenido, se conserva y se agrega anotacion de sistema.
+5. El boton "Historial" no es visible para `receptionist` en ninguna vista.
+6. `health_pro` puede ver todas las fechas pero solo editar el dia actual.
+7. `admin_clinic`/`tenant_owner` pueden editar cualquier fecha; al editar fecha pasada se guarda version previa.
+8. Existe boton "Ver historial de versiones" por evolucion y snapshot (visible para health_pro y admin).
+9. Si falla el guardado por desconexion, el draft se persiste localmente y se muestra aviso al reabrir.
+10. No se modifican archivos fuera del modulo de historial excepto las RPCs de citas (delta minimo para hooks de stub/move/cancel).
 
