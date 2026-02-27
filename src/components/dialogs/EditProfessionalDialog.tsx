@@ -13,6 +13,7 @@ import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import type { Practitioner } from '@/contexts/AppContext';
 import { PractitionerColorPickerModal } from '@/components/practitioners/PractitionerColorPickerModal';
+import { PractitionerTreatmentEditor } from '@/components/practitioners/PractitionerTreatmentEditor';
 import { PROFESSIONAL_COLORS } from '@/constants/paletteProfessional';
 import { AvailabilityEditor, type AvailabilityDay, type DayKey } from '@/components/practitioners/AvailabilityEditor';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +52,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
   const [availability, setAvailability] = useState<AvailabilityDay[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [currentLinkedUserName, setCurrentLinkedUserName] = useState<string | null>(null);
+  const [selectedTreatmentIds, setSelectedTreatmentIds] = useState<string[]>([]);
 
   // Obtener usuarios disponibles para vincular (excluyendo el practitioner actual)
   const { users: availableUsers, loading: loadingUsers } = useAvailableUsersForPractitioner(
@@ -101,13 +103,25 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
 
         if (practError) throw practError;
 
-        // Cargar disponibilidad
-        const { data: availabilityData, error: availError } = await supabase
-          .from('practitioner_availability')
-          .select('weekday, from_time, to_time')
-          .eq('practitioner_id', professional.id);
+        // Cargar disponibilidad y tratamientos en paralelo
+        const [availRes, treatRes] = await Promise.all([
+          supabase
+            .from('practitioner_availability')
+            .select('weekday, from_time, to_time')
+            .eq('practitioner_id', professional.id),
+          supabase
+            .from('practitioner_treatments')
+            .select('treatment_type_id')
+            .eq('practitioner_id', professional.id),
+        ]);
 
-        if (availError) throw availError;
+        if (availRes.error) throw availRes.error;
+        const availabilityData = availRes.data;
+
+        // Set treatment assignments
+        if (treatRes.data) {
+          setSelectedTreatmentIds(treatRes.data.map((r: any) => r.treatment_type_id));
+        }
 
         // Configurar usuario vinculado si existe
         if (practitionerData.user_id) {
@@ -270,8 +284,21 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
         }
       }
 
+      // Actualizar tratamientos vinculados
+      await supabase.from('practitioner_treatments').delete().eq('practitioner_id', professional.id);
+      if (selectedTreatmentIds.length > 0) {
+        await supabase.from('practitioner_treatments').insert(
+          selectedTreatmentIds.map(tid => ({
+            clinic_id: state.currentClinicId!,
+            practitioner_id: professional.id,
+            treatment_type_id: tid,
+          }))
+        );
+      }
+
       // Disparar evento para refrescar listas
       window.dispatchEvent(new Event('practitionerUpdated'));
+      window.dispatchEvent(new Event('treatmentUpdated'));
 
       toast({
         title: 'Profesional actualizado',
@@ -312,9 +339,10 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Tabs defaultValue="identificacion">
-            <TabsList className="grid grid-cols-4 mb-4">
+            <TabsList className="grid grid-cols-5 mb-4">
               <TabsTrigger value="identificacion">Identificación</TabsTrigger>
               <TabsTrigger value="profesional">Profesional</TabsTrigger>
+              <TabsTrigger value="tratamientos">Tratamientos</TabsTrigger>
               <TabsTrigger value="disponibilidad">Disponibilidad</TabsTrigger>
               <TabsTrigger value="visibilidad">Visibilidad</TabsTrigger>
             </TabsList>
@@ -441,6 +469,14 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
                   </Button>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Tratamientos */}
+            <TabsContent value="tratamientos" className="space-y-4">
+              <PractitionerTreatmentEditor
+                selectedTreatmentIds={selectedTreatmentIds}
+                onChange={setSelectedTreatmentIds}
+              />
             </TabsContent>
 
             {/* Disponibilidad */}
