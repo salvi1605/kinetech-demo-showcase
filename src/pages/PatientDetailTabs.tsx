@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, CalendarPlus, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, CalendarPlus, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download, ChevronRight } from 'lucide-react';
 import { format, subMonths, addMonths } from 'date-fns';
 import { parseSmartDOB, formatDisplayDate, parseLocalDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
@@ -432,7 +432,10 @@ export const PatientDetailTabs = () => {
                           <p className="font-medium">{formatDisplayDate(parseLocalDate(apt.date))}</p>
                           <p className="text-sm text-muted-foreground">{apt.startTime.substring(0, 5)}</p>
                         </div>
-                        <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{getPractitionerName(apt.practitionerId)}</Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </button>
                     ));
                   })()}
@@ -707,9 +710,12 @@ export const PatientDetailTabs = () => {
                             {getPractitionerName(appointment.practitionerId)}
                           </p>
                         </div>
-                        <Badge variant={getStatusBadgeVariant(appointment.status)}>
-                          {getStatusLabel(appointment.status)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={getStatusBadgeVariant(appointment.status)}>
+                            {getStatusLabel(appointment.status)}
+                          </Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </div>
                       {appointment.notes && (
                         <p className="text-sm text-muted-foreground mt-2">{appointment.notes}</p>
