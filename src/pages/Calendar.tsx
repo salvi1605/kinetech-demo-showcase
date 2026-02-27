@@ -323,6 +323,19 @@ export const Calendar = () => {
     savedScrollHour.current = closestHour || TIME_SLOTS[0];
   }, [TIME_SLOTS]);
 
+  // Listen for scrollToHour events (e.g. after reschedule)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const hour = (e as CustomEvent<string>).detail;
+      if (hour) {
+        savedScrollHour.current = hour;
+        savedMobileScrollHour.current = hour;
+      }
+    };
+    window.addEventListener('scrollToHour', handler);
+    return () => window.removeEventListener('scrollToHour', handler);
+  }, []);
+
   // Save scroll before week/filter changes
   useEffect(() => {
     captureScrollHour();

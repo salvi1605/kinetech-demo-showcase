@@ -307,6 +307,9 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
         // Cerrar diálogo para que el usuario vea el calendario actualizado
         onOpenChange(false);
+
+        // Disparar evento con la hora destino para scroll automático
+        window.dispatchEvent(new CustomEvent('scrollToHour', { detail: data.startTime }));
       } else {
         const updatedPractitioner = state.practitioners.find(p => p.id === data.practitionerId);
         const statusLabel = getStatusInfo(data.status).label;
