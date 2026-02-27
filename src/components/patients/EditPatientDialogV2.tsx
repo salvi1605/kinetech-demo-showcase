@@ -28,6 +28,7 @@ interface EditPatientDialogV2Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient?: Patient | null;
+  onSuccess?: () => void;
 }
 
 const sections = ['identificacion', 'emergencia', 'seguro'] as const;
@@ -39,7 +40,7 @@ const sectionConfig = [
   { key: 'seguro' as Section, label: 'Seguro', Icon: ShieldCheck },
 ];
 
-export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatientDialogV2Props) => {
+export const EditPatientDialogV2 = ({ open, onOpenChange, patient, onSuccess }: EditPatientDialogV2Props) => {
   const [section, setSection] = useState<Section>('identificacion');
   const [isSaving, setIsSaving] = useState(false);
   const { state, dispatch } = useApp();
@@ -226,6 +227,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
 
       // Refrescar lista de pacientes desde BD
       await refetchPatients();
+      onSuccess?.();
       
       // También actualizar estado local para reactividad inmediata
       const updatedPatient = toPatientFromForm(patient.id, normalizedForm);
@@ -353,6 +355,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient }: EditPatient
 
       // Refrescar lista de pacientes desde BD
       await refetchPatients();
+      onSuccess?.();
       
       // También actualizar estado local para reactividad inmediata
       const updatedPatient = toPatientFromForm(patient.id, normalizedForm);

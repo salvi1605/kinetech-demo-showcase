@@ -874,6 +874,7 @@ export const Patients = () => {
           open={showWizard} 
           onOpenChange={setShowWizard}
           patient={editingPatient}
+          onSuccess={refetchPatients}
         />
       ) : (
         <NewPatientDialogV2 
