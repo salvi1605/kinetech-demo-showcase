@@ -51,6 +51,7 @@ import { usePractitioners } from '@/hooks/usePractitioners';
 import { usePatients } from '@/hooks/usePatients';
 import { updateAppointmentStatus } from '@/lib/appointmentService';
 import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
+import { useTreatments } from '@/hooks/useTreatments';
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
@@ -85,7 +86,18 @@ export const Calendar = () => {
   
   // Cargar pacientes de la clínica desde BD
   const { patients: dbPatients, loading: loadingPatients } = usePatients(state.currentClinicId);
-  
+
+  // Cargar tratamientos para detectar exclusividad
+  const { treatments } = useTreatments();
+  const exclusiveTreatmentIds = useMemo(() => {
+    const set = new Set<string>();
+    treatments.filter(t => t.max_concurrent === 1).forEach(t => set.add(t.id));
+    return set;
+  }, [treatments]);
+  const isExclusiveTreatment = useCallback((apt: { treatmentTypeId?: string }) => 
+    apt.treatmentTypeId ? exclusiveTreatmentIds.has(apt.treatmentTypeId) : false
+  , [exclusiveTreatmentIds]);
+
   // Comparación profunda para evitar dispatches redundantes
   const hasPractitionerDataChanged = (prev: typeof dbPractitioners, next: typeof dbPractitioners): boolean => {
     if (prev.length !== next.length) return true;
@@ -739,7 +751,17 @@ export const Calendar = () => {
                       </button>
                     )}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
-                      <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
+                        {isExclusiveTreatment(appointment) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
                         {statusBadge.label}
@@ -1277,6 +1299,14 @@ export const Calendar = () => {
                                               <div className="font-medium text-sm truncate">
                                                 {patient ? formatPatientShortName(patient) : 'Paciente'}
                                               </div>
+                                              {isExclusiveTreatment(appointment) && (
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                                                  </TooltipTrigger>
+                                                  <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
+                                                </Tooltip>
+                                              )}
                                                <span className={`inline-block px-2 py-1 text-xs rounded ${
                                                  appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
                                                  appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
