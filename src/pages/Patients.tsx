@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Search, Filter, Phone, Mail, Calendar, FileText, Edit, Trash2, Eye, Pencil, ScrollText, CalendarPlus } from 'lucide-react';
+import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
 import { parseSmartDOB, parseLocalDate, formatDisplayDate } from '@/utils/dateUtils';
 import { formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
@@ -128,7 +129,7 @@ export const Patients = () => {
 
         {state.userRole !== 'health_pro' && (
           <div className="flex items-center gap-2">
-            <Button onClick={handleNewPatient} className={cn("hidden lg:flex")}>
+            <Button onClick={handleNewPatient} className="hidden lg:flex">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Paciente
             </Button>
@@ -639,6 +640,16 @@ export const Patients = () => {
           onOpenChange={(open) => !open && setHistoryPatient(null)}
           patient={historyPatient}
         />
+      )}
+
+      {/* FAB for mobile - Nuevo Paciente */}
+      {state.userRole !== 'health_pro' && (
+        <FloatingActionButton
+          onClick={handleNewPatient}
+          ariaLabel="Nuevo Paciente"
+        >
+          <Plus className="h-6 w-6" />
+        </FloatingActionButton>
       )}
     </div>
   );

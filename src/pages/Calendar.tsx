@@ -926,23 +926,35 @@ export const Calendar = () => {
           </h1>
           
           {/* Filtros de profesional y paciente */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             {/* Filtro de profesional */}
-            <Select
-              value={state.filterPractitionerId ?? 'all'}
-              onValueChange={(value) => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: value === 'all' ? undefined : value })}
-            >
-              <SelectTrigger className="h-9 w-[200px]">
-                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Todos los profesionales" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los profesionales</SelectItem>
-                {state.practitioners.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1">
+              <Select
+                value={state.filterPractitionerId ?? 'all'}
+                onValueChange={(value) => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: value === 'all' ? undefined : value })}
+              >
+                <SelectTrigger className="h-9 w-full sm:w-[200px]">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                  <SelectValue placeholder="Todos los profesionales" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los profesionales</SelectItem>
+                  {state.practitioners.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {state.filterPractitionerId && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: undefined })}
+                  className="h-9 w-9 p-0 shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             
             {/* Buscador de paciente */}
             <div className="relative">
@@ -951,7 +963,7 @@ export const Calendar = () => {
                 placeholder="Buscar paciente..."
                 value={state.filterPatientSearch ?? ''}
                 onChange={(e) => dispatch({ type: 'SET_FILTER_PATIENT_SEARCH', payload: e.target.value || undefined })}
-                className="pl-8 h-9 w-[180px]"
+                className="pl-8 h-9 w-full sm:w-[180px]"
               />
               {state.filterPatientSearch && (
                 <Button 
@@ -964,18 +976,6 @@ export const Calendar = () => {
                 </Button>
               )}
             </div>
-            
-            {/* Botón limpiar filtro profesional */}
-            {state.filterPractitionerId && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => dispatch({ type: 'SET_FILTER_PRACTITIONER', payload: undefined })}
-                className="h-9 px-2"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </div>
         
@@ -1009,34 +1009,34 @@ export const Calendar = () => {
         {/* Clear selection button */}
         {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-blue-900">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="text-sm text-blue-900 shrink-0">
                   {state.selectedSlots.size} horario{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
                 </span>
                 {state.selectedSlots.size > 0 && isMultiSelectEnabled && (
-                  <>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <KinesioCombobox
                       value={state.selectedPractitionerId}
                       onChange={(practitionerId) => dispatch({ type: 'SET_SELECTED_PRACTITIONER', payload: practitionerId })}
                       options={state.practitioners.map(p => ({ value: p.id, label: p.name }))}
                       placeholder="Selecciona Kinesiólogo"
-                      className="text-xs"
+                      className="text-xs w-full sm:w-auto"
                     />
                     <DynamicTreatmentSelect
                       value={state.selectedTreatmentType ?? ''}
                       onValueChange={(value) => dispatch({ type: 'SET_SELECTED_TREATMENT_TYPE', payload: value as TreatmentType })}
-                      className="h-8 text-xs w-[200px]"
+                      className="h-8 text-xs w-full sm:w-[200px]"
                       practitionerId={state.selectedPractitionerId || undefined}
                     />
-                  </>
+                  </div>
                 )}
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={clearSelection}
-                className="text-blue-700 hover:text-blue-900 h-6 w-6 p-0"
+                className="text-blue-700 hover:text-blue-900 h-6 w-6 p-0 self-end sm:self-auto shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
