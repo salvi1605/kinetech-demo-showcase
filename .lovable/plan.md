@@ -1,27 +1,54 @@
 
-# Plan: Auto-scroll en Historial Clinico segun la cita seleccionada
+# Completar Pagina de Disponibilidad
 
 ## Objetivo
-Cuando se abre el Historial del Paciente desde el detalle de una cita, el dialog debe hacer scroll automatico a la fecha/hora de esa cita. Si la cita es futura (sin snapshot/evolucion aun), debe hacer scroll al final del historial.
+Reemplazar el placeholder actual de `/availability` con una pagina funcional que muestre todos los profesionales de la clinica con sus franjas horarias semanales, permitiendo ver y editar la disponibilidad de cada uno desde un solo lugar.
 
-## Cambios
+## Diseno de la solucion
 
-### 1. `ClinicalHistoryDialog.tsx` - Agregar prop `scrollToDate`
-- Nueva prop opcional `scrollToDate?: string` (formato YYYY-MM-DD).
-- Despues de que `isLoading` pase a `false`, usar un `useEffect` con `setTimeout` para buscar el elemento con `data-date={scrollToDate}` dentro del `DialogContent` y llamar `scrollIntoView({ behavior: 'smooth', block: 'start' })`.
-- Si no se encuentra el elemento (fecha futura sin entrada), hacer scroll al final del contenedor del dialog.
-- Pasar la prop al componente sin cambios en `ClinicalHistoryBlock`.
+La pagina mostrara una lista de profesionales como acordeones (Accordion). Cada acordeon muestra el nombre del profesional con un resumen de sus dias activos. Al expandir, se muestra el `AvailabilityEditor` ya existente, con un boton "Guardar" por profesional.
 
-### 2. `ClinicalHistoryBlock.tsx` - Agregar `data-date` a cada bloque de fecha
-- En el `div` con `key={date}` (linea 338), agregar el atributo `data-date={date}` para que el dialog pueda encontrarlo via `querySelector`.
+### Vista general
+```text
++-----------------------------------------------+
+| Disponibilidad                                 |
+| Gestiona los horarios de disponibilidad...     |
++-----------------------------------------------+
+| [Profesional A - color dot]                    |
+|   Lun, Mar, Mie, Jue, Vie                     |
+|   v (expandir)                                 |
+|   +-------------------------------------------+
+|   | [AvailabilityEditor existente]             |
+|   | [Guardar cambios]                          |
+|   +-------------------------------------------+
++-----------------------------------------------+
+| [Profesional B - color dot]                    |
+|   Sin horarios configurados                    |
++-----------------------------------------------+
+```
 
-### 3. `AppointmentDetailDialog.tsx` - Pasar la fecha de la cita al dialog
-- Al renderizar `ClinicalHistoryDialog` (linea 831), agregar `scrollToDate={appointment?.date}`.
+## Cambios necesarios
 
-### 4. Otros consumidores (`Patients.tsx`, `PatientHistoryButton.tsx`)
-- No se modifican. Al no pasar `scrollToDate`, el comportamiento por defecto (sin scroll automatico) se mantiene.
+### 1. Archivo: `src/pages/Availability.tsx` (reescribir completo)
+- Importar `usePractitioners` para obtener los profesionales de la clinica actual
+- Importar `AvailabilityEditor` y sus tipos
+- Cargar la disponibilidad de todos los profesionales en un solo query a `practitioner_availability` filtrado por `clinic_id`
+- Reutilizar la funcion `dbAvailabilityToEditor` (extraerla o copiarla)
+- Mostrar cada profesional en un `Accordion` de shadcn/ui
+- Dentro de cada accordion: el `AvailabilityEditor` con estado local
+- Boton "Guardar" por profesional que hace delete + insert (mismo patron que `EditProfessionalDialog`)
+- Toast de confirmacion/error
+- Estado vacio cuando no hay profesionales
+- Skeleton de carga
 
-## Resumen de archivos a modificar
-- `src/components/patients/ClinicalHistoryBlock.tsx` (1 linea: agregar data-date)
-- `src/components/patients/ClinicalHistoryDialog.tsx` (nueva prop + useEffect con scroll logic)
-- `src/components/dialogs/AppointmentDetailDialog.tsx` (1 linea: pasar scrollToDate)
+### 2. Reutilizacion de helpers
+- Extraer `dbAvailabilityToEditor` y `dayKeyToNumber` como funciones exportadas desde un nuevo archivo `src/utils/availabilityHelpers.ts` para evitar duplicacion de codigo entre la pagina de disponibilidad y `EditProfessionalDialog`
+
+## Detalles tecnicos
+
+- **Datos**: Un solo `SELECT` de `practitioner_availability` filtrado por `clinic_id`, agrupado en frontend por `practitioner_id`
+- **Guardado**: Por profesional, patron delete-all + insert-new (ya probado en `EditProfessionalDialog`)
+- **Permisos**: Solo `admin_clinic` puede modificar (ya cubierto por RLS existente). Recepcionistas y profesionales pueden ver (SELECT policy existente)
+- **RoleGuard**: El boton guardar solo se muestra a admin (usando `useApp` para verificar rol)
+- **Responsive**: Accordion funciona bien en movil, `AvailabilityEditor` ya tiene layout responsive con los TimePickers
+- **No se crean tablas ni migraciones**: se usa la tabla existente `practitioner_availability`
