@@ -83,9 +83,6 @@ export default function Treatments() {
             >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  {t.color && (
-                    <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
-                  )}
                   <h3 className="font-semibold text-base truncate">{t.name}</h3>
                   {!t.is_active && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                 </div>
