@@ -1,30 +1,27 @@
 
-# Plan: Hacer citas clickeables en detalle de paciente
+# Plan: Auto-scroll en Historial Clinico segun la cita seleccionada
 
 ## Objetivo
-En la ficha del paciente, tanto en "Proximos Turnos" (tab Resumen) como en la tab "Historial", cada cita sera un boton clickeable que abre el `AppointmentDetailDialog` (el mismo que se usa desde el calendario).
+Cuando se abre el Historial del Paciente desde el detalle de una cita, el dialog debe hacer scroll automatico a la fecha/hora de esa cita. Si la cita es futura (sin snapshot/evolucion aun), debe hacer scroll al final del historial.
 
-## Problema tecnico
-El `AppointmentDetailDialog` lee la cita desde `state.appointmentsById`, pero las citas del paciente se cargan localmente en `PatientDetailTabs` y no estan en el store global. Hay que inyectarlas antes de abrir el dialog.
+## Cambios
 
-## Cambios en un solo archivo
+### 1. `ClinicalHistoryDialog.tsx` - Agregar prop `scrollToDate`
+- Nueva prop opcional `scrollToDate?: string` (formato YYYY-MM-DD).
+- Despues de que `isLoading` pase a `false`, usar un `useEffect` con `setTimeout` para buscar el elemento con `data-date={scrollToDate}` dentro del `DialogContent` y llamar `scrollIntoView({ behavior: 'smooth', block: 'start' })`.
+- Si no se encuentra el elemento (fecha futura sin entrada), hacer scroll al final del contenedor del dialog.
+- Pasar la prop al componente sin cambios en `ClinicalHistoryBlock`.
 
-**`src/pages/PatientDetailTabs.tsx`**
+### 2. `ClinicalHistoryBlock.tsx` - Agregar `data-date` a cada bloque de fecha
+- En el `div` con `key={date}` (linea 338), agregar el atributo `data-date={date}` para que el dialog pueda encontrarlo via `querySelector`.
 
-1. **Importar** `AppointmentDetailDialog` y agregar estado para controlar el dialog:
-   - `selectedAppointmentId: string | null`
-   - `showAppointmentDetail: boolean`
+### 3. `AppointmentDetailDialog.tsx` - Pasar la fecha de la cita al dialog
+- Al renderizar `ClinicalHistoryDialog` (linea 831), agregar `scrollToDate={appointment?.date}`.
 
-2. **Funcion `handleOpenAppointment`**: recibe una `Appointment` local, la despacha al store global con `dispatch({ type: 'ADD_APPOINTMENT', payload: apt })` para que `appointmentsById` la contenga, luego setea el `selectedAppointmentId` y abre el dialog.
+### 4. Otros consumidores (`Patients.tsx`, `PatientHistoryButton.tsx`)
+- No se modifican. Al no pasar `scrollToDate`, el comportamiento por defecto (sin scroll automatico) se mantiene.
 
-3. **Proximos Turnos** (lineas ~414-422): convertir cada `div` de cita en un elemento clickeable (cursor-pointer, hover) que llama a `handleOpenAppointment(apt)`.
-
-4. **Historial** (lineas ~673-698): convertir cada `div` de cita en un elemento clickeable con el mismo comportamiento.
-
-5. **Renderizar `AppointmentDetailDialog`** al final del componente, pasando `appointmentId={selectedAppointmentId}` y un callback `onAppointmentChange` que refresque las citas locales (`fetchPatientAppointments`).
-
-## Detalles tecnicos
-
-- Se usa `ADD_APPOINTMENT` del reducer existente para inyectar la cita en el store. Si la cita ya existe (por estar en la semana actual del calendario), el dispatch no duplica.
-- El dialog se cierra normalmente y al cerrar se limpia `selectedAppointmentId`.
-- No se necesitan cambios en la base de datos ni en otros archivos.
+## Resumen de archivos a modificar
+- `src/components/patients/ClinicalHistoryBlock.tsx` (1 linea: agregar data-date)
+- `src/components/patients/ClinicalHistoryDialog.tsx` (nueva prop + useEffect con scroll logic)
+- `src/components/dialogs/AppointmentDetailDialog.tsx` (1 linea: pasar scrollToDate)
