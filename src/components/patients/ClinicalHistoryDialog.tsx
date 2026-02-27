@@ -64,18 +64,20 @@ export const ClinicalHistoryDialog = ({
 
   // Auto-scroll to the target date after loading
   useEffect(() => {
-    if (!open || isLoading || !scrollToDate || !contentRef.current) return;
+    if (!open || isLoading || !scrollToDate) return;
     const timer = setTimeout(() => {
       const container = contentRef.current;
       if (!container) return;
       const target = container.querySelector(`[data-date="${scrollToDate}"]`);
       if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = (target as HTMLElement).getBoundingClientRect();
+        const offset = targetRect.top - containerRect.top + container.scrollTop - 16;
+        container.scrollTo({ top: offset, behavior: 'smooth' });
       } else {
-        // Future date without entry — scroll to bottom
-        container.scrollTop = container.scrollHeight;
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
       }
-    }, 150);
+    }, 400);
     return () => clearTimeout(timer);
   }, [open, isLoading, scrollToDate]);
 
