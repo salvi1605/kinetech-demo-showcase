@@ -704,45 +704,52 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               />
 
               {/* Mini-grilla de disponibilidad */}
-              {state.currentClinicId && form.watch('practitionerId') && form.watch('date') && (
-                <RescheduleSlotPicker
-                  clinicId={state.currentClinicId}
-                  practitionerId={form.watch('practitionerId')}
-                  date={form.watch('date')}
-                  currentAppointmentId={appointment.id}
-                  selectedTime={form.watch('startTime')}
-                  onSelectSlot={(time) => form.setValue('startTime', time)}
-                />
-              )}
-
-              {/* Horarios */}
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="startTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hora de inicio</FormLabel>
-                       <FormControl>
-                         <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
-                           <SelectTrigger>
-                             <SelectValue />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {timeSlots.map((time) => (
-                               <SelectItem key={time} value={time}>
-                                 {time}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
+              {state.currentClinicId && form.watch('practitionerId') && form.watch('date') ? (
+                <>
+                  <RescheduleSlotPicker
+                    clinicId={state.currentClinicId}
+                    practitionerId={form.watch('practitionerId')}
+                    date={form.watch('date')}
+                    currentAppointmentId={appointment.id}
+                    selectedTime={form.watch('startTime')}
+                    onSelectSlot={(time) => form.setValue('startTime', time)}
+                  />
+                  {form.watch('startTime') && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      Hora seleccionada: <span className="font-medium text-foreground">{form.watch('startTime')}</span>
+                    </p>
                   )}
-                />
-
-              </div>
+                </>
+              ) : (
+                /* Fallback: Select de hora cuando no hay picker */
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hora de inicio</FormLabel>
+                         <FormControl>
+                           <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
+                             <SelectTrigger>
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {timeSlots.map((time) => (
+                                 <SelectItem key={time} value={time}>
+                                   {time}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
 
               {/* Tratamiento */}
