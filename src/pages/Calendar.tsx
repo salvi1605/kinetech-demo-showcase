@@ -751,21 +751,24 @@ export const Calendar = () => {
                       </button>
                     )}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
+                      <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
+                      <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
+                          {statusBadge.label}
+                        </span>
                         {isExclusiveTreatment(appointment) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full w-fit bg-destructive/15 text-destructive flex items-center gap-0.5">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                                Excl.
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
                           </Tooltip>
                         )}
                       </div>
-                      <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
-                        {statusBadge.label}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -1295,18 +1298,10 @@ export const Calendar = () => {
                                       >
                                         <div className="flex items-center justify-between">
                                           <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                                               <div className="font-medium text-sm truncate">
                                                 {patient ? formatPatientShortName(patient) : 'Paciente'}
                                               </div>
-                                              {isExclusiveTreatment(appointment) && (
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
-                                                  </TooltipTrigger>
-                                                  <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
-                                                </Tooltip>
-                                              )}
                                                <span className={`inline-block px-2 py-1 text-xs rounded ${
                                                  appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
                                                  appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -1315,6 +1310,17 @@ export const Calendar = () => {
                                                }`}>
                                                   {statusLabel(appointment.status as AppointmentStatus)}
                                                </span>
+                                               {isExclusiveTreatment(appointment) && (
+                                                 <Tooltip>
+                                                   <TooltipTrigger asChild>
+                                                     <span className="inline-flex items-center gap-0.5 px-2 py-1 text-xs rounded bg-destructive/15 text-destructive">
+                                                       <AlertTriangle className="h-3 w-3" />
+                                                       Excl.
+                                                     </span>
+                                                   </TooltipTrigger>
+                                                   <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
+                                                 </Tooltip>
+                                               )}
                                             </div>
                                             <div className="text-xs text-muted-foreground flex items-center gap-2">
                                               <User className="h-3 w-3" />
