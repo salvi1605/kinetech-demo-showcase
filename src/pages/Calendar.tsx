@@ -750,25 +750,20 @@ export const Calendar = () => {
                         {stateAttr === 'indeterminate' && <X className="h-3 w-3 text-red-600" />}
                       </button>
                     )}
+                    {isExclusiveTreatment(appointment) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 absolute top-1 right-1" />
+                        </TooltipTrigger>
+                        <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
+                      </Tooltip>
+                    )}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
                       <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
-                          {statusBadge.label}
-                        </span>
-                        {isExclusiveTreatment(appointment) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full w-fit bg-destructive/15 text-destructive flex items-center gap-0.5">
-                                <AlertTriangle className="h-2.5 w-2.5" />
-                                Excl.
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
+                        {statusBadge.label}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1292,13 +1287,21 @@ export const Calendar = () => {
                                     return (
                                       <Card
                                         key={`${time}-${subIndex}`}
-                                        className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors"
+                                        className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors relative"
                                         style={{ borderLeftColor: getPractitionerColor(appointment.practitionerId) }}
                                         onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
                                       >
+                                        {isExclusiveTreatment(appointment) && (
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <AlertTriangle className="h-3.5 w-3.5 text-destructive absolute top-2 right-2" />
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
+                                          </Tooltip>
+                                        )}
                                         <div className="flex items-center justify-between">
                                           <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <div className="flex items-center gap-2 mb-1">
                                               <div className="font-medium text-sm truncate">
                                                 {patient ? formatPatientShortName(patient) : 'Paciente'}
                                               </div>
@@ -1310,17 +1313,6 @@ export const Calendar = () => {
                                                }`}>
                                                   {statusLabel(appointment.status as AppointmentStatus)}
                                                </span>
-                                               {isExclusiveTreatment(appointment) && (
-                                                 <Tooltip>
-                                                   <TooltipTrigger asChild>
-                                                     <span className="inline-flex items-center gap-0.5 px-2 py-1 text-xs rounded bg-destructive/15 text-destructive">
-                                                       <AlertTriangle className="h-3 w-3" />
-                                                       Excl.
-                                                     </span>
-                                                   </TooltipTrigger>
-                                                   <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
-                                                 </Tooltip>
-                                               )}
                                             </div>
                                             <div className="text-xs text-muted-foreground flex items-center gap-2">
                                               <User className="h-3 w-3" />
