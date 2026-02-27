@@ -9,6 +9,7 @@ export interface TreatmentWithPractitioners {
   default_duration_minutes: number;
   color: string | null;
   is_active: boolean;
+  max_concurrent: number;
   practitioners: { id: string; display_name: string; color: string | null }[];
 }
 
@@ -67,6 +68,7 @@ export const useTreatments = () => {
           default_duration_minutes: tt.default_duration_minutes,
           color: tt.color,
           is_active: tt.is_active ?? true,
+          max_concurrent: (tt as any).max_concurrent ?? 2,
           practitioners,
         };
       });

@@ -17,6 +17,7 @@ const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
   defaultDurationMinutes: z.coerce.number().min(5, 'Mínimo 5 minutos').max(480, 'Máximo 480 minutos'),
+  maxConcurrent: z.coerce.number().min(1, 'Mínimo 1').max(10, 'Máximo 10'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -34,7 +35,7 @@ export const NewTreatmentDialog = ({ open, onOpenChange }: Props) => {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', description: '', defaultDurationMinutes: 30 },
+    defaultValues: { name: '', description: '', defaultDurationMinutes: 30, maxConcurrent: 2 },
   });
 
   const togglePractitioner = (id: string) => {
@@ -55,7 +56,8 @@ export const NewTreatmentDialog = ({ open, onOpenChange }: Props) => {
           clinic_id: state.currentClinicId,
           name: data.name,
           default_duration_minutes: data.defaultDurationMinutes,
-        })
+          max_concurrent: data.maxConcurrent,
+        } as any)
         .select('id')
         .single();
 
@@ -125,6 +127,17 @@ export const NewTreatmentDialog = ({ open, onOpenChange }: Props) => {
               <FormItem>
                 <FormLabel>Duración (min) *</FormLabel>
                 <FormControl><Input type="number" min={5} max={480} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField control={form.control} name="maxConcurrent" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Pacientes simultáneos *</FormLabel>
+                <FormControl><Input type="number" min={1} max={10} {...field} /></FormControl>
+                {Number(field.value) === 1 && (
+                  <p className="text-xs text-amber-600 font-medium">⚠ Exclusivo: el profesional no podrá atender otros pacientes en el mismo horario.</p>
+                )}
                 <FormMessage />
               </FormItem>
             )} />

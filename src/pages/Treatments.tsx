@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Clock, Stethoscope } from 'lucide-react';
+import { Search, Plus, Clock, Stethoscope, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,15 +85,22 @@ export default function Treatments() {
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-base truncate">{t.name}</h3>
                   {!t.is_active && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
+                  {t.max_concurrent === 1 && <Badge variant="destructive" className="text-xs">Exclusivo</Badge>}
                 </div>
 
                 {t.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>
                 )}
 
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  {t.default_duration_minutes} min
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {t.default_duration_minutes} min
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    {t.max_concurrent === 1 ? '1 (exclusivo)' : `Hasta ${t.max_concurrent}`}
+                  </span>
                 </div>
 
                 {/* Practitioner chips */}

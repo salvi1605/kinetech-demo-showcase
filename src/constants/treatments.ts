@@ -1,2 +1,2 @@
-export const TREATMENTS_EXCLUSIVOS = ["drenaje", "masaje"] as const;
-export type TreatmentExclusivo = typeof TREATMENTS_EXCLUSIVOS[number];
+// Treatment exclusivity is now managed via max_concurrent field in treatment_types table.
+// No hardcoded constants needed.
