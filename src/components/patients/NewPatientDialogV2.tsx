@@ -183,6 +183,25 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
     setIsSaving(true);
     
     try {
+      // Verificar DNI duplicado antes de guardar
+      const docId = form.identificacion.documentId.trim();
+      if (docId) {
+        const { data: existing } = await supabase
+          .from('patients')
+          .select('id, full_name')
+          .eq('clinic_id', state.currentClinicId)
+          .eq('document_id', docId)
+          .eq('is_deleted', false)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          setErrors({ documentId: `Ya existe un paciente con este DNI: ${existing[0].full_name}` });
+          setCurrentStep(1);
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Convertir fecha DD-MM-YYYY a YYYY-MM-DD para PostgreSQL
       const dobForDb = form.identificacion.dateOfBirth 
         ? (() => {
@@ -271,9 +290,17 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
       setErrors({});
     } catch (error: any) {
       console.error('Error creating patient:', error);
+      const isDuplicateDni = error?.message?.includes('idx_patients_unique_document_per_clinic') 
+        || error?.code === '23505';
+      if (isDuplicateDni) {
+        setErrors({ documentId: 'Ya existe un paciente con este DNI en la clínica' });
+        setCurrentStep(1);
+      }
       toast({
         title: "Error al crear paciente",
-        description: error.message || "Ocurrió un error inesperado",
+        description: isDuplicateDni 
+          ? "Ya existe un paciente con este DNI/documento en la clínica" 
+          : (error.message || "Ocurrió un error inesperado"),
         variant: "destructive",
       });
     } finally {
