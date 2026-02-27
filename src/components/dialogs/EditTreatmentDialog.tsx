@@ -18,7 +18,6 @@ const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
   defaultDurationMinutes: z.coerce.number().min(5).max(480),
-  color: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,7 +36,7 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', description: '', defaultDurationMinutes: 30, color: '#3b82f6' },
+    defaultValues: { name: '', description: '', defaultDurationMinutes: 30 },
   });
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
         name: treatment.name,
         description: treatment.description || '',
         defaultDurationMinutes: treatment.default_duration_minutes,
-        color: treatment.color || '#3b82f6',
       });
       setSelectedPractitioners(treatment.practitioners.map(p => p.id));
     }
@@ -69,7 +67,6 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
         .update({
           name: data.name,
           default_duration_minutes: data.defaultDurationMinutes,
-          color: data.color || null,
           description: data.description || null,
         } as any)
         .eq('id', treatment.id);
@@ -133,28 +130,13 @@ export const EditTreatmentDialog = ({ open, onOpenChange, treatment }: Props) =>
               </FormItem>
             )} />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="defaultDurationMinutes" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duración (min) *</FormLabel>
-                  <FormControl><Input type="number" min={5} max={480} {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="color" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={field.value || '#3b82f6'} onChange={field.onChange} className="h-10 w-10 rounded border cursor-pointer" />
-                      <Input value={field.value || ''} onChange={field.onChange} className="flex-1" />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
+            <FormField control={form.control} name="defaultDurationMinutes" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Duración (min) *</FormLabel>
+                <FormControl><Input type="number" min={5} max={480} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <div className="space-y-2">
               <Label>Profesionales que realizan este tratamiento</Label>

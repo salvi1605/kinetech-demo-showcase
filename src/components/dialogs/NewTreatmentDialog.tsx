@@ -17,7 +17,6 @@ const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
   defaultDurationMinutes: z.coerce.number().min(5, 'Mínimo 5 minutos').max(480, 'Máximo 480 minutos'),
-  color: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -35,7 +34,7 @@ export const NewTreatmentDialog = ({ open, onOpenChange }: Props) => {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', description: '', defaultDurationMinutes: 30, color: '#3b82f6' },
+    defaultValues: { name: '', description: '', defaultDurationMinutes: 30 },
   });
 
   const togglePractitioner = (id: string) => {
@@ -56,7 +55,6 @@ export const NewTreatmentDialog = ({ open, onOpenChange }: Props) => {
           clinic_id: state.currentClinicId,
           name: data.name,
           default_duration_minutes: data.defaultDurationMinutes,
-          color: data.color || null,
         })
         .select('id')
         .single();
@@ -123,28 +121,13 @@ export const NewTreatmentDialog = ({ open, onOpenChange }: Props) => {
               </FormItem>
             )} />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="defaultDurationMinutes" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duración (min) *</FormLabel>
-                  <FormControl><Input type="number" min={5} max={480} {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="color" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={field.value || '#3b82f6'} onChange={field.onChange} className="h-10 w-10 rounded border cursor-pointer" />
-                      <Input value={field.value || ''} onChange={field.onChange} placeholder="#hex" className="flex-1" />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
+            <FormField control={form.control} name="defaultDurationMinutes" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Duración (min) *</FormLabel>
+                <FormControl><Input type="number" min={5} max={480} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             {/* Practitioners multi-select */}
             <div className="space-y-2">
