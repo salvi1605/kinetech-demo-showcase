@@ -39,6 +39,7 @@ import { usePatientAppointments, formatAppointmentDisplay } from '@/hooks/usePat
 import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
+import { RescheduleSlotPicker } from '@/components/shared/RescheduleSlotPicker';
 import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb, updateAppointmentRpc } from '@/lib/appointmentService';
@@ -683,6 +684,47 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 )}
               />
 
+              {/* Kinesiólogo (moved before slot picker) */}
+              <FormField
+                control={form.control}
+                name="practitionerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kinesiólogo</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {state.practitioners.map((practitioner) => (
+                            <SelectItem key={practitioner.id} value={practitioner.id}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-primary" />
+                                {practitioner.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Mini-grilla de disponibilidad */}
+              {state.currentClinicId && form.watch('practitionerId') && form.watch('date') && (
+                <RescheduleSlotPicker
+                  clinicId={state.currentClinicId}
+                  practitionerId={form.watch('practitionerId')}
+                  date={form.watch('date')}
+                  currentAppointmentId={appointment.id}
+                  selectedTime={form.watch('startTime')}
+                  onSelectSlot={(time) => form.setValue('startTime', time)}
+                />
+              )}
+
               {/* Horarios */}
               <div className="grid grid-cols-1 gap-4">
                 <FormField
@@ -712,34 +754,6 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
 
               </div>
 
-              {/* Kinesiólogo */}
-              <FormField
-                control={form.control}
-                name="practitionerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kinesiólogo</FormLabel>
-                    <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {state.practitioners.map((practitioner) => (
-                            <SelectItem key={practitioner.id} value={practitioner.id}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-primary" />
-                                {practitioner.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Tratamiento */}
               <FormField
