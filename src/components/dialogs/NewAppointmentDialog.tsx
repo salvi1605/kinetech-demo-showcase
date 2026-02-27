@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
-import { treatmentLabel, formatPatientFullName, formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
+import { treatmentLabel, formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import type { TreatmentType } from '@/types/appointments';
 import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointmentService';
 import { usePractitionerTreatments } from '@/hooks/useTreatments';
@@ -101,7 +101,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       form.setValue('patientId', preselectedPatientId);
       const patient = state.patients.find(p => p.id === preselectedPatientId);
       if (patient) {
-        setPatientSearch(formatPatientShortName(patient));
+        setPatientSearch(formatPatientFullName(patient));
       }
     }
   }, [open, preselectedPatientId, state.patients, form]);
@@ -442,10 +442,10 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                           className="w-full text-left p-3 hover:bg-muted/50 border-b last:border-b-0 focus:outline-none focus:bg-muted/50"
                           onClick={() => {
                             form.setValue('patientId', patient.id);
-                            setPatientSearch(formatPatientShortName(patient));
+                            setPatientSearch(formatPatientFullName(patient));
                           }}
                         >
-                          <div className="font-medium">{formatPatientShortName(patient)}</div>
+                          <div className="font-medium">{formatPatientFullName(patient)}</div>
                           <div className="text-sm text-muted-foreground">{patient.phone}</div>
                         </button>
                       ))
