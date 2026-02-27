@@ -1,21 +1,20 @@
 
 
-# Simplificar seleccion de hora: click en "Libre" y listo
+# Slot "Libre" se convierte en "Actual" al hacer click
 
 ## Problema
-Actualmente, al hacer click en un slot "Libre" del picker, se actualiza el campo de hora del formulario, pero el usuario todavia ve un `<Select>` de hora separado debajo. Esto genera confusion: parece que hay que hacer dos pasos cuando en realidad uno basta.
+Cuando el usuario hace click en un slot "Libre", abajo aparece un texto "Hora seleccionada: HH:mm", pero no hay cambio visual en la grilla misma. Seria mas intuitivo que el slot clickeado cambie su apariencia a "Actual" (estilo azul con borde), igual que la cita original.
 
 ## Solucion
-Ocultar el `<Select>` de hora cuando el `RescheduleSlotPicker` esta visible (es decir, cuando hay fecha y profesional seleccionados). El click en "Libre" sera la unica accion necesaria para elegir la hora. Se mostrara la hora seleccionada como texto informativo debajo del picker para confirmar visualmente la eleccion.
 
-Si por alguna razon el picker no puede cargarse (sin settings), se mantiene el Select como fallback.
-
-## Cambios
+### `src/components/shared/RescheduleSlotPicker.tsx`
+- En el render de sub-slots libres, agregar una condicion: si `slot.time === selectedTime`, renderizar el boton con el estilo "Actual" (borde azul, fondo azul claro, texto "Actual") en lugar de "Libre"
+- El boton sigue siendo clickeable (por si quiere deseleccionar o re-confirmar)
+- Solo el **primer sub-slot libre** de esa hora se marca como "Actual" para no confundir con multiples marcas
 
 ### `src/components/dialogs/AppointmentDetailDialog.tsx`
-- Envolver el bloque del `<Select>` de hora en una condicion: solo mostrarlo cuando **no** se muestre el `RescheduleSlotPicker` (cuando faltan fecha o practitioner)
-- Agregar un pequeno texto debajo del picker que muestre "Hora seleccionada: HH:mm" para feedback visual claro
-- El picker ya llama `form.setValue('startTime', time)` al hacer click, asi que no hace falta cambiar nada mas en la logica
+- Eliminar el texto "Hora seleccionada: HH:mm" con el icono de reloj, ya que la grilla misma muestra la seleccion visualmente
+- Eliminar la importacion de `Clock` si ya no se usa en otro lugar del componente
 
 ## Resultado
-El usuario cambia fecha, ve la grilla, hace click en "Libre" y la hora queda seleccionada. Un solo paso, sin dropdown extra.
+Click en "Libre" -> el slot cambia a "Actual" instantaneamente. Sin texto extra, flujo 100% visual.
