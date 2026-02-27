@@ -45,14 +45,10 @@ import { checkPractitionerAvailability } from '@/utils/appointments/checkPractit
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb, updateAppointmentRpc } from '@/lib/appointmentService';
 import type { RpcUpdateResult } from '@/lib/appointmentService';
 import { supabase } from '@/integrations/supabase/client';
-
+import { useClinicSettings, generateTimeSlots as generateTimeSlotsFromSettings, formatTimeShort } from '@/hooks/useClinicSettings';
 const editAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
-  startTime: z.string().min(1, 'La hora de inicio es requerida').refine((time) => {
-    return time <= '19:00';
-  }, {
-    message: "La hora de inicio no puede ser posterior a las 19:00"
-  }),
+  startTime: z.string().min(1, 'La hora de inicio es requerida'),
   practitionerId: z.string().min(1, 'Selecciona un kinesiólogo'),
   status: z.enum(['scheduled', 'completed', 'no_show', 'cancelled']),
   treatmentType: z.string().min(1, 'Selecciona un tipo de tratamiento'),
@@ -74,7 +70,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [isEditing, setIsEditing] = useState(false);
   const [showFreeDialog, setShowFreeDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-  
+  const { settings: clinicSettings } = useClinicSettings();
   // Get appointment from store by ID
   const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
   
@@ -93,20 +89,14 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
     }
   });
 
-  // Generar slots de tiempo
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 8; hour <= 19; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(time);
-        if (hour === 19 && minute === 0) break; // Incluir solo 19:00, no 19:30
-      }
-    }
-    return slots;
-  };
-
-  const timeSlots = generateTimeSlots();
+  // Generar slots de tiempo desde configuración de clínica
+  const timeSlots = clinicSettings
+    ? generateTimeSlotsFromSettings(
+        formatTimeShort(clinicSettings.workday_start),
+        formatTimeShort(clinicSettings.workday_end),
+        clinicSettings.min_slot_minutes
+      )
+    : [];
 
   // Actualizar formulario cuando cambia la cita
   useEffect(() => {
