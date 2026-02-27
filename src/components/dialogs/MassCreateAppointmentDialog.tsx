@@ -17,9 +17,7 @@ import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2, UserPlu
 import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
-import { checkConflictInDb } from '@/utils/appointments/checkConflictInDb';
-import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
-import { supabase } from '@/integrations/supabase/client';
+import { createAppointmentsBatchRpc, type RpcBatchResult, type BatchAppointmentInput } from '@/lib/appointmentService';
 
 interface MassCreateAppointmentDialogProps {
   open: boolean;
@@ -132,98 +130,6 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       return;
     }
 
-    // Validar disponibilidad de profesionales
-    if (state.currentClinicId) {
-      const availabilityConflicts: string[] = [];
-      for (const slot of sortedSlots) {
-        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-        if (slotPractitionerId) {
-          const availCheck = await checkPractitionerAvailability({
-            practitionerId: slotPractitionerId,
-            date: slot.dateISO,
-            startTime: slot.hour,
-            clinicId: state.currentClinicId,
-          });
-          if (!availCheck.available && availCheck.hasAvailabilityConfigured) {
-            const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
-            availabilityConflicts.push(`${slot.displayText} - ${practitionerName}: ${availCheck.message}`);
-          }
-        }
-      }
-      if (availabilityConflicts.length > 0) {
-        toast({
-          title: "Fuera de horario",
-          description: `${availabilityConflicts.length} turno(s) fuera del horario del profesional. Revisa la disponibilidad.`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Verificar bloqueos de profesionales (vacaciones, licencia, etc.)
-    if (state.currentClinicId) {
-      const blockConflicts: string[] = [];
-      for (const slot of sortedSlots) {
-        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-        if (slotPractitionerId) {
-          const { data: blocks, error: blockError } = await supabase
-            .from('schedule_exceptions')
-            .select('reason, type')
-            .eq('clinic_id', state.currentClinicId)
-            .eq('practitioner_id', slotPractitionerId)
-            .eq('date', slot.dateISO)
-            .eq('type', 'practitioner_block');
-
-          if (!blockError && blocks && blocks.length > 0) {
-            const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
-            const reason = blocks[0].reason?.toUpperCase() || 'BLOQUEO';
-            blockConflicts.push(`${slot.displayText} - ${practitionerName} tiene ${reason}`);
-          }
-        }
-      }
-      if (blockConflicts.length > 0) {
-        toast({
-          title: "Profesional(es) no disponible(s)",
-          description: `No se puede agendar: ${blockConflicts.join('; ')}`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Validar conflictos de tratamientos exclusivos desde BD
-    if (state.currentClinicId) {
-      const conflictsExclusive: string[] = [];
-      for (const slot of sortedSlots) {
-        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-        const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
-        
-        if (slotPractitionerId && slotTreatmentType) {
-          const validation = await checkConflictInDb({
-            date: slot.dateISO,
-            startTime: slot.hour,
-            practitionerId: slotPractitionerId,
-            treatmentType: slotTreatmentType,
-            clinicId: state.currentClinicId,
-          });
-          
-          if (!validation.ok && validation.conflict) {
-            const practitionerName = state.practitioners.find(p => p.id === slotPractitionerId)?.name || 'Profesional';
-            conflictsExclusive.push(`${slot.displayText} - ${practitionerName} ya tiene ${treatmentLabel[validation.conflict.treatmentType as TreatmentType]} en ${slot.hour}`);
-          }
-        }
-      }
-      
-      if (conflictsExclusive.length > 0) {
-        toast({
-          title: "Conflictos de disponibilidad",
-          description: "No se pudo confirmar: hay conflictos por Drenaje/Masaje. El profesional ya tiene una cita en ese horario.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
     // Salvaguarda por rol para días pasados
     const allowedSlots = (state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner')
       ? sortedSlots 
@@ -241,103 +147,68 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     setIsCreating(true);
 
     try {
-      const appointmentsToCreate = [];
-      const failed: string[] = [];
-      const conflictingSlots: string[] = [];
-
-      // Mapeo de tratamientos internos a nombres en BD
-      const treatmentNameMap: Record<TreatmentType, string> = {
-        fkt: 'FKT',
-        atm: 'ATM',
-        drenaje: 'Drenaje linfático',
-        drenaje_ultra: 'Drenaje + Ultrasonido',
-        masaje: 'Masaje',
-        vestibular: 'Vestibular',
-        otro: 'Otro',
-      };
-
-      for (const slot of allowedSlots) {
-        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
-        const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
-        
-        if (!slotPractitionerId) {
-          failed.push(`${slot.displayText} - Sin kinesiólogo asignado`);
-          continue;
-        }
-
-        if (!slotTreatmentType) {
-          failed.push(`${slot.displayText} - Sin tratamiento asignado`);
-          continue;
-        }
-
-        // Check if appointment already exists at this exact time and practitioner
-        const { data: existingAppts, error: checkError } = await supabase
-          .from('appointments')
-          .select('id')
-          .eq('practitioner_id', slotPractitionerId)
-          .eq('date', slot.dateISO)
-          .eq('start_time', slot.hour)
-          .eq('sub_slot', slot.subSlot + 1)
-          .eq('clinic_id', state.currentClinicId!);
-
-        if (checkError) {
-          console.error('Error checking conflicts:', checkError);
-          failed.push(`${slot.displayText} - Error al verificar conflictos`);
-          continue;
-        }
-
-        if (existingAppts && existingAppts.length > 0) {
-          conflictingSlots.push(`${slot.displayText} - Ya existe una cita en este horario`);
-          continue;
-        }
-
-        // Get treatment type ID using proper DB name
-        const treatmentDbName = treatmentNameMap[slotTreatmentType as TreatmentType] || slotTreatmentType;
-        const { data: treatmentData } = await supabase
-          .from('treatment_types')
-          .select('id')
-          .eq('name', treatmentDbName)
-          .eq('clinic_id', state.currentClinicId!)
-          .maybeSingle();
-
-        appointmentsToCreate.push({
-          clinic_id: state.currentClinicId!,
-          practitioner_id: slotPractitionerId,
-          patient_id: patientId,
-          date: slot.dateISO,
-          start_time: slot.hour,
-          duration_minutes: 30,
-          sub_slot: slot.subSlot + 1,
-          status: 'scheduled',
-          mode: 'in_person',
-          treatment_type_id: treatmentData?.id || null,
-          notes: notes || null,
+      // Construir array para RPC batch
+      const batchInput: BatchAppointmentInput[] = allowedSlots
+        .filter(slot => {
+          const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+          return !!slotPractitionerId;
+        })
+        .map(slot => {
+          const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+          const slotTreatmentType = perItemTreatment[slot.key] ?? slot.treatmentType;
+          return {
+            clinic_id: state.currentClinicId!,
+            practitioner_id: slotPractitionerId!,
+            patient_id: patientId,
+            date: slot.dateISO,
+            start_time: slot.hour,
+            sub_slot: slot.subSlot + 1,
+            treatment_type_key: slotTreatmentType || 'fkt',
+            notes: notes || '',
+            mode: 'in_person',
+          };
         });
-      }
 
-      // Insert appointments in batch
-      if (appointmentsToCreate.length > 0) {
-        const { error: insertError } = await supabase
-          .from('appointments')
-          .insert(appointmentsToCreate);
+      // Slots sin kinesiólogo asignado
+      const slotsWithoutPractitioner = allowedSlots.filter(slot => {
+        const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+        return !slotPractitionerId;
+      });
 
-        if (insertError) {
-          throw insertError;
-        }
+      const failed: string[] = slotsWithoutPractitioner.map(
+        slot => `${slot.displayText} - Sin kinesiólogo asignado`
+      );
+
+      let createdCount = 0;
+
+      if (batchInput.length > 0) {
+        const results: RpcBatchResult[] = await createAppointmentsBatchRpc(batchInput);
+
+        // Procesar resultados
+        const validSlots = allowedSlots.filter(slot => {
+          const slotPractitionerId = perItemPractitioner[slot.key] ?? state.selectedPractitionerId;
+          return !!slotPractitionerId;
+        });
+
+        results.forEach((r, i) => {
+          if (r.success) {
+            createdCount++;
+          } else {
+            const slot = validSlots[i];
+            const errorMsg = r.error_message || 'Error desconocido';
+            failed.push(`${slot?.displayText || `Slot ${i}`} - ${errorMsg}`);
+          }
+        });
       }
 
       // Clear selection
       dispatch({ type: 'CLEAR_SLOT_SELECTION' });
-
-      // Trigger refresh
       window.dispatchEvent(new Event('appointmentUpdated'));
 
-      // Show results
-      const createdCount = appointmentsToCreate.length;
-      const failedCount = failed.length + conflictingSlots.length;
+      const failedCount = failed.length;
 
       if (failedCount > 0) {
-        setFailedSlots([...failed, ...conflictingSlots]);
+        setFailedSlots(failed);
         setShowFailureDialog(true);
         
         if (createdCount > 0) {

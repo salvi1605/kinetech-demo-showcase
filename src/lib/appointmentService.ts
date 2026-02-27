@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import type { Appointment } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 
@@ -157,4 +158,59 @@ export const createMultipleAppointments = async (appointments: CreateAppointment
 
   if (error) throw error;
   return data;
+};
+
+// ── RPC wrappers (optimización: validación + inserción en 1 round-trip) ──
+
+export interface RpcAppointmentResult {
+  success: boolean;
+  appointment_id?: string;
+  error_code?: 'BLOCKED' | 'OUT_OF_HOURS' | 'SLOT_TAKEN' | 'EXCLUSIVE_CONFLICT';
+  error_message?: string;
+}
+
+export interface RpcBatchResult {
+  index: number;
+  success: boolean;
+  appointment_id?: string;
+  error_code?: string;
+  error_message?: string;
+}
+
+export const createAppointmentRpc = async (input: CreateAppointmentInput): Promise<RpcAppointmentResult> => {
+  const { data, error } = await supabase.rpc('validate_and_create_appointment', {
+    p_clinic_id: input.clinicId,
+    p_practitioner_id: input.practitionerId,
+    p_patient_id: input.patientId,
+    p_date: input.date,
+    p_start_time: input.startTime,
+    p_sub_slot: input.subSlot,
+    p_treatment_type_key: input.treatmentType || 'fkt',
+    p_notes: input.notes || '',
+    p_mode: input.mode || 'in_person',
+  });
+
+  if (error) throw error;
+  return data as unknown as RpcAppointmentResult;
+};
+
+export interface BatchAppointmentInput {
+  clinic_id: string;
+  practitioner_id: string;
+  patient_id: string;
+  date: string;
+  start_time: string;
+  sub_slot: number;
+  treatment_type_key: string;
+  notes?: string;
+  mode?: string;
+}
+
+export const createAppointmentsBatchRpc = async (appointments: BatchAppointmentInput[]): Promise<RpcBatchResult[]> => {
+  const { data, error } = await supabase.rpc('validate_and_create_appointments_batch', {
+    p_appointments: appointments as unknown as Json[],
+  });
+
+  if (error) throw error;
+  return data as unknown as RpcBatchResult[];
 };
