@@ -1,81 +1,56 @@
-# Gestion de Tratamientos y Vinculacion con Profesionales
+# Capacidad concurrente configurable por tratamiento
 
-## Resumen
+## Problema actual
 
-Crear una seccion "Tratamientos" en la navegacion (debajo de Profesionales) donde se puedan gestionar los tipos de tratamiento de la clinica, vincularlos a profesionales especificos, y validar al agendar citas que el profesional seleccionado pueda realizar el tratamiento elegido.
+La exclusividad de tratamientos esta hardcodeada en `TREATMENTS_EXCLUSIVOS` (solo "drenaje" y "masaje"). Si se agrega un nuevo tratamiento exclusivo, hay que tocar codigo. El usuario quiere que esto sea configurable desde la UI al crear/editar cada tratamiento.
 
-## Cambios en Base de Datos
+## Solucion
 
-### 1. Nueva tabla: `practitioner_treatments`
+Agregar un campo `max_concurrent` a la tabla `treatment_types` que define cuantos pacientes puede atender un profesional simultaneamente en un bloque de 30 minutos cuando tiene ese tratamiento asignado.
 
-Tabla de relacion muchos-a-muchos entre profesionales y tratamientos:
+- `max_concurrent = 1` --> Tratamiento exclusivo (ej: Drenaje, Masaje). El profesional no puede tener otra cita en ese bloque.
+- `max_concurrent = 5` (default) --> Comportamiento normal, limitado por `sub_slots_per_block` de la clinica.
 
-```text
-practitioner_treatments
-  id          uuid PK
-  practitioner_id  uuid FK -> practitioners(id) ON DELETE CASCADE
-  treatment_type_id uuid FK -> treatment_types(id) ON DELETE CASCADE
-  clinic_id   uuid FK -> clinics(id) ON DELETE CASCADE
-  created_at  timestamptz
-  UNIQUE(practitioner_id, treatment_type_id)
-```
+## Cambios
 
-Con politicas RLS similares a practitioners (admin full access, receptionist/health_pro read).
+### 1. Migracion de base de datos
 
-### 2. Agregar campo `description` a `treatment_types`
+- Agregar columna `max_concurrent INTEGER NOT NULL DEFAULT 2` a `treatment_types`
+- Valores validos: 1 a (el numero de sub-slots disponibles en la clínica)
 
-La tabla ya existe pero no tiene descripcion. Se agrega:
+### 2. Actualizar RPCs de citas
 
-```text
-ALTER TABLE treatment_types ADD COLUMN description text;
-```
+Modificar `validate_and_create_appointment` y `validate_and_update_appointment`:
 
-### 3. Actualizar RPCs de citas
+- En lugar de comparar contra la lista hardcodeada `IN ('drenaje linfatico', 'masaje')`, consultar el campo `max_concurrent` del `treatment_type` de la cita candidata y de las citas existentes en el mismo bloque.
+- Si el tratamiento candidato tiene `max_concurrent = 1`, verificar que no haya ninguna otra cita en ese bloque para ese profesional.
+- Si ya existe una cita con un tratamiento que tiene `max_concurrent = 1` en ese bloque, rechazar cualquier nueva cita en el mismo bloque.
+- Si `max_concurrent > 1`, el limite es `MIN(max_concurrent, sub_slots_per_block)`.
 
-Modificar `validate_and_create_appointment` y `validate_and_update_appointment` para verificar que el profesional tenga el tratamiento asignado en `practitioner_treatments` antes de crear/actualizar la cita. Si no hay registros en la tabla para ese profesional (profesional sin tratamientos asignados), se permite cualquier tratamiento (retrocompatibilidad).
+### 3. UI: Dialogs de tratamiento
 
-## Cambios en Frontend
+En `NewTreatmentDialog` y `EditTreatmentDialog`:
 
-### 4. Nueva pagina: `src/pages/Treatments.tsx`
+- Agregar un campo numerico "Pacientes simultaneos" con valor por defecto 2 (o el de la clinica).
+- Cuando el valor es 1, mostrar un badge/nota: "Exclusivo: el profesional no podra atender otros pacientes en el mismo horario".
+- Rango permitido: 1-(el numero de sub-slots disponibles en la clínica).
 
-- Listado de tratamientos de la clinica (desde `treatment_types`)
-- Cada tarjeta muestra: nombre, descripcion, duracion, color, y chips con los profesionales vinculados
-- Boton "Nuevo Tratamiento" que abre un dialog
-- Click en un tratamiento para editar (nombre, descripcion, profesionales asignados)
-- Busqueda por nombre
+### 4. UI: Tarjeta de tratamiento en la pagina Treatments
 
-### 5. Nuevos dialogs
+- Mostrar un indicador visual cuando `max_concurrent = 1` (badge "Exclusivo") para que sea claro desde el listado.
 
-- `NewTreatmentDialog`: formulario con nombre, descripcion, duracion en minutos y multi-select de profesionales
-- `**EditTreatmentDialog**`: misma estructura, precargado con datos existentes
+### 5. Limpiar constante hardcodeada
 
-### 6. Hook: `src/hooks/useTreatments.ts`
+- Eliminar `TREATMENTS_EXCLUSIVOS` de `src/constants/treatments.ts` y todas sus referencias en el codigo frontend (`checkConflictInDb.ts`, `validateExclusiveTreatment.ts`).
+- La validacion de exclusividad queda 100% del lado del servidor (RPCs) usando el campo `max_concurrent`.
 
-Query a `treatment_types` con join a `practitioner_treatments` para traer los profesionales vinculados a cada tratamiento.
+### 6. Hook useTreatments
 
-### 7. Navegacion
+- Incluir `max_concurrent` en el tipo `TreatmentWithPractitioners` para que la UI pueda mostrar el badge.
 
-- Agregar ruta `/treatments` en `App.tsx`
-- Agregar item "Tratamientos" en `AppSidebar.tsx` (debajo de Profesionales, icono `Stethoscope` o `ClipboardList`, roles: admin_clinic, tenant_owner, receptionist)
-- Agregar en `BottomNav.tsx` si cabe, o dejarlo solo en sidebar
+## Secuencia
 
-### 8. Validacion en dialogs de citas
-
-En `NewAppointmentDialog` y `AppointmentDetailDialog`:
-
-- Al seleccionar un profesional, filtrar el select de tratamientos para mostrar solo los que ese profesional tiene asignados (si tiene alguno; si no tiene ninguno asignado, mostrar todos -- retrocompatibilidad)
-- Al seleccionar un tratamiento, si el profesional actual no lo tiene asignado, mostrar advertencia
-
-### 9. Actualizar `treatmentLabel` y sistema de tipos
-
-- El select de tratamientos en los dialogs de citas pasara a leer de la tabla `treatment_types` de la clinica en vez de usar el mapa hardcodeado
-- Mantener retrocompatibilidad con los tratamientos ya existentes
-
-## Secuencia de implementacion
-
-1. Migracion DB (tabla + columna + RLS)
-2. Actualizar RPCs con validacion profesional-tratamiento
-3. Hook `useTreatments`
-4. Pagina Treatments + dialogs
-5. Navegacion (sidebar, rutas)
-6. Filtrado de tratamientos en dialogs de citas segun profesional
+1. Migracion DB (agregar columna)
+2. Actualizar RPCs con nueva logica
+3. Actualizar dialogs y pagina de tratamientos
+4. Limpiar codigo hardcodeado
