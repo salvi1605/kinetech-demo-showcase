@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
@@ -16,16 +16,19 @@ interface ClinicalHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient;
+  scrollToDate?: string;
 }
 
 export const ClinicalHistoryDialog = ({
   open,
   onOpenChange,
   patient,
+  scrollToDate,
 }: ClinicalHistoryDialogProps) => {
   const { state } = useApp();
   const { toast } = useToast();
   const [tempPrefill, setTempPrefill] = useState<ClinicalSummaryDay['clinicalData'] | null>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   // Fetch clinical notes from database
   const { evolutions, snapshots, isLoading, refetch } = usePatientClinicalNotes(
@@ -59,6 +62,23 @@ export const ClinicalHistoryDialog = ({
     }
   }, [open, snapshots, patient, state.testCurrentDate]);
 
+  // Auto-scroll to the target date after loading
+  useEffect(() => {
+    if (!open || isLoading || !scrollToDate || !contentRef.current) return;
+    const timer = setTimeout(() => {
+      const container = contentRef.current;
+      if (!container) return;
+      const target = container.querySelector(`[data-date="${scrollToDate}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Future date without entry — scroll to bottom
+        container.scrollTop = container.scrollHeight;
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [open, isLoading, scrollToDate]);
+
   const handleHistoryChange = useCallback((entries: EvolutionEntry[]) => {
     // No longer need to track pending changes - changes are saved directly to DB
     console.log('[ClinicalHistoryDialog] History changed, entries count:', entries.length);
@@ -89,7 +109,7 @@ export const ClinicalHistoryDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={contentRef} className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Historial del Paciente - {formatPatientFullName(patient)}</DialogTitle>
           {age !== null && birthDateFormatted && (
