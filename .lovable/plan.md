@@ -1,51 +1,42 @@
 
-# Plan: Soft-Delete de paciente LEVY LUISA + Boton "Desactivar" solo para Admins
 
-## 1. Eliminar (soft-delete) al paciente LEVY LUISA (DNI 6691470)
+# Plan: Vista de Pacientes Inactivos + Reactivar
 
-Ejecutar un UPDATE en la base de datos para marcar `is_deleted = true` y `deleted_at = now()` en el paciente con id `8a645a44-a66b-4a9d-b310-bb96c767c55a`. Este paciente no tiene citas asociadas.
+## Resumen
 
-## 2. Corregir la funcion `handleDelete` en `src/pages/Patients.tsx`
+Agregar un toggle/tab visible solo para administradores en la pagina de Pacientes que permita ver los pacientes desactivados (is_deleted = true) y reactivarlos con un boton.
 
-Actualmente el boton "Eliminar" solo ejecuta `dispatch({ type: 'DELETE_PATIENT' })` que solo modifica estado en memoria. Se reemplazara con una llamada real a la base de datos:
+## Cambios
 
-- Llamar a `supabase.from('patients').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', patientId)`
-- Luego llamar a `refetchPatients()` para refrescar la lista
-- Mostrar toast de exito o error segun el resultado
+### 1. Nuevo hook `useInactivePatients`
 
-## 3. Restringir el boton "Eliminar" solo a admins
+Crear `src/hooks/useInactivePatients.ts` que consulte pacientes con `is_deleted = true` para la clinica actual. Mismo mapeo que `usePatients` pero filtrando por `is_deleted = true`.
 
-Cambiar el `RoleGuard` del boton de eliminar (tanto en desktop como en mobile) de:
+### 2. Modificar `src/pages/Patients.tsx`
+
+- Agregar un boton/toggle "Ver inactivos" visible solo para `admin_clinic` y `tenant_owner` (usando RoleGuard) en la zona de filtros/header.
+- Cuando esta activo, mostrar la lista de pacientes inactivos en lugar de los activos, con un badge "Inactivo" en cada fila.
+- En cada paciente inactivo, mostrar un boton "Reactivar" (icono undo/refresh) que:
+  - Llame a `supabase.from('patients').update({ is_deleted: false, deleted_at: null }).eq('id', patientId)`
+  - Verifique si ya existe un paciente activo con el mismo `document_id` en la clinica (para evitar conflicto con el constraint unique parcial). Si existe, mostrar un toast de error explicando el conflicto.
+  - Refresque ambas listas (activos e inactivos)
+  - Muestre toast de exito
+- En modo inactivos: ocultar botones de editar, historial clinico, etc. Solo mostrar nombre, DNI, fecha de desactivacion y boton Reactivar.
+
+### 3. Validacion de conflicto de DNI
+
+Antes de reactivar, consultar si existe otro paciente activo con el mismo `document_id` y `clinic_id`:
 ```
-allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}
+SELECT id FROM patients WHERE clinic_id = X AND document_id = Y AND is_deleted = false AND id != Z
 ```
-a:
-```
-allowedRoles={['admin_clinic', 'tenant_owner']}
-```
+Si existe, mostrar error: "No se puede reactivar: ya existe un paciente activo con el mismo documento."
 
-Esto asegura que solo administradores pueden desactivar pacientes. Recepcionistas y profesionales no veran el boton.
-
-## 4. Mejorar el dialogo de confirmacion
-
-Actualizar el texto del `AlertDialog` para reflejar que es una desactivacion, no una eliminacion permanente:
-
-- Titulo: "Desactivar paciente {nombre}?"
-- Descripcion: "El paciente sera marcado como inactivo y dejara de aparecer en las listas. Su informacion y historial clinico se conservan intactos. Solo un administrador puede realizar esta accion."
-- Boton: "Desactivar" en lugar de "Eliminar"
-
-## 5. Agregar RLS policy para permitir UPDATE de is_deleted solo a admins
-
-Actualmente la politica `patients_recep_update` permite a recepcionistas hacer UPDATE en pacientes. Esto significa que tecnicamente podrian soft-deletear via la API. Se agregara una politica o se dejara como esta dado que el boton ya esta oculto en UI. La restriccion real ya existe: solo admin_clinic y tenant_owner veran el boton. La politica RLS de recepcionista permite editar datos del paciente (que es correcto para su funcion).
-
----
-
-### Archivos a modificar
+### Detalles tecnicos
 
 | Archivo | Cambio |
 |---|---|
-| `src/pages/Patients.tsx` | Corregir `handleDelete` para persistir en BD; cambiar RoleGuard del boton eliminar a solo admins; actualizar textos del AlertDialog |
+| `src/hooks/useInactivePatients.ts` | Nuevo hook para consultar pacientes con is_deleted = true |
+| `src/pages/Patients.tsx` | Toggle "Ver inactivos" (solo admins), lista de inactivos con boton Reactivar, validacion de DNI duplicado |
 
-### Accion de datos
+No se requieren cambios de base de datos ni migraciones. La RLS existente (`patients_admin_full_access` con `is_admin_clinic`) ya permite que admins hagan UPDATE en pacientes inactivos.
 
-- UPDATE directo al paciente LEVY LUISA para marcarlo como eliminado
