@@ -325,25 +325,20 @@ export const Calendar = () => {
   const isBlockedByExclusive = useCallback((dayIndex: number, time: string): boolean => {
     if (exclusiveTreatmentIds.size === 0) return false;
     const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
-    // Check all sub-slots in this block for an exclusive appointment
     for (let s = 0; s < 5; s++) {
       const key = getSlotKey({ dateISO, hour: time, subSlot: s });
-      const apt = allAppointmentsBySlotKey.get(key);
+      const apt = appointmentsBySlotKey.get(key);
       if (
         apt &&
         apt.treatmentTypeId &&
         exclusiveTreatmentIds.has(apt.treatmentTypeId) &&
         apt.status !== 'cancelled'
       ) {
-        // Si hay filtro de profesional, solo bloquear si la cita es de ESE profesional
-        if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) {
-          continue;
-        }
         return true;
       }
     }
     return false;
-  }, [exclusiveTreatmentIds, weekDates, allAppointmentsBySlotKey, state.filterPractitionerId]);
+  }, [exclusiveTreatmentIds, weekDates, appointmentsBySlotKey]);
 
   // Effect to update loading when week changes and clean past selections
   // Capture scroll position before view changes
