@@ -13,7 +13,8 @@ import {
   Plus,
   Check,
   Search,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { KinesioCombobox } from '@/components/shared/KinesioCombobox';
 import { TreatmentMultiSelect } from '@/components/shared/TreatmentMultiSelect';
 import { WeekNavigatorCompact } from '@/components/navigation/WeekNavigatorCompact';
+import { FloatingActionButton } from '@/components/shared/FloatingActionButton';
 import { useAutoNoAsistio } from '@/hooks/useAutoNoAsistio';
 import { useAppointmentsForClinic } from '@/hooks/useAppointmentsForClinic';
 import { useScheduleExceptions } from '@/hooks/useScheduleExceptions';
@@ -318,6 +320,21 @@ export const Calendar = () => {
     return !matchesPatientSearch(patient, searchLower);
   };
 
+  // Verificar si un bloque horario está bloqueado por un tratamiento exclusivo
+  const isBlockedByExclusive = useCallback((dayIndex: number, time: string): boolean => {
+    if (exclusiveTreatmentIds.size === 0) return false;
+    const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
+    // Check all sub-slots in this block for an exclusive appointment
+    for (let s = 0; s < 5; s++) {
+      const key = getSlotKey({ dateISO, hour: time, subSlot: s });
+      const apt = allAppointmentsBySlotKey.get(key);
+      if (apt && apt.treatmentTypeId && exclusiveTreatmentIds.has(apt.treatmentTypeId)) {
+        return true;
+      }
+    }
+    return false;
+  }, [exclusiveTreatmentIds, weekDates, allAppointmentsBySlotKey]);
+
   // Effect to update loading when week changes and clean past selections
   // Capture scroll position before view changes
   const captureScrollHour = useCallback(() => {
@@ -569,6 +586,16 @@ export const Calendar = () => {
       setAgendaBanner(null);
       setSelectedAppointmentId(appointment.id);
     } else {
+      // Sub-slot vacío: verificar bloqueo por exclusividad
+      if (isBlockedByExclusive(meta.dayIndex, meta.time)) {
+        toast({
+          title: "Horario bloqueado",
+          description: "Un tratamiento exclusivo ya ocupa este bloque horario",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Sub-slot vacío (crear)
       if (isPast && (state.userRole === 'receptionist' || state.userRole === 'health_pro')) {
         setAgendaBanner({ type: 'error', text: 'No se pueden elegir citas de días anteriores' });
@@ -771,6 +798,25 @@ export const Calendar = () => {
             } else if (subIndex < capacity) {
               const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
               const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+
+              // Verificar si está bloqueado por tratamiento exclusivo
+              if (isBlockedByExclusive(dayIndex, time)) {
+                return (
+                  <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="text-xs p-1 rounded bg-muted border border-destructive/30 flex items-center justify-center cursor-not-allowed min-h-[56px]"
+                        aria-label="Bloqueado: tratamiento exclusivo en este horario"
+                      >
+                        <Lock className="h-3 w-3 text-destructive/60" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Bloqueado: tratamiento exclusivo en este horario</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
               
               // Verificar si está ocupado por otro profesional
               if (isOccupiedByOtherPractitioner(key)) {
@@ -857,6 +903,25 @@ export const Calendar = () => {
            
            const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
            const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
+
+           // Verificar si está bloqueado por tratamiento exclusivo
+           if (isBlockedByExclusive(dayIndex, time)) {
+             return (
+               <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
+                 <TooltipTrigger asChild>
+                   <div
+                     className="text-xs p-1 rounded bg-muted border border-destructive/30 flex items-center justify-center cursor-not-allowed min-h-[56px]"
+                     aria-label="Bloqueado: tratamiento exclusivo en este horario"
+                   >
+                     <Lock className="h-3 w-3 text-destructive/60" />
+                   </div>
+                 </TooltipTrigger>
+                 <TooltipContent>
+                   <p>Bloqueado: tratamiento exclusivo en este horario</p>
+                 </TooltipContent>
+               </Tooltip>
+             );
+           }
            
            // Verificar si está ocupado por otro profesional
            if (isOccupiedByOtherPractitioner(key)) {
@@ -1338,7 +1403,22 @@ export const Calendar = () => {
                                   } else {
                                     const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
                                     const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
-                                    
+
+                                     // Verificar si está bloqueado por tratamiento exclusivo
+                                     if (isBlockedByExclusive(dayIndex, time)) {
+                                       return (
+                                         <Card
+                                           key={`${time}-${subIndex}`}
+                                           className="p-3 border-dashed bg-muted border-destructive/30 cursor-not-allowed"
+                                         >
+                                           <div className="flex items-center justify-center gap-1">
+                                             <Lock className="h-3.5 w-3.5 text-destructive/60" />
+                                             <span className="text-xs text-muted-foreground">Exclusivo</span>
+                                           </div>
+                                         </Card>
+                                       );
+                                     }
+                                     
                                      // Verificar si está ocupado por otro profesional
                                      if (isOccupiedByOtherPractitioner(key)) {
                                        return (
@@ -1431,6 +1511,22 @@ export const Calendar = () => {
         preselectedPatientId={preselectedPatientId ?? undefined}
       />
 
+      {/* FAB "+ Nuevo turno" para mobile */}
+      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+        <FloatingActionButton
+          onClick={() => {
+            setSelectedSlot({
+              day: selectedDay,
+              time: TIME_SLOTS[0] || '08:00',
+              date: weekDates[selectedDay],
+            });
+            setShowNewAppointmentModal(true);
+          }}
+          ariaLabel="Nuevo turno"
+        >
+          <Plus className="h-6 w-6" />
+        </FloatingActionButton>
+      </RoleGuard>
 
       {/* Estado vacío */}
       {!state.isDemoMode && dbAppointments.length === 0 && !loadingAppointments && !loadingSettings && (
