@@ -1,54 +1,40 @@
 
 
-# Plan: Exclusividad visual en calendario + Vista mobile mejorada
+# Plan: Corregir fuente de datos de `isBlockedByExclusive`
 
-## Punto 3: Bloqueo visual de exclusividad en el calendario
+## Problema actual
+La funcion `isBlockedByExclusive` usa `allAppointmentsBySlotKey` (mapa global con TODAS las citas) y luego filtra manualmente por `filterPractitionerId`. Esto es redundante e inconsistente con el resto del calendario que ya usa `appointmentsBySlotKey` (mapa filtrado).
 
-### Situacion actual
-- La validacion server-side YA FUNCIONA: el RPC `validate_and_create_appointment` retorna `EXCLUSIVE_CONFLICT` y el `NewAppointmentDialog` muestra el toast de error correctamente.
-- El problema es puramente visual/UX en el calendario: cuando un tratamiento exclusivo ocupa un bloque horario, los demas sub-slots de ese bloque siguen apareciendo como "disponibles" (verdes con "+"), invitando al usuario a intentar agendar ahi.
+## Cambio unico
 
-### Solucion
-Bloquear visualmente los sub-slots restantes cuando un tratamiento exclusivo ya ocupa el bloque:
+**Archivo:** `src/pages/Calendar.tsx`, lineas 325-346
 
-1. **Funcion `isBlockedByExclusive`** en Calendar.tsx: dado un `dayIndex` + `time`, revisa si alguna cita existente en ese bloque tiene un `treatmentTypeId` que pertenece a `exclusiveTreatmentIds`. Si es asi, retorna `true`.
+Reemplazar el cuerpo de `isBlockedByExclusive` para que:
+1. Use `appointmentsBySlotKey` (ya filtrado por profesional activo y busqueda de paciente) en lugar de `allAppointmentsBySlotKey`
+2. Elimine el bloque `if (state.filterPractitionerId && apt.practitionerId !== state.filterPractitionerId) continue;` ya que el mapa filtrado lo hace innecesario
+3. Actualice las dependencias del `useCallback` para quitar `allAppointmentsBySlotKey` y `state.filterPractitionerId`, y poner `appointmentsBySlotKey`
 
-2. **Renderizado de sub-slots vacios**: en `renderSlot` (desktop) y en la vista mobile, antes de mostrar el boton verde "+", verificar `isBlockedByExclusive`. Si es true, mostrar un sub-slot deshabilitado (gris, icono candado/X) con tooltip "Bloqueado: tratamiento exclusivo en este horario".
+```text
+// ANTES (simplificado)
+const apt = allAppointmentsBySlotKey.get(key);
+if (apt && exclusive && !cancelled) {
+  if (filterPractitioner && apt.practitioner !== filter) continue;
+  return true;
+}
 
-3. **Multi-seleccion**: en `onSubSlotClick`, si el slot esta bloqueado por exclusividad, mostrar toast descriptivo y no agregar a la seleccion.
+// DESPUES
+const apt = appointmentsBySlotKey.get(key);
+if (apt && exclusive && !cancelled) {
+  return true;
+}
+```
 
-4. **Confirmacion masiva** (`confirmSelection`): agregar chequeo de exclusividad para los slots seleccionados contra citas ya existentes.
+## Criterios de aceptacion
 
-### Archivos a modificar
-- `src/pages/Calendar.tsx`: agregar `isBlockedByExclusive()`, modificar renderizado de sub-slots vacios en desktop y mobile, agregar validacion en `onSubSlotClick`.
+- Con Dr. A seleccionado: un exclusivo en 10:00 muestra candado en ese bloque
+- Cambias a Dr. B: NO aparece candado por el exclusivo de Dr. A
+- Cancelas la cita exclusiva de Dr. A y vuelves a su filtro: el candado desaparece via realtime sin refresh
 
----
+## Complejidad
+Minima: solo se cambia la referencia de un mapa y se eliminan 3 lineas de codigo.
 
-## Punto 7: Vista responsive mobile del calendario
-
-### Situacion actual
-- Ya existe vista mobile con Tabs por dia (Lun-Vie), swipe horizontal, sticky header, `WeekNavigatorCompact`, y `BottomNav`.
-- Ya existe el componente `FloatingActionButton`.
-- Falta: el FAB "+ Nuevo turno" no esta integrado en la pagina Calendar.
-
-### Solucion
-
-1. **FAB "+ Nuevo turno"** en Calendar mobile: agregar el `FloatingActionButton` con icono `Plus` que abre `NewAppointmentDialog` con el dia seleccionado como contexto. Solo visible en mobile (`lg:hidden` ya esta en el componente). Visible para roles `admin_clinic`, `tenant_owner`, `receptionist`.
-
-2. **Ajuste de padding inferior**: asegurar que el contenido del calendario tenga suficiente padding-bottom para no quedar oculto detras del FAB + BottomNav.
-
-### Archivos a modificar
-- `src/pages/Calendar.tsx`: importar `FloatingActionButton`, agregar al final del componente con logica de apertura del modal de nuevo turno.
-
----
-
-## Resumen tecnico
-
-| Cambio | Archivo | Complejidad |
-|--------|---------|-------------|
-| Funcion `isBlockedByExclusive` | Calendar.tsx | Baja |
-| Bloqueo visual sub-slots (desktop + mobile) | Calendar.tsx | Media |
-| Validacion en `onSubSlotClick` | Calendar.tsx | Baja |
-| FAB "+ Nuevo turno" en mobile | Calendar.tsx | Baja |
-
-Todo se concentra en un unico archivo: `src/pages/Calendar.tsx`.
