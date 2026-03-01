@@ -1,67 +1,54 @@
 
-# Plan: Indicador visual de tratamiento exclusivo en el calendario
 
-## Objetivo
-Mostrar un icono de advertencia (triangulo rojo) en las citas del calendario cuando el tratamiento asignado es exclusivo (`max_concurrent === 1`), para identificarlas rapidamente.
+# Plan: Exclusividad visual en calendario + Vista mobile mejorada
 
-## Enfoque
+## Punto 3: Bloqueo visual de exclusividad en el calendario
 
-Usar el hook `useTreatments` (ya existente) en la pagina Calendar para construir un mapa de exclusividad por nombre de tratamiento, y agregar un icono `AlertTriangle` rojo en cada cita cuyo tratamiento sea exclusivo.
+### Situacion actual
+- La validacion server-side YA FUNCIONA: el RPC `validate_and_create_appointment` retorna `EXCLUSIVE_CONFLICT` y el `NewAppointmentDialog` muestra el toast de error correctamente.
+- El problema es puramente visual/UX en el calendario: cuando un tratamiento exclusivo ocupa un bloque horario, los demas sub-slots de ese bloque siguen apareciendo como "disponibles" (verdes con "+"), invitando al usuario a intentar agendar ahi.
 
-## Cambios
+### Solucion
+Bloquear visualmente los sub-slots restantes cuando un tratamiento exclusivo ya ocupa el bloque:
 
-### 1. `src/pages/Calendar.tsx`
+1. **Funcion `isBlockedByExclusive`** en Calendar.tsx: dado un `dayIndex` + `time`, revisa si alguna cita existente en ese bloque tiene un `treatmentTypeId` que pertenece a `exclusiveTreatmentIds`. Si es asi, retorna `true`.
 
-- **Importar `useTreatments`** desde `@/hooks/useTreatments`
-- **Llamar al hook** junto a los demas hooks al inicio del componente
-- **Crear un Set memoizado** de nombres de tratamientos exclusivos:
-  ```typescript
-  const exclusiveTreatmentNames = useMemo(() => {
-    const set = new Set<string>();
-    treatments.filter(t => t.max_concurrent === 1).forEach(t => {
-      set.add(t.name.toLowerCase().trim());
-    });
-    return set;
-  }, [treatments]);
-  ```
-- **Crear helper** para verificar si un appointment tiene tratamiento exclusivo, matcheando por el `treatmentType` del appointment contra los nombres normalizados (usando la misma logica de mapeo inverso que ya existe en `mapTreatmentTypeToInternal`)
-- **Desktop (renderSlot, linea ~741-747)**: Agregar un `AlertTriangle` rojo pequeno junto al nombre del paciente o el badge de estado, con tooltip "Tratamiento exclusivo"
-- **Mobile (linea ~1276-1287)**: Agregar el mismo indicador en la card mobile junto al nombre del paciente
+2. **Renderizado de sub-slots vacios**: en `renderSlot` (desktop) y en la vista mobile, antes de mostrar el boton verde "+", verificar `isBlockedByExclusive`. Si es true, mostrar un sub-slot deshabilitado (gris, icono candado/X) con tooltip "Bloqueado: tratamiento exclusivo en este horario".
 
-### Indicador visual propuesto
+3. **Multi-seleccion**: en `onSubSlotClick`, si el slot esta bloqueado por exclusividad, mostrar toast descriptivo y no agregar a la seleccion.
 
-Un pequeno triangulo de advertencia rojo (`AlertTriangle` de lucide-react, que ya esta importado) posicionado en la esquina superior derecha del slot de la cita, con un tooltip que diga "Exclusivo". Esto es discreto pero claramente identificable.
+4. **Confirmacion masiva** (`confirmSelection`): agregar chequeo de exclusividad para los slots seleccionados contra citas ya existentes.
 
-Implementacion en desktop:
-```tsx
-{isExclusive && (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-    </TooltipTrigger>
-    <TooltipContent><p>Tratamiento exclusivo</p></TooltipContent>
-  </Tooltip>
-)}
-```
+### Archivos a modificar
+- `src/pages/Calendar.tsx`: agregar `isBlockedByExclusive()`, modificar renderizado de sub-slots vacios en desktop y mobile, agregar validacion en `onSubSlotClick`.
 
-### Logica de matching
+---
 
-Como el appointment almacena `treatmentType` como un string enum ('fkt', 'atm', 'drenaje', etc.) mapeado desde el nombre del tratamiento en BD, necesitamos hacer match inverso. La forma mas robusta es agregar `treatmentTypeId` al tipo Appointment y al hook `useAppointmentsForClinic`, ya que el campo `treatment_type_id` ya se consulta en la query pero no se mapea.
+## Punto 7: Vista responsive mobile del calendario
 
-**Cambio en `src/contexts/AppContext.tsx`**: Agregar campo opcional `treatmentTypeId?: string` a la interfaz `Appointment`.
+### Situacion actual
+- Ya existe vista mobile con Tabs por dia (Lun-Vie), swipe horizontal, sticky header, `WeekNavigatorCompact`, y `BottomNav`.
+- Ya existe el componente `FloatingActionButton`.
+- Falta: el FAB "+ Nuevo turno" no esta integrado en la pagina Calendar.
 
-**Cambio en `src/hooks/useAppointmentsForClinic.ts`**: Mapear `treatment_type_id` al nuevo campo `treatmentTypeId` en la funcion de mapeo.
+### Solucion
 
-Luego en Calendar, el check de exclusividad es directo:
-```typescript
-const isExclusiveTreatment = (apt: Appointment) => 
-  apt.treatmentTypeId ? exclusiveTreatmentIds.has(apt.treatmentTypeId) : false;
-```
+1. **FAB "+ Nuevo turno"** en Calendar mobile: agregar el `FloatingActionButton` con icono `Plus` que abre `NewAppointmentDialog` con el dia seleccionado como contexto. Solo visible en mobile (`lg:hidden` ya esta en el componente). Visible para roles `admin_clinic`, `tenant_owner`, `receptionist`.
 
-## Archivos a modificar
+2. **Ajuste de padding inferior**: asegurar que el contenido del calendario tenga suficiente padding-bottom para no quedar oculto detras del FAB + BottomNav.
 
-| Archivo | Cambio |
-|---|---|
-| `src/contexts/AppContext.tsx` | Agregar `treatmentTypeId?: string` a interfaz Appointment |
-| `src/hooks/useAppointmentsForClinic.ts` | Mapear `treatment_type_id` al nuevo campo |
-| `src/pages/Calendar.tsx` | Importar `useTreatments`, crear Set de IDs exclusivos, mostrar indicador visual en desktop y mobile |
+### Archivos a modificar
+- `src/pages/Calendar.tsx`: importar `FloatingActionButton`, agregar al final del componente con logica de apertura del modal de nuevo turno.
+
+---
+
+## Resumen tecnico
+
+| Cambio | Archivo | Complejidad |
+|--------|---------|-------------|
+| Funcion `isBlockedByExclusive` | Calendar.tsx | Baja |
+| Bloqueo visual sub-slots (desktop + mobile) | Calendar.tsx | Media |
+| Validacion en `onSubSlotClick` | Calendar.tsx | Baja |
+| FAB "+ Nuevo turno" en mobile | Calendar.tsx | Baja |
+
+Todo se concentra en un unico archivo: `src/pages/Calendar.tsx`.
