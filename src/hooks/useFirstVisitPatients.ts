@@ -3,29 +3,28 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook that detects first-visit patients for the visible week.
- * Returns a Set<string> of patientIds whose earliest appointment falls within [weekStart, weekEnd].
+ * Returns a Map<patientId, firstDate> for patients whose earliest appointment falls within the week.
+ * The badge should only show on the appointment matching that exact firstDate.
  */
 export const useFirstVisitPatients = (
   clinicId: string | undefined,
   patientIds: string[],
   weekStartISO: string,
   weekEndISO: string
-): Set<string> => {
-  const [firstVisitSet, setFirstVisitSet] = useState<Set<string>>(new Set());
+): Map<string, string> => {
+  const [firstVisitMap, setFirstVisitMap] = useState<Map<string, string>>(new Map());
 
-  // Stable key to avoid re-fetching when array reference changes but content is the same
   const patientKey = useMemo(() => [...patientIds].sort().join(','), [patientIds]);
 
   useEffect(() => {
     if (!clinicId || patientIds.length === 0) {
-      setFirstVisitSet(new Set());
+      setFirstVisitMap(new Map());
       return;
     }
 
     let cancelled = false;
 
-    const fetch = async () => {
-      // Query: for each patient, get their earliest non-cancelled appointment date
+    const fetchData = async () => {
       const { data, error } = await supabase
         .from('appointments')
         .select('patient_id, date')
@@ -46,20 +45,20 @@ export const useFirstVisitPatients = (
         }
       }
 
-      // Check which patients have their first date within the visible week
-      const newSet = new Set<string>();
+      // Keep only patients whose first date is within the visible week
+      const result = new Map<string, string>();
       for (const [pid, firstDate] of minDateMap) {
         if (firstDate >= weekStartISO && firstDate <= weekEndISO) {
-          newSet.add(pid);
+          result.set(pid, firstDate);
         }
       }
 
-      setFirstVisitSet(newSet);
+      setFirstVisitMap(result);
     };
 
-    fetch();
+    fetchData();
     return () => { cancelled = true; };
   }, [clinicId, patientKey, weekStartISO, weekEndISO]);
 
-  return firstVisitSet;
+  return firstVisitMap;
 };
