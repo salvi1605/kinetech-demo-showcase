@@ -37,6 +37,7 @@ import Welcome from "@/pages/Welcome";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import Treatments from "@/pages/Treatments";
+import Reports from "@/pages/Reports";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,7 @@ const App = () => (
                 <Route path="settings" element={<Settings />} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="clinics" element={<ClinicSettings />} />
+                <Route path="reports" element={<Reports />} />
                 <Route path="architecture" element={<Architecture />} />
               </Route>
               
