@@ -1,57 +1,55 @@
+# Plan: Badge "N" (Nuevo) para primera visita del paciente
 
+## Concepto
 
-# Diagnóstico: Problema intermitente de edición de historia clínica para health_pro
+Mostrar un badge azul con "N" en las celdas del calendario cuando la cita corresponde a la primera vez que el paciente visita la clinica (no tiene citas previas en el sistema).
 
-## Causa raíz identificada
+## Logica de deteccion
 
-El problema tiene **dos capas**:
+Crear un hook `useFirstVisitPatients` que:
 
-### 1. Frontend: `canEdit` no verifica al profesional autor
-En `ClinicalHistoryBlock.tsx`, la función `canEdit` (línea 100) solo verifica:
-- Si el rol es `health_pro`
-- Si la fecha de la evolución es hoy
+1. Recibe la lista de `patientId`s unicos de las citas visibles en la semana
+2. Hace una sola query agrupada: para cada paciente, obtiene la fecha de su cita mas antigua (`MIN(date)`) en la tabla `appointments` donde `status <> 'cancelled'`
+3. Retorna un `Set<string>` con los IDs de pacientes cuya cita mas antigua coincide con alguna cita visible en la semana actual
 
-**No verifica** si la evolución pertenece al profesional actual. Esto causa que:
-- Para pacientes compartidos entre profesionales, Mirian ve evoluciones de OTROS profesionales y el frontend le permite editarlas
-- El guardado puede fallar silenciosamente a nivel de RLS si la nota fue creada por otro profesional
-
-### 2. Backend (RLS): la política de UPDATE depende de tener citas con el paciente
-La política `clinical_notes_pro_update_assigned` permite actualizar notas si el profesional tiene **cualquier** cita con ese paciente. Esto funciona para pacientes propios pero falla para pacientes que solo atiende otro profesional.
-
-### Resultado observable
-- **Funciona**: cuando Mirian edita evoluciones de pacientes con los que ella tiene citas (independientemente de quién creó la nota)
-- **No funciona**: cuando intenta editar notas de pacientes con los que NO tiene citas propias, el guardado falla y se guarda solo en localStorage con un toast "Error de conexión" que puede pasar desapercibido
-
-## Plan de corrección
-
-### Cambio 1: Restringir `canEdit` al profesional actual
-En `ClinicalHistoryBlock.tsx`, modificar `canEdit` para que `health_pro` solo pueda editar evoluciones donde `entry.doctorId` coincida con el practitioner vinculado al usuario actual.
-
-```text
-canEdit(entry):
-  if health_pro:
-    return entry.date === today AND entry.doctorId === currentPractitionerId
+```sql
+-- Query conceptual
+SELECT patient_id, MIN(date) as first_date
+FROM appointments
+WHERE clinic_id = ? AND patient_id IN (?) AND status <> 'cancelled'
+GROUP BY patient_id
 ```
 
-Esto requiere pasar `currentPractitionerId` como prop al componente.
+Si `first_date` del paciente cae dentro de la semana visible, ese paciente es "nuevo".
 
-### Cambio 2: Obtener el practitioner_id del usuario actual
-Agregar al `ClinicalHistoryDialog` la lógica para obtener el `practitioner_id` del usuario logueado (ya disponible en el estado de la app o consultando la tabla `practitioners` por `user_id`).
+## Cambios
 
-### Cambio 3: Mejorar feedback de error
-En el `saveToDb`, cuando el error es de RLS (403/permission), mostrar un toast más específico: "No tenés permiso para editar esta evolución" en lugar del genérico "Error de conexión".
+### 1. Nuevo hook: `src/hooks/useFirstVisitPatients.ts`
 
-### Cambio 4 (menor): Indicador visual
-Marcar visualmente las evoluciones de otros profesionales como solo lectura para `health_pro`, mostrando el nombre del profesional autor.
+- Recibe `clinicId`, `patientIds[]`, `weekStart`, `weekEnd`
+- Retorna `Set<string>` de patientIds que son primera visita
+- Usa `supabase.rpc` o query directa con `.select('patient_id, date')` agrupado
 
-## Archivos a modificar
-1. `src/components/patients/ClinicalHistoryBlock.tsx` — corregir `canEdit`, recibir `currentPractitionerId`
-2. `src/components/patients/ClinicalHistoryDialog.tsx` — pasar `currentPractitionerId` como prop
-3. `src/hooks/usePatientClinicalNotes.ts` — (sin cambios)
-4. `src/contexts/AppContext.tsx` — verificar que `currentPractitionerId` esté disponible en el estado (si no, agregarlo)
+### 2. Modificar `src/pages/Calendar.tsx`
 
-## Impacto
-- Mirian y otros `health_pro` solo podrán editar sus propias evoluciones del día actual
-- Las evoluciones de otros profesionales se mostrarán como solo lectura con indicador del autor
-- Los errores de permisos darán feedback claro al usuario
+- Invocar el hook con los patientIds de las citas de la semana
+- En el render del slot ocupado (linea ~796), agregar badge "N" azul al lado del nombre cuando `isFirstVisit(appointment.patientId)` es true
+- Badge: cuadro azul pequeno con "N" blanca, similar al badge de "Solo lectura" existente
 
+### Visual
+
+```text
+┌─────────────────────────┐
+│ ☑ García, M.            │
+│   Dra. Mirian           │
+│   Reservado     [N]     │
+└─────────────────────────┘
+```
+
+El badge "N" aparece como un cuadrito azul compacto (`bg-blue-600 text-white text-[9px] rounded px-1`) junto al nombre del paciente.
+
+## Rendimiento
+
+- Una sola query por cambio de semana (no por cada celda)
+- El Set se recalcula solo cuando cambian los appointments de la semana
+- Sin impacto en el realtime ni en la carga de appointments
