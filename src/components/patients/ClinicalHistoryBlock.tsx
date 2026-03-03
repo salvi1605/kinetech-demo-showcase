@@ -27,6 +27,7 @@ interface ClinicalHistoryBlockProps {
   currentUserId: string;
   currentUserName: string;
   currentUserRole: 'admin_clinic' | 'tenant_owner' | 'receptionist' | 'health_pro';
+  currentPractitionerId?: string;
   tempPrefill: any;
   onHistoryChange: (entries: EvolutionEntry[]) => void;
   onPatientChange: (patient: Patient) => void;
@@ -41,6 +42,7 @@ export const ClinicalHistoryBlock = ({
   currentUserId,
   currentUserName,
   currentUserRole,
+  currentPractitionerId,
   tempPrefill,
   onHistoryChange,
   onPatientChange,
@@ -108,9 +110,9 @@ export const ClinicalHistoryBlock = ({
       return true;
     }
     
-    // Health pro: only today
+    // Health pro: only today AND only their own evolutions
     if (currentUserRole === 'health_pro') {
-      return entry.date === today;
+      return entry.date === today && (!!currentPractitionerId && entry.doctorId === currentPractitionerId);
     }
     
     return false;
@@ -143,8 +145,11 @@ export const ClinicalHistoryBlock = ({
       try { localStorage.removeItem(`clinical-draft-${entry.appointmentId}`); } catch {}
       
       console.log('[ClinicalHistoryBlock] Saved evolution to DB:', entry.appointmentId);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ClinicalHistoryBlock] Error saving evolution:', error);
+      
+      // Detect RLS / permission errors
+      const isPermissionError = error?.code === '42501' || error?.message?.includes('row-level security') || error?.code === 'PGRST301';
       
       // Offline fallback: save to localStorage
       try {
@@ -155,8 +160,10 @@ export const ClinicalHistoryBlock = ({
       } catch {}
       
       toast({
-        title: 'Error de conexión',
-        description: 'Cambios guardados localmente. Se sincronizarán al recuperar conexión.',
+        title: isPermissionError ? 'Sin permiso' : 'Error de conexión',
+        description: isPermissionError 
+          ? 'No tenés permiso para editar esta evolución. Solo podés editar tus propias notas del día actual.'
+          : 'Cambios guardados localmente. Se sincronizarán al recuperar conexión.',
         variant: 'destructive',
       });
     } finally {
@@ -377,6 +384,11 @@ export const ClinicalHistoryBlock = ({
                           <span className="font-medium text-foreground">
                             {entry.time} • {treatmentLabel[entry.treatmentType] || entry.treatmentType}
                           </span>
+                          {currentUserRole === 'health_pro' && currentPractitionerId && entry.doctorId !== currentPractitionerId && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              Solo lectura
+                            </Badge>
+                          )}
                           {entry.status === 'canceled' && (
                             <Badge variant="outline" className="text-xs">
                               Cancelada

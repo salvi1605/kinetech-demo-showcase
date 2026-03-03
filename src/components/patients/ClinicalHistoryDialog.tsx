@@ -9,6 +9,7 @@ import { getTodayISO, getLatestSummaryBefore } from '@/lib/clinicalSummaryHelper
 import { parseSmartDOB, formatDisplayDate } from '@/utils/dateUtils';
 import { differenceInYears } from 'date-fns';
 import { formatPatientFullName } from '@/utils/formatters';
+import { supabase } from '@/integrations/supabase/client';
 import type { EvolutionEntry } from '@/types/patient';
 import type { ClinicalSummaryDay } from '@/contexts/AppContext';
 
@@ -28,6 +29,7 @@ export const ClinicalHistoryDialog = ({
   const { state } = useApp();
   const { toast } = useToast();
   const [tempPrefill, setTempPrefill] = useState<ClinicalSummaryDay['clinicalData'] | null>(null);
+  const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
   const contentRef = React.useRef<HTMLDivElement>(null);
 
   // Fetch clinical notes from database
@@ -37,6 +39,19 @@ export const ClinicalHistoryDialog = ({
   );
 
   // Stubs are now auto-created by the RPC when appointments are created
+
+  // Fetch current practitioner ID for health_pro role
+  useEffect(() => {
+    if (!open || state.userRole !== 'health_pro') {
+      setCurrentPractitionerId(undefined);
+      return;
+    }
+    supabase.rpc('current_practitioner_id').then(({ data, error }) => {
+      if (!error && data) {
+        setCurrentPractitionerId(data);
+      }
+    });
+  }, [open, state.userRole]);
 
   // Calculate temp prefill from snapshots
   useEffect(() => {
@@ -138,6 +153,7 @@ export const ClinicalHistoryDialog = ({
             currentUserId={state.currentUserId}
             currentUserName={state.currentUserName}
             currentUserRole={state.userRole || 'health_pro'}
+            currentPractitionerId={currentPractitionerId}
             tempPrefill={tempPrefill}
             onHistoryChange={handleHistoryChange}
             onPatientChange={() => refetch()}
