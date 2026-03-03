@@ -321,15 +321,18 @@ export const Calendar = () => {
   };
 
   // Verificar si un bloque horario está bloqueado por un tratamiento exclusivo
-  // IMPORTANTE: filtra por el profesional activo para no bloquear slots de otros profesionales
-  const isBlockedByExclusive = useCallback((dayIndex: number, time: string): boolean => {
+  // IMPORTANTE: solo bloquea si el profesional indicado tiene la cita exclusiva
+  // Si no hay practitionerId, no bloquea visualmente (el servidor valida)
+  const isBlockedByExclusive = useCallback((dayIndex: number, time: string, practitionerId?: string): boolean => {
     if (exclusiveTreatmentIds.size === 0) return false;
+    if (!practitionerId) return false; // Sin filtro de profesional, no bloquear visualmente
     const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
     for (let s = 0; s < 5; s++) {
       const key = getSlotKey({ dateISO, hour: time, subSlot: s });
-      const apt = appointmentsBySlotKey.get(key);
+      const apt = allAppointmentsBySlotKey.get(key);
       if (
         apt &&
+        apt.practitionerId === practitionerId &&
         apt.treatmentTypeId &&
         exclusiveTreatmentIds.has(apt.treatmentTypeId) &&
         apt.status !== 'cancelled'
@@ -338,7 +341,7 @@ export const Calendar = () => {
       }
     }
     return false;
-  }, [exclusiveTreatmentIds, weekDates, appointmentsBySlotKey]);
+  }, [exclusiveTreatmentIds, weekDates, allAppointmentsBySlotKey]);
 
   // Effect to update loading when week changes and clean past selections
   // Capture scroll position before view changes
@@ -592,7 +595,7 @@ export const Calendar = () => {
       setSelectedAppointmentId(appointment.id);
     } else {
       // Sub-slot vacío: verificar bloqueo por exclusividad
-      if (isBlockedByExclusive(meta.dayIndex, meta.time)) {
+      if (isBlockedByExclusive(meta.dayIndex, meta.time, state.filterPractitionerId || undefined)) {
         toast({
           title: "Horario bloqueado",
           description: "Un tratamiento exclusivo ya ocupa este bloque horario",
@@ -805,7 +808,7 @@ export const Calendar = () => {
               const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
 
               // Verificar si está bloqueado por tratamiento exclusivo
-              if (isBlockedByExclusive(dayIndex, time)) {
+              if (isBlockedByExclusive(dayIndex, time, state.filterPractitionerId || undefined)) {
                 return (
                   <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
                     <TooltipTrigger asChild>
@@ -910,7 +913,7 @@ export const Calendar = () => {
            const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
 
            // Verificar si está bloqueado por tratamiento exclusivo
-           if (isBlockedByExclusive(dayIndex, time)) {
+           if (isBlockedByExclusive(dayIndex, time, state.filterPractitionerId || undefined)) {
              return (
                <Tooltip key={`${dayIndex}-${time}-${subIndex}`}>
                  <TooltipTrigger asChild>
@@ -1410,7 +1413,7 @@ export const Calendar = () => {
                                     const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
 
                                      // Verificar si está bloqueado por tratamiento exclusivo
-                                     if (isBlockedByExclusive(dayIndex, time)) {
+                                     if (isBlockedByExclusive(dayIndex, time, state.filterPractitionerId || undefined)) {
                                        return (
                                          <Card
                                            key={`${time}-${subIndex}`}
