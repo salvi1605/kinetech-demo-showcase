@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Users, UserCheck, MoreHorizontal, Clock, Settings, Stethoscope, Calendar1, Copy, Shield, Building2 } from 'lucide-react';
+import { Calendar, Users, UserCheck, MoreHorizontal, Clock, Settings, Stethoscope, Calendar1, Copy, Shield, Building2, BarChart3 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -68,6 +68,12 @@ const moreNavItems = [
     title: 'Clínicas',
     url: '/clinics',
     icon: Building2,
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+  },
+  {
+    title: 'Reportes',
+    url: '/reports',
+    icon: BarChart3,
     roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
   },
 ];

@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Shield,
   Building2,
-  Stethoscope
+  Stethoscope,
+  BarChart3
 } from 'lucide-react';
 import { useApp, type UserRole } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,12 @@ const navigationItems = [
     title: 'Copiar Horario',
     url: '/copy-schedule',
     icon: Copy,
+    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+  },
+  {
+    title: 'Reportes',
+    url: '/reports',
+    icon: BarChart3,
     roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
   },
 ];
