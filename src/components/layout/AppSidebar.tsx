@@ -21,6 +21,7 @@ import { useApp, type UserRole } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { isPreviewEnv } from '@/lib/envFlags';
 import { toast } from 'sonner';
 import {
   Sidebar,
@@ -83,12 +84,12 @@ const navigationItems = [
     icon: Copy,
     roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
   },
-  {
+  ...(isPreviewEnv() ? [{
     title: 'Reportes',
     url: '/reports',
     icon: BarChart3,
     roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
-  },
+  }] : []),
 ];
 
 const authItems = [

@@ -9,6 +9,7 @@ import { RoleGuard } from '@/components/shared/RoleGuard';
 import { Printer, BarChart3 } from 'lucide-react';
 import { exportToPDF } from '@/utils/reportExport';
 import { useReportPractitioners } from '@/hooks/useReportData';
+import { isPreviewEnv } from '@/lib/envFlags';
 import OperationalReport from '@/components/reports/OperationalReport';
 import ProductivityReport from '@/components/reports/ProductivityReport';
 import TreatmentReport from '@/components/reports/TreatmentReport';
@@ -30,6 +31,18 @@ export default function Reports() {
     treatments: 'Sesiones por Tratamiento',
     compliance: 'Cumplimiento Historias Clínicas',
   };
+
+  if (!isPreviewEnv()) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] p-8">
+        <div className="text-center space-y-2">
+          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto" />
+          <h2 className="text-xl font-semibold text-foreground">Reportes no disponible</h2>
+          <p className="text-muted-foreground">Esta funcionalidad no está habilitada en esta versión.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']} fallback={<p className="p-8 text-muted-foreground">No tenés acceso a esta sección.</p>}>
