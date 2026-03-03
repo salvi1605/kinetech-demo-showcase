@@ -54,6 +54,7 @@ import { usePatients } from '@/hooks/usePatients';
 import { updateAppointmentStatus } from '@/lib/appointmentService';
 import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 import { useTreatments } from '@/hooks/useTreatments';
+import { useFirstVisitPatients } from '@/hooks/useFirstVisitPatients';
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
@@ -253,6 +254,19 @@ export const Calendar = () => {
       dispatch({ type: 'SET_APPOINTMENTS', payload: dbAppointments });
     }
   }, [dbAppointments, dispatch]);
+
+  // Detectar pacientes de primera visita
+  const weekPatientIds = useMemo(() => {
+    const ids = new Set<string>();
+    dbAppointments.forEach(a => { if (a.patientId) ids.add(a.patientId); });
+    return Array.from(ids);
+  }, [dbAppointments]);
+  const firstVisitPatients = useFirstVisitPatients(
+    state.currentClinicId,
+    weekPatientIds,
+    format(weekDates[0], 'yyyy-MM-dd'),
+    format(weekDates[4], 'yyyy-MM-dd')
+  );
 
   // Índice de TODAS las citas memoizado (para verificar ocupación por otros profesionales)
   const allAppointmentsBySlotKey = useMemo(() => {
@@ -794,7 +808,12 @@ export const Calendar = () => {
                       </Tooltip>
                     )}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
-                      <span className="font-medium text-xs truncate">{patient ? formatPatientShortName(patient) : 'Paciente'}</span>
+                      <span className="font-medium text-xs truncate">
+                        {patient ? formatPatientShortName(patient) : 'Paciente'}
+                        {appointment.patientId && firstVisitPatients.has(appointment.patientId) && (
+                          <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight align-middle" title="Primera visita">N</span>
+                        )}
+                      </span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
                         {statusBadge.label}
@@ -1376,8 +1395,11 @@ export const Calendar = () => {
                                           <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
                                               <div className="font-medium text-sm truncate">
-                                                {patient ? formatPatientShortName(patient) : 'Paciente'}
-                                              </div>
+                                                 {patient ? formatPatientShortName(patient) : 'Paciente'}
+                                                 {appointment.patientId && firstVisitPatients.has(appointment.patientId) && (
+                                                   <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight" title="Primera visita">N</span>
+                                                 )}
+                                               </div>
                                                <span className={`inline-block px-2 py-1 text-xs rounded ${
                                                  appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
                                                  appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
