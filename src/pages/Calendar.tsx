@@ -810,7 +810,7 @@ export const Calendar = () => {
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
                       <span className="font-medium text-xs truncate">
                         {patient ? formatPatientShortName(patient) : 'Paciente'}
-                        {appointment.patientId && firstVisitPatients.has(appointment.patientId) && (
+                        {appointment.patientId && firstVisitPatients.get(appointment.patientId) === appointment.date && (
                           <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight align-middle" title="Primera visita">N</span>
                         )}
                       </span>
@@ -1396,7 +1396,7 @@ export const Calendar = () => {
                                             <div className="flex items-center gap-2 mb-1">
                                               <div className="font-medium text-sm truncate">
                                                  {patient ? formatPatientShortName(patient) : 'Paciente'}
-                                                 {appointment.patientId && firstVisitPatients.has(appointment.patientId) && (
+                                                 {appointment.patientId && firstVisitPatients.get(appointment.patientId) === appointment.date && (
                                                    <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight" title="Primera visita">N</span>
                                                  )}
                                                </div>
