@@ -1,55 +1,34 @@
-# Plan: Badge "N" (Nuevo) para primera visita del paciente
 
-## Concepto
 
-Mostrar un badge azul con "N" en las celdas del calendario cuando la cita corresponde a la primera vez que el paciente visita la clinica (no tiene citas previas en el sistema).
+# Plan: Campos de nombre estructurados en pestaña Datos
 
-## Logica de deteccion
+## Problema
+La pestaña "Datos" de la ficha del paciente muestra un solo campo "Nombre Completo" en vez de los 4 campos estructurados que ya se usan en los dialogs de crear/editar paciente.
 
-Crear un hook `useFirstVisitPatients` que:
+## Cambio
 
-1. Recibe la lista de `patientId`s unicos de las citas visibles en la semana
-2. Hace una sola query agrupada: para cada paciente, obtiene la fecha de su cita mas antigua (`MIN(date)`) en la tabla `appointments` donde `status <> 'cancelled'`
-3. Retorna un `Set<string>` con los IDs de pacientes cuya cita mas antigua coincide con alguna cita visible en la semana actual
+### Archivo: `src/pages/PatientDetailTabs.tsx`
 
-```sql
--- Query conceptual
-SELECT patient_id, MIN(date) as first_date
-FROM appointments
-WHERE clinic_id = ? AND patient_id IN (?) AND status <> 'cancelled'
-GROUP BY patient_id
+**1. Reemplazar el campo "Nombre Completo" (lineas 466-473) por 4 campos:**
+- Primer Apellido (`first_surname`)
+- Segundo Apellido (`second_surname`)
+- Primer Nombre (`first_name`)
+- Segundo Nombre (`second_name`)
+
+Cada campo usa `handleFieldUpdate` para actualizar el campo directo del paciente (no dentro de `identificacion`), ya que los campos `first_surname`, `second_surname`, `first_name`, `second_name` son columnas directas en la tabla `patients`.
+
+**2. Actualizar `handleSave` (lineas 208-255) para persistir los 4 campos estructurados:**
+Agregar al objeto de update:
 ```
-
-Si `first_date` del paciente cae dentro de la semana visible, ese paciente es "nuevo".
-
-## Cambios
-
-### 1. Nuevo hook: `src/hooks/useFirstVisitPatients.ts`
-
-- Recibe `clinicId`, `patientIds[]`, `weekStart`, `weekEnd`
-- Retorna `Set<string>` de patientIds que son primera visita
-- Usa `supabase.rpc` o query directa con `.select('patient_id, date')` agrupado
-
-### 2. Modificar `src/pages/Calendar.tsx`
-
-- Invocar el hook con los patientIds de las citas de la semana
-- En el render del slot ocupado (linea ~796), agregar badge "N" azul al lado del nombre cuando `isFirstVisit(appointment.patientId)` es true
-- Badge: cuadro azul pequeno con "N" blanca, similar al badge de "Solo lectura" existente
-
-### Visual
-
-```text
-┌─────────────────────────┐
-│ ☑ García, M.            │
-│   Dra. Mirian           │
-│   Reservado     [N]     │
-└─────────────────────────┘
+first_surname: patient.first_surname || null,
+second_surname: patient.second_surname || null,
+first_name: patient.first_name || null,
+second_name: patient.second_name || null,
 ```
+Y recalcular `full_name` a partir de los 4 campos al guardar.
 
-El badge "N" aparece como un cuadrito azul compacto (`bg-blue-600 text-white text-[9px] rounded px-1`) junto al nombre del paciente.
+## Resultado
+- La pestaña Datos mostrara los 4 campos individuales, consistente con los dialogos de crear/editar
+- Al editar, cada campo se modifica independientemente
+- Al guardar, se persisten los 4 campos y se recalcula `full_name`
 
-## Rendimiento
-
-- Una sola query por cambio de semana (no por cada celda)
-- El Set se recalcula solo cuando cambian los appointments de la semana
-- Sin impacto en el realtime ni en la carga de appointments
