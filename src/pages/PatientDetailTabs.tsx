@@ -212,7 +212,11 @@ export const PatientDetailTabs = () => {
       const { error } = await supabase
         .from('patients')
         .update({
-          full_name: patient.identificacion?.fullName || formatPatientFullName(patient),
+          first_surname: patient.first_surname || null,
+          second_surname: patient.second_surname || null,
+          first_name: patient.first_name || null,
+          second_name: patient.second_name || null,
+          full_name: formatPatientFullName(patient),
           preferred_name: patient.identificacion?.preferredName || null,
           document_id: patient.identificacion?.documentId || null,
           date_of_birth: patient.identificacion?.dateOfBirth || patient.birthDate || null,
@@ -464,10 +468,34 @@ export const PatientDetailTabs = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label>Nombre Completo</Label>
+                  <Label>Primer Apellido</Label>
                   <Input
-                    value={patient.identificacion?.fullName || formatPatientFullName(patient)}
-                    onChange={(e) => handleFieldUpdate('identificacion', { ...patient.identificacion, fullName: e.target.value })}
+                    value={patient.first_surname || ''}
+                    onChange={(e) => handleFieldUpdate('first_surname', e.target.value)}
+                    disabled={!editingData}
+                  />
+                </div>
+                <div>
+                  <Label>Segundo Apellido</Label>
+                  <Input
+                    value={patient.second_surname || ''}
+                    onChange={(e) => handleFieldUpdate('second_surname', e.target.value)}
+                    disabled={!editingData}
+                  />
+                </div>
+                <div>
+                  <Label>Primer Nombre</Label>
+                  <Input
+                    value={patient.first_name || ''}
+                    onChange={(e) => handleFieldUpdate('first_name', e.target.value)}
+                    disabled={!editingData}
+                  />
+                </div>
+                <div>
+                  <Label>Segundo Nombre</Label>
+                  <Input
+                    value={patient.second_name || ''}
+                    onChange={(e) => handleFieldUpdate('second_name', e.target.value)}
                     disabled={!editingData}
                   />
                 </div>
