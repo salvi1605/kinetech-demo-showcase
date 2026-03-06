@@ -80,6 +80,11 @@ export function usePatientClinicalNotes(
           return;
         } else {
           console.error('[usePatientClinicalNotes] Error creating stubs:', insertError);
+          toast({
+            title: 'Advertencia',
+            description: `No se pudieron crear ${missing.length} evolución(es) faltante(s). Contacte al administrador.`,
+            variant: 'destructive',
+          });
         }
       }
 
