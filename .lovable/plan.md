@@ -1,30 +1,59 @@
-# Diagnóstico: Discrepancia entre calendario y horarios copiados de Recepter G.
 
-## Causa raíz
 
-**No es un bug.** Es el comportamiento esperado del flujo de copia.
+# Plan: Auditoría completa de acciones en citas
 
-La cita de Recepter G. del viernes 06/03 fue:
+## Objetivo
+Registrar automáticamente **quién** creó y **quién** modificó cada cita, y mantener un historial completo de **todos los cambios** (no solo cambios de estado, sino también reprogramaciones de fecha/hora/profesional).
 
-- **Creada** el lunes 02/03 a las 12:58 (probablemente a las 08:00)
-- **Actualizada** el jueves 05/03 a las 12:30 → se movió a **08:30**
+## Cambios necesarios
 
-Cuando Marianela copió los horarios el lunes, la cita todavía estaba a las 08:00. Después alguien la reprogramó a las 08:30. El texto copiado al portapapeles es una instantánea estática — no se actualiza retroactivamente al modificar la cita.
+### 1. Actualizar RPCs para capturar `auth.uid()` (migración SQL)
 
-El calendario muestra correctamente el horario actual (08:30) porque consulta la base de datos en tiempo real.
+Modificar las 3 funciones RPC existentes:
 
-## ¿Se necesita algún cambio?
+- **`validate_and_create_appointment`**: Agregar `created_by = auth.uid()` y `updated_by = auth.uid()` en el INSERT.
+- **`validate_and_update_appointment`**: Agregar `updated_by = auth.uid()` en el UPDATE. Además, insertar un registro en `audit_log` con los campos que cambiaron (fecha anterior → nueva, hora anterior → nueva, profesional anterior → nuevo, estado anterior → nuevo).
+- **`validate_and_create_appointments_batch`**: Hereda el fix del create individual.
 
-Esto es comportamiento normal: copiar al portapapeles genera texto estático. Sin embargo, hay dos mejoras opcionales:
+### 2. Habilitar INSERT en `audit_log` para funciones SECURITY DEFINER
 
-### Opción A: No hacer nada
+La tabla `audit_log` actualmente no permite INSERT desde usuarios. Como las RPCs son `SECURITY DEFINER`, pueden insertar directamente sin necesidad de cambiar políticas RLS.
 
-El flujo es correcto. Simplemente informar a Marianela que si reprograma una cita después de copiar, debe volver a copiar los horarios actualizados.
+### 3. Registrar cambios en `audit_log`
 
-### Opción B: Agregar advertencia visual (mejora UX)
+Cada vez que se actualiza una cita, el RPC insertará en `audit_log`:
+```sql
+INSERT INTO audit_log (clinic_id, user_id, entity_type, entity_id, action, payload)
+VALUES (
+  v_current.clinic_id,
+  auth.uid(),
+  'appointment',
+  p_appointment_id,
+  'update',  -- o 'create', 'cancel', 'reschedule'
+  jsonb_build_object(
+    'changes', jsonb_build_object(
+      'date', jsonb_build_object('from', old_date, 'to', new_date),
+      'start_time', jsonb_build_object('from', old_time, 'to', new_time),
+      'practitioner_id', jsonb_build_object('from', old_prac, 'to', new_prac),
+      'status', jsonb_build_object('from', old_status, 'to', new_status)
+    )
+  )
+);
+```
 
-Agregar un tooltip o nota sutil en el botón "Copiar horarios" que diga: *"Los horarios copiados reflejan el estado actual. Si se reprograman citas, copiar nuevamente."*
+También se insertará un registro `action = 'create'` en la creación.
 
-## Recomendación
+### 4. Detalle técnico
 
-**Opción A** — informar al equipo que después de reprogramar deben volver a copiar. No requiere cambios de código.
+- `auth.uid()` devuelve el UUID del usuario autenticado de Supabase (auth), **no** el `users.id`. Se almacenará el `auth_user_id` en `created_by`/`updated_by` y `audit_log.user_id` ya que es consistente con el sistema existente de `appointment_status_history.changed_by`.
+- Solo se registran en el payload los campos que **realmente cambiaron**, para evitar ruido.
+- No se requieren cambios en el frontend; todo ocurre a nivel de base de datos.
+
+### Resumen de cambios
+| Componente | Cambio |
+|---|---|
+| RPC `validate_and_create_appointment` | Agregar `created_by = auth.uid()`, `updated_by = auth.uid()`, INSERT en `audit_log` |
+| RPC `validate_and_update_appointment` | Agregar `updated_by = auth.uid()`, INSERT en `audit_log` con diff de cambios |
+| RPC `validate_and_create_appointments_batch` | Hereda del create individual |
+| Tablas | Sin cambios de schema (los campos `created_by`, `updated_by` ya existen en `appointments`) |
+
