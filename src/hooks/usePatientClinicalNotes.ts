@@ -4,6 +4,7 @@ import {
   fetchEvolutionNotes, 
   fetchClinicalSnapshots 
 } from '@/lib/clinicalNotesService';
+import { toast } from '@/hooks/use-toast';
 import type { EvolutionEntry } from '@/types/patient';
 import type { ClinicalSummaryDay } from '@/contexts/AppContext';
 
