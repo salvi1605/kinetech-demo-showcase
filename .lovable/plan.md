@@ -1,59 +1,41 @@
 
 
-# Plan: Auditoría completa de acciones en citas
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-## Objetivo
-Registrar automáticamente **quién** creó y **quién** modificó cada cita, y mantener un historial completo de **todos los cambios** (no solo cambios de estado, sino también reprogramaciones de fecha/hora/profesional).
+## Causa raíz
 
-## Cambios necesarios
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-### 1. Actualizar RPCs para capturar `auth.uid()` (migración SQL)
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-Modificar las 3 funciones RPC existentes:
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-- **`validate_and_create_appointment`**: Agregar `created_by = auth.uid()` y `updated_by = auth.uid()` en el INSERT.
-- **`validate_and_update_appointment`**: Agregar `updated_by = auth.uid()` en el UPDATE. Además, insertar un registro en `audit_log` con los campos que cambiaron (fecha anterior → nueva, hora anterior → nueva, profesional anterior → nuevo, estado anterior → nuevo).
-- **`validate_and_create_appointments_batch`**: Hereda el fix del create individual.
+## Plan de corrección (2 partes)
 
-### 2. Habilitar INSERT en `audit_log` para funciones SECURITY DEFINER
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-La tabla `audit_log` actualmente no permite INSERT desde usuarios. Como las RPCs son `SECURITY DEFINER`, pueden insertar directamente sin necesidad de cambiar políticas RLS.
-
-### 3. Registrar cambios en `audit_log`
-
-Cada vez que se actualiza una cita, el RPC insertará en `audit_log`:
 ```sql
-INSERT INTO audit_log (clinic_id, user_id, entity_type, entity_id, action, payload)
-VALUES (
-  v_current.clinic_id,
-  auth.uid(),
-  'appointment',
-  p_appointment_id,
-  'update',  -- o 'create', 'cancel', 'reschedule'
-  jsonb_build_object(
-    'changes', jsonb_build_object(
-      'date', jsonb_build_object('from', old_date, 'to', new_date),
-      'start_time', jsonb_build_object('from', old_time, 'to', new_time),
-      'practitioner_id', jsonb_build_object('from', old_prac, 'to', new_prac),
-      'status', jsonb_build_object('from', old_status, 'to', new_status)
-    )
-  )
-);
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
 ```
 
-También se insertará un registro `action = 'create'` en la creación.
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
 
-### 4. Detalle técnico
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
 
-- `auth.uid()` devuelve el UUID del usuario autenticado de Supabase (auth), **no** el `users.id`. Se almacenará el `auth_user_id` en `created_by`/`updated_by` y `audit_log.user_id` ya que es consistente con el sistema existente de `appointment_status_history.changed_by`.
-- Solo se registran en el payload los campos que **realmente cambiaron**, para evitar ruido.
-- No se requieren cambios en el frontend; todo ocurre a nivel de base de datos.
-
-### Resumen de cambios
-| Componente | Cambio |
-|---|---|
-| RPC `validate_and_create_appointment` | Agregar `created_by = auth.uid()`, `updated_by = auth.uid()`, INSERT en `audit_log` |
-| RPC `validate_and_update_appointment` | Agregar `updated_by = auth.uid()`, INSERT en `audit_log` con diff de cambios |
-| RPC `validate_and_create_appointments_batch` | Hereda del create individual |
-| Tablas | Sin cambios de schema (los campos `created_by`, `updated_by` ya existen en `appointments`) |
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 
