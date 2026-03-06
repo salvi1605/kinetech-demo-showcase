@@ -1,33 +1,41 @@
 
 
-# Plan: Redefinir KPIs del Reporte Operativo
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-## Contexto
-El reporte actual muestra: Capacidad, Ocupados, No-Shows, Cancelados. El usuario confirma que no manejan citas canceladas como categoría separada, y quiere 4 KPIs claros.
+## Causa raíz
 
-## Nuevos KPIs
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-| KPI | Definición | Color |
-|---|---|---|
-| **Capacidad** | Slots disponibles según disponibilidad de profesionales | Default |
-| **Agendados** | Citas con status `scheduled` + `completed` + `no_show` (excluyendo `cancelled`) | Primary (azul) |
-| **Asistieron** | Citas con status `completed` | Verde (accent) |
-| **No Asistieron** | Citas con status `no_show` | Destructive (rojo) |
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-## Cambios
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-### 1. `src/hooks/useReportData.ts` (useOperationalReport)
-- Reemplazar cálculos de `occupied` y `cancelled` por `attended` (`completed`) y `scheduled` (total - cancelled)
-- Renombrar campos: `occupied` → `booked`, agregar `attended`, eliminar `cancelled`
-- Ajustar `totals` para reflejar los nuevos campos
-- Porcentajes: `occupancyPct` (agendados/capacidad), `attendancePct` (asistieron/agendados), `noShowPct` (no_show/agendados)
+## Plan de corrección (2 partes)
 
-### 2. `src/components/reports/OperationalReport.tsx`
-- KPI cards: Capacidad, Agendados, Asistieron, No Asistieron
-- Gráfico de tendencia: líneas para % Ocupación y % No-Show
-- Tabla de detalle: Período | Capacidad | Agendados | Asistieron | No Asistieron | % Ocupación
-- CSV export: actualizar headers y datos
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-### 3. Sin cambios en base de datos
-Todo es cálculo frontend sobre datos existentes.
+```sql
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
+```
+
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 

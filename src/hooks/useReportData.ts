@@ -70,10 +70,10 @@ export function useOperationalReport(filters: ReportFilters) {
         const pEndStr = format(pEnd, 'yyyy-MM-dd');
 
         const periodAppts = (appointments || []).filter(a => a.date >= pStartStr && a.date <= pEndStr);
-        const total = periodAppts.length;
         const noShows = periodAppts.filter(a => a.status === 'no_show').length;
-        const cancelled = periodAppts.filter(a => a.status === 'cancelled').length;
-        const completed = periodAppts.filter(a => a.status === 'completed' || a.status === 'confirmed' || a.status === 'scheduled').length;
+        const attended = periodAppts.filter(a => a.status === 'completed').length;
+        // Agendados = todo menos cancelados (scheduled + confirmed + completed + no_show)
+        const booked = periodAppts.filter(a => a.status !== 'cancelled').length;
 
         // Estimate capacity: count business days in period * slots per weekday
         let capacity = 0;
@@ -91,23 +91,23 @@ export function useOperationalReport(filters: ReportFilters) {
         return {
           label,
           capacity,
-          occupied: total - cancelled,
+          booked,
+          attended,
           noShows,
-          cancelled,
-          occupancyPct: capacity > 0 ? Math.round(((total - cancelled) / capacity) * 100) : 0,
-          noShowPct: total > 0 ? Math.round((noShows / total) * 100) : 0,
-          cancelledPct: total > 0 ? Math.round((cancelled / total) * 100) : 0,
+          occupancyPct: capacity > 0 ? Math.round((booked / capacity) * 100) : 0,
+          noShowPct: booked > 0 ? Math.round((noShows / booked) * 100) : 0,
+          attendancePct: booked > 0 ? Math.round((attended / booked) * 100) : 0,
         };
       });
 
       const totals = data.reduce(
         (acc, d) => ({
           capacity: acc.capacity + d.capacity,
-          occupied: acc.occupied + d.occupied,
+          booked: acc.booked + d.booked,
+          attended: acc.attended + d.attended,
           noShows: acc.noShows + d.noShows,
-          cancelled: acc.cancelled + d.cancelled,
         }),
-        { capacity: 0, occupied: 0, noShows: 0, cancelled: 0 }
+        { capacity: 0, booked: 0, attended: 0, noShows: 0 }
       );
 
       return { periods: data, totals };
