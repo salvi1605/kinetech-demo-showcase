@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useOperationalReport } from '@/hooks/useReportData';
 import { exportToCSV } from '@/utils/reportExport';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -6,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar,
 } from 'recharts';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -24,9 +22,9 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
 
   const handleExportCSV = () => {
     if (!data) return;
-    exportToCSV('reporte-operativo', 
-      ['Período', 'Capacidad', 'Ocupados', 'No-Show', 'Cancelados', '% Ocupación', '% No-Show'],
-      data.periods.map(p => [p.label, p.capacity, p.occupied, p.noShows, p.cancelled, p.occupancyPct, p.noShowPct])
+    exportToCSV('reporte-operativo',
+      ['Período', 'Capacidad', 'Agendados', 'Asistieron', 'No Asistieron', '% Ocupación', '% Asistencia'],
+      data.periods.map(p => [p.label, p.capacity, p.booked, p.attended, p.noShows, p.occupancyPct, p.attendancePct])
     );
   };
 
@@ -43,9 +41,9 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard label="Capacidad Total" value={data.totals.capacity} />
-        <KPICard label="Ocupados" value={data.totals.occupied} accent />
-        <KPICard label="No-Shows" value={data.totals.noShows} warn />
-        <KPICard label="Cancelados" value={data.totals.cancelled} />
+        <KPICard label="Agendados" value={data.totals.booked} accent />
+        <KPICard label="Asistieron" value={data.totals.attended} success />
+        <KPICard label="No Asistieron" value={data.totals.noShows} warn />
       </div>
 
       {/* Trend Chart */}
@@ -59,7 +57,8 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
             <Tooltip />
             <Legend />
             <Line type="monotone" dataKey="occupancyPct" name="% Ocupación" stroke="hsl(var(--primary))" strokeWidth={2} />
-            <Line type="monotone" dataKey="noShowPct" name="% No-Show" stroke="hsl(var(--destructive))" strokeWidth={2} />
+            <Line type="monotone" dataKey="noShowPct" name="% No Asistieron" stroke="hsl(var(--destructive))" strokeWidth={2} />
+            <Line type="monotone" dataKey="attendancePct" name="% Asistencia" stroke="hsl(142 71% 45%)" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -77,9 +76,9 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
             <TableRow>
               <TableHead>Período</TableHead>
               <TableHead className="text-right">Capacidad</TableHead>
-              <TableHead className="text-right">Ocupados</TableHead>
-              <TableHead className="text-right">No-Show</TableHead>
-              <TableHead className="text-right">Cancelados</TableHead>
+              <TableHead className="text-right">Agendados</TableHead>
+              <TableHead className="text-right">Asistieron</TableHead>
+              <TableHead className="text-right">No Asistieron</TableHead>
               <TableHead className="text-right">% Ocupación</TableHead>
             </TableRow>
           </TableHeader>
@@ -88,9 +87,9 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
               <TableRow key={i}>
                 <TableCell className="font-medium">{p.label}</TableCell>
                 <TableCell className="text-right">{p.capacity}</TableCell>
-                <TableCell className="text-right">{p.occupied}</TableCell>
+                <TableCell className="text-right">{p.booked}</TableCell>
+                <TableCell className="text-right text-green-600">{p.attended}</TableCell>
                 <TableCell className="text-right text-destructive">{p.noShows}</TableCell>
-                <TableCell className="text-right">{p.cancelled}</TableCell>
                 <TableCell className="text-right font-semibold">{p.occupancyPct}%</TableCell>
               </TableRow>
             ))}
@@ -101,11 +100,11 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
   );
 }
 
-function KPICard({ label, value, accent, warn }: { label: string; value: number; accent?: boolean; warn?: boolean }) {
+function KPICard({ label, value, accent, warn, success }: { label: string; value: number; accent?: boolean; warn?: boolean; success?: boolean }) {
   return (
     <div className="bg-card rounded-lg border p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-bold ${warn ? 'text-destructive' : accent ? 'text-primary' : 'text-foreground'}`}>
+      <p className={`text-2xl font-bold ${warn ? 'text-destructive' : success ? 'text-green-600' : accent ? 'text-primary' : 'text-foreground'}`}>
         {value.toLocaleString()}
       </p>
     </div>

@@ -103,11 +103,11 @@ export function useOperationalReport(filters: ReportFilters) {
       const totals = data.reduce(
         (acc, d) => ({
           capacity: acc.capacity + d.capacity,
-          occupied: acc.occupied + d.occupied,
+          booked: acc.booked + d.booked,
+          attended: acc.attended + d.attended,
           noShows: acc.noShows + d.noShows,
-          cancelled: acc.cancelled + d.cancelled,
         }),
-        { capacity: 0, occupied: 0, noShows: 0, cancelled: 0 }
+        { capacity: 0, booked: 0, attended: 0, noShows: 0 }
       );
 
       return { periods: data, totals };
