@@ -1,41 +1,49 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Diagnóstico: Evolución faltante para Zion Pablo (5 de marzo)
+
+## Es un error diferente al de Recepter G.
+
+El problema de Recepter fue sobre texto copiado al portapapeles que no reflejaba un cambio posterior. Este problema de Zion Pablo es distinto: **el cuadro de evolución para la cita del 5 de marzo simplemente no existía cuando Victoria abrió el historial ese día.**
 
 ## Causa raíz
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+Las citas de Zion Pablo fueron creadas en lote (batch) el **9 de febrero**, antes de que se implementara la automatización que crea stubs de evolución al agendar. Por lo tanto, la cita del 5 de marzo no tenía un registro de evolución asociado en la base de datos.
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+El sistema tiene un **mecanismo de fallback** en el frontend (`usePatientClinicalNotes`) que detecta citas sin evolución y las crea automáticamente. Sin embargo, este fallback **falló silenciosamente** el 5 de marzo — probablemente por un error de permisos o un conflicto al intentar insertar varias filas simultáneamente. El código captura el error con `console.error` pero continúa mostrando solo los datos que ya existían (la evolución del 2 de marzo).
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+Los stubs faltantes se crearon recién hoy (6 de marzo a las 11:53) cuando alguien volvió a abrir el historial y el fallback finalmente funcionó.
 
-## Plan de corrección (2 partes)
+## Evidencia en la base de datos
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+| Cita | Fecha | Creada (appointment) | Stub evolución creado |
+|---|---|---|---|
+| 2 marzo (individual) | 02/03 | 02/03 17:56 | 02/03 17:56 (automático por RPC) |
+| 5 marzo (batch) | 05/03 | 09/02 17:24 | **06/03 11:53** (fallback tardío) |
+| 9, 12, 16, 19, 25 marzo | varias | 09/02 17:24 | **06/03 11:53** (todos juntos) |
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
+## Plan de solución
+
+### 1. Crear un trigger de base de datos que genere stubs automáticamente
+
+En lugar de depender del fallback del frontend (que puede fallar silenciosamente), agregar un **trigger SQL** en la tabla `appointments` que cree el stub de evolución al insertar una cita, independientemente de si fue creada por RPC individual, batch, o cualquier otro método. Esto garantiza que ninguna cita quede sin su evolución.
+
+```text
+appointments INSERT → trigger → INSERT patient_clinical_notes (evolution stub)
 ```
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+### 2. Mejorar el manejo de errores del fallback
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+Actualmente, si el fallback falla, el usuario no ve ninguna indicación. Agregar un toast de advertencia cuando el fallback detecta citas sin evolución y no puede crearlas, para que el usuario sepa que hay un problema y pueda reportarlo.
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### 3. Mantener el fallback como red de seguridad
+
+El fallback seguirá existiendo para citas históricas que no tengan stub, pero ya no será el mecanismo principal.
+
+## Resumen de cambios
+
+| Componente | Cambio |
+|---|---|
+| Migración SQL | Crear trigger `after insert` en `appointments` que inserte stub en `patient_clinical_notes` |
+| `usePatientClinicalNotes.ts` | Agregar toast de advertencia si el fallback falla |
 
