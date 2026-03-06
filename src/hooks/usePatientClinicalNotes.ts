@@ -40,6 +40,48 @@ export function usePatientClinicalNotes(
         fetchClinicalSnapshots(patientId, clinicId),
       ]);
 
+      // Fallback: detect appointments missing evolution stubs and auto-create them
+      const existingAppointmentIds = new Set(evolutionsData.map(e => e.appointmentId));
+      const { data: appointments } = await supabase
+        .from('appointments')
+        .select('id, date, start_time, practitioner_id, treatment_types(name)')
+        .eq('clinic_id', clinicId)
+        .eq('patient_id', patientId)
+        .neq('status', 'cancelled')
+        .lte('date', new Date().toISOString().slice(0, 10));
+
+      const missing = (appointments || []).filter(a => !existingAppointmentIds.has(a.id));
+
+      if (missing.length > 0) {
+        console.log(`[usePatientClinicalNotes] Creating ${missing.length} missing evolution stubs`);
+        const inserts = missing.map(a => ({
+          patient_id: patientId,
+          clinic_id: clinicId,
+          practitioner_id: a.practitioner_id,
+          appointment_id: a.id,
+          note_date: a.date,
+          start_time: a.start_time,
+          note_type: 'evolution' as const,
+          body: '',
+          treatment_type: (a.treatment_types as any)?.name || 'FKT',
+          status: 'active',
+        }));
+
+        const { error: insertError } = await supabase
+          .from('patient_clinical_notes')
+          .insert(inserts);
+
+        if (!insertError) {
+          // Re-fetch evolutions to include the newly created stubs
+          const refreshed = await fetchEvolutionNotes(patientId, clinicId);
+          setEvolutions(refreshed);
+          setSnapshots(snapshotsData);
+          return;
+        } else {
+          console.error('[usePatientClinicalNotes] Error creating stubs:', insertError);
+        }
+      }
+
       setEvolutions(evolutionsData);
       setSnapshots(snapshotsData);
     } catch (err) {
