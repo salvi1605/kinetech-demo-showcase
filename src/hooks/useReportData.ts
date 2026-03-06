@@ -63,9 +63,15 @@ export function useOperationalReport(filters: ReportFilters) {
         ? eachMonthOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
         : eachWeekOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) }, { weekStartsOn: 1 });
 
+      const rangeStart = new Date(filters.dateFrom);
+      const rangeEnd = new Date(filters.dateTo);
+
       const data = periods.map(periodStart => {
-        const pStart = filters.groupBy === 'month' ? startOfMonth(periodStart) : startOfWeek(periodStart, { weekStartsOn: 1 });
-        const pEnd = filters.groupBy === 'month' ? endOfMonth(periodStart) : endOfWeek(periodStart, { weekStartsOn: 1 });
+        const rawStart = filters.groupBy === 'month' ? startOfMonth(periodStart) : startOfWeek(periodStart, { weekStartsOn: 1 });
+        const rawEnd = filters.groupBy === 'month' ? endOfMonth(periodStart) : endOfWeek(periodStart, { weekStartsOn: 1 });
+        // Clamp to filter range
+        const pStart = rawStart < rangeStart ? rangeStart : rawStart;
+        const pEnd = rawEnd > rangeEnd ? rangeEnd : rawEnd;
         const pStartStr = format(pStart, 'yyyy-MM-dd');
         const pEndStr = format(pEnd, 'yyyy-MM-dd');
 
