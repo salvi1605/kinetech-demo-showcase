@@ -1,41 +1,30 @@
-
-
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Diagnóstico: Discrepancia entre calendario y horarios copiados de Recepter G.
 
 ## Causa raíz
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+**No es un bug.** Es el comportamiento esperado del flujo de copia.
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+La cita de Recepter G. del viernes 06/03 fue:
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+- **Creada** el lunes 02/03 a las 12:58 (probablemente a las 08:00)
+- **Actualizada** el jueves 05/03 a las 12:30 → se movió a **08:30**
 
-## Plan de corrección (2 partes)
+Cuando Marianela copió los horarios el lunes, la cita todavía estaba a las 08:00. Después alguien la reprogramó a las 08:30. El texto copiado al portapapeles es una instantánea estática — no se actualiza retroactivamente al modificar la cita.
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+El calendario muestra correctamente el horario actual (08:30) porque consulta la base de datos en tiempo real.
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
-```
+## ¿Se necesita algún cambio?
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+Esto es comportamiento normal: copiar al portapapeles genera texto estático. Sin embargo, hay dos mejoras opcionales:
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+### Opción A: No hacer nada
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+El flujo es correcto. Simplemente informar a Marianela que si reprograma una cita después de copiar, debe volver a copiar los horarios actualizados.
 
+### Opción B: Agregar advertencia visual (mejora UX)
+
+Agregar un tooltip o nota sutil en el botón "Copiar horarios" que diga: *"Los horarios copiados reflejan el estado actual. Si se reprograman citas, copiar nuevamente."*
+
+## Recomendación
+
+**Opción A** — informar al equipo que después de reprogramar deben volver a copiar. No requiere cambios de código.
