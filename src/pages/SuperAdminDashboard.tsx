@@ -240,17 +240,66 @@ export default function SuperAdminDashboard() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground tracking-tight">Panel Super Admin</h1>
                 <p className="text-sm text-muted-foreground">
-                  Vista global de todas las clínicas • Últimos 30 días
+                  Vista global • {format(dateRange.from, "dd MMM yyyy", { locale: es })} – {format(dateRange.to, "dd MMM yyyy", { locale: es })}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/select-clinic')}>
-                <Building2 className="h-4 w-4 mr-2" />
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Date presets */}
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                {([
+                  { key: '7d' as DatePreset, label: '7 días' },
+                  { key: '30d' as DatePreset, label: '30 días' },
+                  { key: '90d' as DatePreset, label: '90 días' },
+                ]).map(p => (
+                  <button
+                    key={p.key}
+                    onClick={() => setDateRange({ from: subDays(new Date(), p.key === '7d' ? 7 : p.key === '30d' ? 30 : 90), to: new Date(), preset: p.key })}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition-colors",
+                      dateRange.preset === p.key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {/* Custom date range */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant={dateRange.preset === 'custom' ? 'default' : 'outline'} size="sm" className="h-8">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Personalizado
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: dateRange.from, to: dateRange.to }}
+                    onSelect={(range) => {
+                      if (range?.from && range?.to) {
+                        setDateRange({ from: range.from, to: range.to, preset: 'custom' });
+                      } else if (range?.from) {
+                        setDateRange({ from: range.from, to: range.from, preset: 'custom' });
+                      }
+                    }}
+                    numberOfMonths={2}
+                    locale={es}
+                    disabled={(date) => date > new Date()}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Separator orientation="vertical" className="h-6 hidden sm:block" />
+              <Button variant="outline" size="sm" className="h-8" onClick={() => navigate('/select-clinic')}>
+                <Building2 className="h-3.5 w-3.5 mr-1.5" />
                 Seleccionar clínica
               </Button>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button size="sm" className="h-8" onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
                 Nueva clínica
               </Button>
             </div>
