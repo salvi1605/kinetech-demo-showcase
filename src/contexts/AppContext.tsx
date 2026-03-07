@@ -689,7 +689,7 @@ const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[
       return null;
     }
 
-    // Get all user roles/clinics
+    // Get all user roles/clinics (excluding super_admin which has NULL clinic_id)
     const { data: userRoles, error: roleError } = await supabase
       .from('user_roles')
       .select(`
@@ -708,9 +708,16 @@ const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[
       return null;
     }
 
+    // Check if user is super_admin (role with NULL clinic_id)
+    const isSuperAdmin = (userRoles || []).some(r => r.role_id === 'super_admin' && r.clinic_id === null);
+    
+    // Filter out super_admin roles (they don't have clinic associations)
+    const clinicRoles = (userRoles || []).filter(r => r.clinic_id !== null);
+
     return { 
-      clinics: userRoles || [],
+      clinics: clinicRoles,
       userId: userData.id,
+      isSuperAdmin,
     };
   } catch (error) {
     console.error('Error in getUserClinicsFromDB:', error);
