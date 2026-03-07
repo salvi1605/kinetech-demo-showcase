@@ -39,6 +39,9 @@ import Privacy from "@/pages/Privacy";
 import Treatments from "@/pages/Treatments";
 import Reports from "@/pages/Reports";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
+import Home from "@/pages/Home";
+import Pricing from "@/pages/Pricing";
+import CancellationPolicy from "@/pages/CancellationPolicy";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +56,9 @@ const App = () => (
             <Routes>
               {/* Public Routes */}
               <Route path="/welcome" element={<Welcome />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/cancellation-policy" element={<CancellationPolicy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
