@@ -222,7 +222,7 @@ export default function Home() {
               agendixpro@gmail.com
             </a>
             <a
-              href="https://wa.me/5491100000000"
+              href="https://wa.me/12262244099"
               target="_blank"
               rel="noopener noreferrer"
             >

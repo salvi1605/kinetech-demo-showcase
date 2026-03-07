@@ -134,7 +134,7 @@ export default function Pricing() {
                 </a>
               </Button>
               <Button asChild variant="outline" className="flex-1">
-                <a href="mailto:contacto@agendixpro.com">
+                <a href="mailto:agendixpro@gmail.com">
                   <Mail className="mr-2 h-4 w-4" />
                   Escribir por email
                 </a>
