@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, UserCheck, CalendarDays, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowRight, Shield, Activity, Clock } from 'lucide-react';
+import { Building2, Users, UserCheck, CalendarDays, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowRight, Shield, Activity, Clock, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+type DatePreset = '7d' | '30d' | '90d' | 'custom';
+
+interface DateRange {
+  from: Date;
+  to: Date;
+  preset: DatePreset;
+}
 
 interface ClinicStats {
   id: string;
