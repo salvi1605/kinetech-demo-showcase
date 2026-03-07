@@ -38,6 +38,7 @@ import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import Treatments from "@/pages/Treatments";
 import Reports from "@/pages/Reports";
+import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,12 @@ const App = () => (
               <Route path="/select-clinic" element={
                 <AuthRouteGuard requireClinic={false}>
                   <SelectClinic />
+                </AuthRouteGuard>
+              } />
+              
+              <Route path="/super-admin" element={
+                <AuthRouteGuard requireClinic={false}>
+                  <SuperAdminDashboard />
                 </AuthRouteGuard>
               } />
               
