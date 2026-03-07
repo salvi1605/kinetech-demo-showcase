@@ -44,6 +44,7 @@ interface CreateClinicDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (clinicId: string) => void;
+  isSuperAdmin?: boolean;
 }
 
 const TIMEZONES = [
