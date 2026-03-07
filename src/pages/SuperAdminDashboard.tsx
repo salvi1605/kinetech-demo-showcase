@@ -108,7 +108,7 @@ export default function SuperAdminDashboard() {
       ] = await Promise.all([
         supabase.from('patients').select('id, clinic_id').eq('is_deleted', false),
         supabase.from('practitioners').select('id, clinic_id, is_active'),
-        supabase.from('appointments').select('id, clinic_id, status, date').gte('date', last30Days),
+        supabase.from('appointments').select('id, clinic_id, status, date').gte('date', dateFrom).lte('date', dateTo),
         supabase.from('users').select('id, is_active'),
         supabase.from('audit_log').select('id, clinic_id, action, entity_type, created_at, payload').order('created_at', { ascending: false }).limit(20),
       ]);
