@@ -46,49 +46,49 @@ const navigationItems = [
     title: 'Agenda',
     url: '/calendar',
     icon: Calendar,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro', 'super_admin'] as UserRole[],
   },
   {
     title: 'Pacientes',
     url: '/patients',
     icon: Users,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro', 'super_admin'] as UserRole[],
   },
   {
     title: 'Profesionales',
     url: '/practitioners',
     icon: UserCheck,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'super_admin'] as UserRole[],
   },
   {
     title: 'Tratamientos',
     url: '/treatments',
     icon: Stethoscope,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'super_admin'] as UserRole[],
   },
   {
     title: 'Disponibilidad',
     url: '/availability',
     icon: Clock,
-    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro', 'super_admin'] as UserRole[],
   },
   {
     title: 'Excepciones',
     url: '/exceptions',
     icon: Calendar1,
-    roles: ['admin_clinic', 'tenant_owner', 'health_pro'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'health_pro', 'super_admin'] as UserRole[],
   },
   {
     title: 'Copiar Horario',
     url: '/copy-schedule',
     icon: Copy,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
   },
   ...(isPreviewEnv() ? [{
     title: 'Reportes',
     url: '/reports',
     icon: BarChart3,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
   }] : []),
 ];
 
@@ -97,19 +97,19 @@ const authItems = [
     title: 'Usuarios',
     url: '/users',
     icon: Shield,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
   },
   {
     title: 'Clínicas',
     url: '/clinics',
     icon: Building2,
-    roles: ['admin_clinic', 'tenant_owner'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
   },
   {
     title: 'Configuración',
     url: '/settings',
     icon: Settings,
-    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'] as UserRole[],
+    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro', 'super_admin'] as UserRole[],
   },
 ];
 
@@ -290,7 +290,7 @@ export function AppSidebar() {
                     title: 'Iniciar Sesión',
                     url: '/login',
                     icon: LogIn,
-                    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
+                    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro', 'super_admin'],
                   }}
                 />
               </SidebarMenu>
@@ -346,7 +346,7 @@ export function AppSidebar() {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <div className="w-8 h-8 bg-white/20 text-white rounded-md flex items-center justify-center"> {/* ★ */}
               <span className="text-xs font-medium">
-                {state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin_clinic' ? 'A' : state.userRole === 'receptionist' ? 'R' : 'K'}
+                {state.userRole === 'super_admin' ? 'S' : state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin_clinic' ? 'A' : state.userRole === 'receptionist' ? 'R' : 'K'}
               </span>
             </div>
           </div>

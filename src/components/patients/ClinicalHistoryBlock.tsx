@@ -26,7 +26,7 @@ interface ClinicalHistoryBlockProps {
   snapshots?: ClinicalSummaryDay[];
   currentUserId: string;
   currentUserName: string;
-  currentUserRole: 'admin_clinic' | 'tenant_owner' | 'receptionist' | 'health_pro';
+  currentUserRole: 'admin_clinic' | 'tenant_owner' | 'receptionist' | 'health_pro' | 'super_admin';
   currentPractitionerId?: string;
   tempPrefill: any;
   onHistoryChange: (entries: EvolutionEntry[]) => void;

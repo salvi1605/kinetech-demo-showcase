@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 
-export type EffectiveRole = 'tenant_owner' | 'admin_clinic' | 'receptionist' | 'health_pro' | null;
+export type EffectiveRole = 'super_admin' | 'tenant_owner' | 'admin_clinic' | 'receptionist' | 'health_pro' | null;
 
 interface UseUserRoleResult {
   effectiveRole: EffectiveRole;
-  isAdmin: boolean; // tenant_owner OR admin_clinic
+  isAdmin: boolean; // super_admin OR tenant_owner OR admin_clinic
   isTenantOwner: boolean;
+  isSuperAdmin: boolean;
   isLoading: boolean;
 }
 
@@ -46,15 +47,26 @@ export const useUserRole = (): UseUserRoleResult => {
           return;
         }
 
-        // Get the role for this user in the current clinic
-        const { data: userRoles } = await supabase
+        // Get the role for this user in the current clinic + global super_admin
+        const { data: clinicRoles } = await supabase
           .from('user_roles')
           .select('role_id')
           .eq('user_id', publicUser.id)
           .eq('clinic_id', state.currentClinicId)
           .eq('active', true);
 
-        if (!userRoles || userRoles.length === 0) {
+        // Also check for global super_admin role (NULL clinic_id)
+        const { data: globalRoles } = await supabase
+          .from('user_roles')
+          .select('role_id')
+          .eq('user_id', publicUser.id)
+          .is('clinic_id', null)
+          .eq('role_id', 'super_admin')
+          .eq('active', true);
+
+        const userRoles = [...(clinicRoles || []), ...(globalRoles || [])];
+
+        if (userRoles.length === 0) {
           setEffectiveRole(null);
           setIsLoading(false);
           return;
@@ -63,7 +75,9 @@ export const useUserRole = (): UseUserRoleResult => {
         // Determine effective role (highest privilege)
         const roleIds = userRoles.map(r => r.role_id);
         
-        if (roleIds.includes('tenant_owner')) {
+        if (roleIds.includes('super_admin')) {
+          setEffectiveRole('super_admin');
+        } else if (roleIds.includes('tenant_owner')) {
           setEffectiveRole('tenant_owner');
         } else if (roleIds.includes('admin_clinic')) {
           setEffectiveRole('admin_clinic');
@@ -87,8 +101,9 @@ export const useUserRole = (): UseUserRoleResult => {
 
   return {
     effectiveRole,
-    isAdmin: effectiveRole === 'tenant_owner' || effectiveRole === 'admin_clinic',
+    isAdmin: effectiveRole === 'super_admin' || effectiveRole === 'tenant_owner' || effectiveRole === 'admin_clinic',
     isTenantOwner: effectiveRole === 'tenant_owner',
+    isSuperAdmin: effectiveRole === 'super_admin',
     isLoading,
   };
 };

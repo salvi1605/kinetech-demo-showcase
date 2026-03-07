@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 // Types
-export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner';
+export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' | 'super_admin';
 
 export interface Preferences {
   timezone: string;
@@ -65,6 +65,7 @@ export interface AppState {
   testCurrentDate?: string; // YYYY-MM-DD - For testing purposes only
   canCreateClinic: boolean; // true si usuario puede crear clínica (sin roles)
   hasRolesPending: boolean; // true si tiene roles pero ninguna clínica accesible
+  isSuperAdmin: boolean; // true si el usuario tiene rol super_admin global
 }
 
 export type PatientDocument = {
@@ -250,7 +251,8 @@ export type AppAction =
   | { type: 'SET_TEST_DATE'; payload: string | undefined }
   | { type: 'SET_APPOINTMENTS'; payload: Appointment[] }
   | { type: 'SET_CAN_CREATE_CLINIC'; payload: boolean }
-  | { type: 'SET_HAS_ROLES_PENDING'; payload: boolean };
+  | { type: 'SET_HAS_ROLES_PENDING'; payload: boolean }
+  | { type: 'SET_IS_SUPER_ADMIN'; payload: boolean };
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
@@ -321,6 +323,7 @@ const initialState: AppState = {
   filterPatientSearch: getStoredFilterPatientSearch(),
   canCreateClinic: false,
   hasRolesPending: false,
+  isSuperAdmin: false,
 };
 
 // Reducer
@@ -422,6 +425,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         currentUserName: '',
         canCreateClinic: false,
         hasRolesPending: false,
+        isSuperAdmin: false,
       };
     
     case 'SET_AUTH_LOADING':
@@ -653,6 +657,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         hasRolesPending: action.payload,
       };
     
+    case 'SET_IS_SUPER_ADMIN':
+      return {
+        ...state,
+        isSuperAdmin: action.payload,
+      };
+    
     default:
       return state;
   }
@@ -665,7 +675,7 @@ const AppContext = createContext<{
 } | null>(null);
 
 // Helper function to get user clinics and check count
-const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[]; userId: string } | null> => {
+const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[]; userId: string; isSuperAdmin: boolean } | null> => {
   try {
     // Get user from public.users
     const { data: userData, error: userError } = await supabase
@@ -679,7 +689,7 @@ const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[
       return null;
     }
 
-    // Get all user roles/clinics
+    // Get all user roles/clinics (excluding super_admin which has NULL clinic_id)
     const { data: userRoles, error: roleError } = await supabase
       .from('user_roles')
       .select(`
@@ -698,9 +708,16 @@ const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[
       return null;
     }
 
+    // Check if user is super_admin (role with NULL clinic_id)
+    const isSuperAdmin = (userRoles || []).some(r => r.role_id === 'super_admin' && r.clinic_id === null);
+    
+    // Filter out super_admin roles (they don't have clinic associations)
+    const clinicRoles = (userRoles || []).filter(r => r.clinic_id !== null);
+
     return { 
-      clinics: userRoles || [],
+      clinics: clinicRoles,
       userId: userData.id,
+      isSuperAdmin,
     };
   } catch (error) {
     console.error('Error in getUserClinicsFromDB:', error);
@@ -751,7 +768,9 @@ const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise
 
     // Map database role to app role (now 1:1 mapping)
     let appRole: UserRole = 'receptionist';
-    if (roleData.role_id === 'tenant_owner') {
+    if (roleData.role_id === 'super_admin') {
+      appRole = 'super_admin';
+    } else if (roleData.role_id === 'tenant_owner') {
       appRole = 'tenant_owner';
     } else if (roleData.role_id === 'admin_clinic') {
       appRole = 'admin_clinic';
@@ -804,13 +823,45 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        // Set super_admin flag
+        if (clinicsResult.isSuperAdmin) {
+          dispatch({ type: 'SET_IS_SUPER_ADMIN', payload: true });
+        }
+
+        // Super admin with no clinic-specific roles → go to SelectClinic (sees all clinics)
+        if (clinicsResult.isSuperAdmin && clinicsResult.clinics.length === 0) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, full_name, email')
+            .eq('auth_user_id', userId)
+            .single();
+
+          if (userData) {
+            dispatch({
+              type: 'LOGIN',
+              payload: {
+                id: userData.id,
+                name: userData.full_name,
+                email: userData.email,
+                role: 'super_admin',
+                clinicId: undefined,
+              },
+            });
+          }
+
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
         if (clinicsResult.clinics.length === 0) {
           const { data: userRolesData } = await supabase
             .from('user_roles')
             .select('role_id')
             .eq('user_id', clinicsResult.userId);
 
-          const hasRoles = (userRolesData && userRolesData.length > 0);
+          // Filter out super_admin for this check (already handled above)
+          const nonSuperRoles = (userRolesData || []).filter(r => r.role_id !== 'super_admin');
+          const hasRoles = nonSuperRoles.length > 0;
 
           const { data: userData } = await supabase
             .from('users')
@@ -834,8 +885,51 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
               dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
             } else {
-              dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: true });
-              dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: false });
+              // No roles at all and not super_admin → no-access (can't self-create anymore)
+              dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
+              dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
+            }
+          }
+
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
+        // Super admin always goes to SelectClinic (even with 1 clinic-role)
+        if (clinicsResult.isSuperAdmin) {
+          if (clinicsResult.clinics.length === 1) {
+            // Auto-select if super_admin has exactly 1 clinic role
+            const clinic = clinicsResult.clinics[0];
+            const result = await getUserRoleFromDB(userId, clinic.clinic_id);
+            if (result) {
+              // Override role to super_admin for the user object
+              result.user.role = 'super_admin';
+              dispatch({ type: 'LOGIN', payload: result.user });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: result.clinicId, name: result.clinicName },
+              });
+              dispatch({ type: 'SET_USER_ROLE', payload: 'super_admin' });
+            }
+          } else {
+            // Multiple clinics or no clinic roles: go to SelectClinic
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id, full_name, email')
+              .eq('auth_user_id', userId)
+              .single();
+
+            if (userData) {
+              dispatch({
+                type: 'LOGIN',
+                payload: {
+                  id: userData.id,
+                  name: userData.full_name,
+                  email: userData.email,
+                  role: 'super_admin',
+                  clinicId: undefined,
+                },
+              });
             }
           }
 

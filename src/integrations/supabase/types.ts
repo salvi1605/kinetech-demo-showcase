@@ -1086,7 +1086,7 @@ export type Database = {
       user_roles: {
         Row: {
           active: boolean | null
-          clinic_id: string
+          clinic_id: string | null
           created_at: string | null
           id: string
           role_id: string
@@ -1094,7 +1094,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
-          clinic_id: string
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
           role_id: string
@@ -1102,7 +1102,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
-          clinic_id?: string
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
           role_id?: string
@@ -1193,7 +1193,18 @@ export type Database = {
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
+      super_admin_create_clinic: {
+        Args: {
+          p_country_code?: string
+          p_default_currency?: string
+          p_name: string
+          p_owner_user_id?: string
+          p_timezone?: string
+        }
+        Returns: string
+      }
       validate_and_create_appointment: {
         Args: {
           p_clinic_id: string

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, MapPin, Clock, Users, ArrowRight } from 'lucide-react';
+import { Building, MapPin, Clock, Users, ArrowRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
 
 type ClinicWithRole = {
   id: string;
@@ -22,6 +23,7 @@ export const SelectClinic = () => {
   const [clinics, setClinics] = useState<ClinicWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClinic, setSelectedClinic] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
 
@@ -35,7 +37,39 @@ export const SelectClinic = () => {
           return;
         }
 
-        // Get user_id from public.users
+        // Super admin: load ALL clinics
+        if (state.isSuperAdmin) {
+          const { data: allClinics, error: clinicsError } = await supabase
+            .from('clinics')
+            .select('id, name, country_code, timezone, is_active')
+            .order('name');
+
+          if (clinicsError) {
+            console.error('Error loading clinics:', clinicsError);
+            toast({
+              title: "Error",
+              description: "Error al cargar las clínicas",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const clinicsWithRoles: ClinicWithRole[] = (allClinics || []).map(c => ({
+            id: c.id,
+            name: c.name,
+            country_code: c.country_code,
+            timezone: c.timezone,
+            is_active: c.is_active,
+            role_id: 'super_admin',
+            role_description: 'Super Admin',
+          }));
+
+          setClinics(clinicsWithRoles);
+          setIsLoading(false);
+          return;
+        }
+
+        // Regular user: load clinics by role
         const { data: userData } = await supabase
           .from('users')
           .select('id')
@@ -51,7 +85,6 @@ export const SelectClinic = () => {
           return;
         }
 
-        // Get user's clinics with roles
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select(`
@@ -69,7 +102,8 @@ export const SelectClinic = () => {
             )
           `)
           .eq('user_id', userData.id)
-          .eq('active', true);
+          .eq('active', true)
+          .not('clinic_id', 'is', null);
 
         if (rolesError) {
           console.error('Error loading clinics:', rolesError);
@@ -105,14 +139,16 @@ export const SelectClinic = () => {
     };
 
     loadClinics();
-  }, [navigate]);
+  }, [navigate, state.isSuperAdmin]);
 
   const handleSelectClinic = (clinicId: string, clinicName: string, roleId: string) => {
     setSelectedClinic(clinicId);
     
-    // Map database role to app role (now 1:1 mapping)
-    let appRole: 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' = 'health_pro';
-    if (roleId === 'admin_clinic') {
+    // Super admin always operates as super_admin role inside clinics
+    let appRole: 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' | 'super_admin' = 'health_pro';
+    if (state.isSuperAdmin) {
+      appRole = 'super_admin';
+    } else if (roleId === 'admin_clinic') {
       appRole = 'admin_clinic';
     } else if (roleId === 'tenant_owner') {
       appRole = 'tenant_owner';
@@ -137,6 +173,7 @@ export const SelectClinic = () => {
 
   const getRoleDisplayName = (roleId: string) => {
     switch (roleId) {
+      case 'super_admin': return 'Super Admin';
       case 'tenant_owner': return 'Propietario';
       case 'admin_clinic': return 'Administrador';
       case 'receptionist': return 'Recepcionista';
@@ -147,6 +184,8 @@ export const SelectClinic = () => {
 
   const getRoleBadgeVariant = (roleId: string) => {
     switch (roleId) {
+      case 'super_admin':
+        return 'destructive';
       case 'tenant_owner':
       case 'admin_clinic':
         return 'destructive';
@@ -159,6 +198,13 @@ export const SelectClinic = () => {
     }
   };
 
+  const handleClinicCreated = () => {
+    setCreateDialogOpen(false);
+    setIsLoading(true);
+    // Reload clinics
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -168,12 +214,29 @@ export const SelectClinic = () => {
           <p className="text-muted-foreground">
             Elige la clínica desde la cual deseas trabajar
           </p>
-          {state.currentUser && (
-            <Badge variant="outline" className="mt-2">
-              {state.currentUser.name}
-            </Badge>
-          )}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            {state.currentUser && (
+              <Badge variant="outline">
+                {state.currentUser.name}
+              </Badge>
+            )}
+            {state.isSuperAdmin && (
+              <Badge variant="destructive">
+                Super Admin
+              </Badge>
+            )}
+          </div>
         </div>
+
+        {/* Super Admin: Create Clinic Button */}
+        {state.isSuperAdmin && (
+          <div className="flex justify-end">
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Crear Nueva Clínica
+            </Button>
+          </div>
+        )}
 
         {/* Loading State */}
         {isLoading && (
@@ -188,16 +251,17 @@ export const SelectClinic = () => {
             <CardContent className="pt-6 text-center space-y-4">
               <Building className="h-12 w-12 mx-auto text-muted-foreground" />
               <div>
-                <h3 className="text-lg font-medium">No tienes clínicas asignadas</h3>
+                <h3 className="text-lg font-medium">No hay clínicas en el sistema</h3>
                 <p className="text-sm text-muted-foreground">
-                  {state.canCreateClinic 
-                    ? 'Puedes crear una nueva clínica para comenzar'
+                  {state.isSuperAdmin 
+                    ? 'Crea la primera clínica para comenzar'
                     : 'Contacta al administrador para obtener acceso'}
                 </p>
               </div>
-              {state.canCreateClinic && !state.hasRolesPending && (
-                <Button onClick={() => navigate('/create-clinic')}>
-                  Crear Mi Clínica
+              {state.isSuperAdmin && (
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Primera Clínica
                 </Button>
               )}
             </CardContent>
@@ -271,6 +335,16 @@ export const SelectClinic = () => {
           </Button>
         </div>
       </div>
+
+      {/* Create Clinic Dialog for Super Admin */}
+      {state.isSuperAdmin && (
+        <CreateClinicDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onSuccess={handleClinicCreated}
+          isSuperAdmin={true}
+        />
+      )}
     </div>
   );
 };

@@ -95,7 +95,7 @@ export default function UserManagement() {
       navigate('/login');
       return;
     }
-    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
+    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner' && state.userRole !== 'super_admin') {
       toast.error('No tienes permisos para acceder a esta sección');
       navigate('/calendar');
       return;
@@ -224,6 +224,8 @@ export default function UserManagement() {
 
   const getRoleBadgeVariant = (roleId: string): "default" | "secondary" | "destructive" => {
     switch (roleId) {
+      case 'super_admin':
+        return 'destructive';
       case 'admin_clinic':
         return 'destructive';
       case 'receptionist':
@@ -237,6 +239,8 @@ export default function UserManagement() {
 
   const getRoleLabel = (roleId: string): string => {
     switch (roleId) {
+      case 'super_admin':
+        return 'Super Admin';
       case 'tenant_owner':
         return 'Propietario';
       case 'admin_clinic':
@@ -253,13 +257,14 @@ export default function UserManagement() {
   // Get primary role based on priority
   const getPrimaryRole = (userRoles: any[]): string => {
     const rolePriority: Record<string, number> = {
+      'super_admin': 5,
       'tenant_owner': 4,
       'admin_clinic': 3,
       'receptionist': 2,
       'health_pro': 1
     };
 
-    const sortedRoles = [...userRoles].sort((a, b) => 
+    const sortedRoles = [...userRoles].sort((a: any, b: any) => 
       (rolePriority[b.role_id] || 0) - (rolePriority[a.role_id] || 0)
     );
 
