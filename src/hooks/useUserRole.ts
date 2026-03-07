@@ -47,15 +47,26 @@ export const useUserRole = (): UseUserRoleResult => {
           return;
         }
 
-        // Get the role for this user in the current clinic
-        const { data: userRoles } = await supabase
+        // Get the role for this user in the current clinic + global super_admin
+        const { data: clinicRoles } = await supabase
           .from('user_roles')
           .select('role_id')
           .eq('user_id', publicUser.id)
           .eq('clinic_id', state.currentClinicId)
           .eq('active', true);
 
-        if (!userRoles || userRoles.length === 0) {
+        // Also check for global super_admin role (NULL clinic_id)
+        const { data: globalRoles } = await supabase
+          .from('user_roles')
+          .select('role_id')
+          .eq('user_id', publicUser.id)
+          .is('clinic_id', null)
+          .eq('role_id', 'super_admin')
+          .eq('active', true);
+
+        const userRoles = [...(clinicRoles || []), ...(globalRoles || [])];
+
+        if (userRoles.length === 0) {
           setEffectiveRole(null);
           setIsLoading(false);
           return;
