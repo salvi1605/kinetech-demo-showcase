@@ -322,6 +322,7 @@ const initialState: AppState = {
   filterPatientSearch: getStoredFilterPatientSearch(),
   canCreateClinic: false,
   hasRolesPending: false,
+  isSuperAdmin: false,
 };
 
 // Reducer
