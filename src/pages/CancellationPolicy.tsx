@@ -51,8 +51,8 @@ export default function CancellationPolicy() {
           <h2>5. Contacto</h2>
           <p>
             Para solicitar una cancelación o consultar sobre reembolsos, escribí a{" "}
-            <a href="mailto:contacto@agendixpro.com" className="text-primary hover:underline">
-              contacto@agendixpro.com
+            <a href="mailto:agendixpro@gmail.com" className="text-primary hover:underline">
+              agendixpro@gmail.com
             </a>.
           </p>
         </article>

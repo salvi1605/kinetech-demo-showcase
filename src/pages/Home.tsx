@@ -215,14 +215,14 @@ export default function Home() {
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="mailto:contacto@agendixpro.com"
+              href="mailto:agendixpro@gmail.com"
               className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
               <Mail className="h-4 w-4" />
-              contacto@agendixpro.com
+              agendixpro@gmail.com
             </a>
             <a
-              href="https://wa.me/5491100000000"
+              href="https://wa.me/12262244099"
               target="_blank"
               rel="noopener noreferrer"
             >
