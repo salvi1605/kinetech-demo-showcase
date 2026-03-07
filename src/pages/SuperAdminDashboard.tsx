@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, UserCheck, CalendarDays, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowRight, Shield, Activity, Clock } from 'lucide-react';
+import { Building2, Users, UserCheck, CalendarDays, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowRight, Shield, Activity, Clock, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+type DatePreset = '7d' | '30d' | '90d' | 'custom';
+
+interface DateRange {
+  from: Date;
+  to: Date;
+  preset: DatePreset;
+}
 
 interface ClinicStats {
   id: string;
@@ -58,6 +69,11 @@ export default function SuperAdminDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+    preset: '30d',
+  });
 
   useEffect(() => {
     if (!state.isSuperAdmin) {
@@ -65,7 +81,7 @@ export default function SuperAdminDashboard() {
       return;
     }
     loadDashboardData();
-  }, [state.isSuperAdmin]);
+  }, [state.isSuperAdmin, dateRange.from, dateRange.to]);
 
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -79,7 +95,9 @@ export default function SuperAdminDashboard() {
 
       // Fetch counts per clinic in parallel
       const today = format(new Date(), 'yyyy-MM-dd');
-      const last30Days = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+      const dateFrom = format(dateRange.from, 'yyyy-MM-dd');
+      const dateTo = format(dateRange.to, 'yyyy-MM-dd');
+      const days = differenceInDays(dateRange.to, dateRange.from) + 1;
 
       const [
         { data: patients },
@@ -90,7 +108,7 @@ export default function SuperAdminDashboard() {
       ] = await Promise.all([
         supabase.from('patients').select('id, clinic_id').eq('is_deleted', false),
         supabase.from('practitioners').select('id, clinic_id, is_active'),
-        supabase.from('appointments').select('id, clinic_id, status, date').gte('date', last30Days),
+        supabase.from('appointments').select('id, clinic_id, status, date').gte('date', dateFrom).lte('date', dateTo),
         supabase.from('users').select('id, is_active'),
         supabase.from('audit_log').select('id, clinic_id, action, entity_type, created_at, payload').order('created_at', { ascending: false }).limit(20),
       ]);
@@ -222,17 +240,66 @@ export default function SuperAdminDashboard() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground tracking-tight">Panel Super Admin</h1>
                 <p className="text-sm text-muted-foreground">
-                  Vista global de todas las clínicas • Últimos 30 días
+                  Vista global • {format(dateRange.from, "dd MMM yyyy", { locale: es })} – {format(dateRange.to, "dd MMM yyyy", { locale: es })}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/select-clinic')}>
-                <Building2 className="h-4 w-4 mr-2" />
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Date presets */}
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                {([
+                  { key: '7d' as DatePreset, label: '7 días' },
+                  { key: '30d' as DatePreset, label: '30 días' },
+                  { key: '90d' as DatePreset, label: '90 días' },
+                ]).map(p => (
+                  <button
+                    key={p.key}
+                    onClick={() => setDateRange({ from: subDays(new Date(), p.key === '7d' ? 7 : p.key === '30d' ? 30 : 90), to: new Date(), preset: p.key })}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition-colors",
+                      dateRange.preset === p.key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {/* Custom date range */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant={dateRange.preset === 'custom' ? 'default' : 'outline'} size="sm" className="h-8">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Personalizado
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: dateRange.from, to: dateRange.to }}
+                    onSelect={(range) => {
+                      if (range?.from && range?.to) {
+                        setDateRange({ from: range.from, to: range.to, preset: 'custom' });
+                      } else if (range?.from) {
+                        setDateRange({ from: range.from, to: range.from, preset: 'custom' });
+                      }
+                    }}
+                    numberOfMonths={2}
+                    locale={es}
+                    disabled={(date) => date > new Date()}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Separator orientation="vertical" className="h-6 hidden sm:block" />
+              <Button variant="outline" size="sm" className="h-8" onClick={() => navigate('/select-clinic')}>
+                <Building2 className="h-3.5 w-3.5 mr-1.5" />
                 Seleccionar clínica
               </Button>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button size="sm" className="h-8" onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
                 Nueva clínica
               </Button>
             </div>
@@ -288,7 +355,7 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div>
                         <p className="text-lg font-bold text-foreground">{clinic.totalAppointments}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Citas (30d)</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Citas ({dateRange.preset === '7d' ? '7d' : dateRange.preset === '30d' ? '30d' : dateRange.preset === '90d' ? '90d' : `${differenceInDays(dateRange.to, dateRange.from) + 1}d`})</p>
                       </div>
                     </div>
 
