@@ -224,6 +224,8 @@ export default function UserManagement() {
 
   const getRoleBadgeVariant = (roleId: string): "default" | "secondary" | "destructive" => {
     switch (roleId) {
+      case 'super_admin':
+        return 'destructive';
       case 'admin_clinic':
         return 'destructive';
       case 'receptionist':
@@ -237,6 +239,8 @@ export default function UserManagement() {
 
   const getRoleLabel = (roleId: string): string => {
     switch (roleId) {
+      case 'super_admin':
+        return 'Super Admin';
       case 'tenant_owner':
         return 'Propietario';
       case 'admin_clinic':
