@@ -204,18 +204,42 @@ serve(async (req) => {
       userId = newUser.id
     }
 
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: userId,
-        role_id: roleId,
-        clinic_id: clinicId,
-        active: true,
-      })
+    // Handle super_admin role assignment (global, no clinic_id)
+    if (roleId === 'super_admin') {
+      if (!isSuperAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Solo un super_admin puede asignar el rol super_admin' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
-    if (roleError) {
-      console.error('Error assigning role')
-      throw roleError
+      const { error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role_id: 'super_admin',
+          clinic_id: null,
+          active: true,
+        })
+
+      if (roleError) {
+        console.error('Error assigning super_admin role')
+        throw roleError
+      }
+    } else {
+      const { error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role_id: roleId,
+          clinic_id: clinicId,
+          active: true,
+        })
+
+      if (roleError) {
+        console.error('Error assigning role')
+        throw roleError
+      }
     }
 
     return new Response(

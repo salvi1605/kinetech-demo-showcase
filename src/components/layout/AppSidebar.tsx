@@ -346,7 +346,7 @@ export function AppSidebar() {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <div className="w-8 h-8 bg-white/20 text-white rounded-md flex items-center justify-center"> {/* ★ */}
               <span className="text-xs font-medium">
-                {state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin_clinic' ? 'A' : state.userRole === 'receptionist' ? 'R' : 'K'}
+                {state.userRole === 'super_admin' ? 'S' : state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin_clinic' ? 'A' : state.userRole === 'receptionist' ? 'R' : 'K'}
               </span>
             </div>
           </div>

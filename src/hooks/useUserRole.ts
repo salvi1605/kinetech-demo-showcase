@@ -89,8 +89,9 @@ export const useUserRole = (): UseUserRoleResult => {
 
   return {
     effectiveRole,
-    isAdmin: effectiveRole === 'tenant_owner' || effectiveRole === 'admin_clinic',
+    isAdmin: effectiveRole === 'super_admin' || effectiveRole === 'tenant_owner' || effectiveRole === 'admin_clinic',
     isTenantOwner: effectiveRole === 'tenant_owner',
+    isSuperAdmin: effectiveRole === 'super_admin',
     isLoading,
   };
 };
