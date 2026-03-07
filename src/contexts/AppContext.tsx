@@ -768,7 +768,9 @@ const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise
 
     // Map database role to app role (now 1:1 mapping)
     let appRole: UserRole = 'receptionist';
-    if (roleData.role_id === 'tenant_owner') {
+    if (roleData.role_id === 'super_admin') {
+      appRole = 'super_admin';
+    } else if (roleData.role_id === 'tenant_owner') {
       appRole = 'tenant_owner';
     } else if (roleData.role_id === 'admin_clinic') {
       appRole = 'admin_clinic';
