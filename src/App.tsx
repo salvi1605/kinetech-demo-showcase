@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Context
 import { AppProvider } from "@/contexts/AppContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 // Route Guards
 import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
