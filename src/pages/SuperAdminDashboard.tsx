@@ -69,6 +69,11 @@ export default function SuperAdminDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+    preset: '30d',
+  });
 
   useEffect(() => {
     if (!state.isSuperAdmin) {
@@ -76,7 +81,7 @@ export default function SuperAdminDashboard() {
       return;
     }
     loadDashboardData();
-  }, [state.isSuperAdmin]);
+  }, [state.isSuperAdmin, dateRange.from, dateRange.to]);
 
   const loadDashboardData = async () => {
     setIsLoading(true);
