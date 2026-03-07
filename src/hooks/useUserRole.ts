@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 
-export type EffectiveRole = 'tenant_owner' | 'admin_clinic' | 'receptionist' | 'health_pro' | null;
+export type EffectiveRole = 'super_admin' | 'tenant_owner' | 'admin_clinic' | 'receptionist' | 'health_pro' | null;
 
 interface UseUserRoleResult {
   effectiveRole: EffectiveRole;
