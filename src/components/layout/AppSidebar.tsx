@@ -290,7 +290,7 @@ export function AppSidebar() {
                     title: 'Iniciar Sesión',
                     url: '/login',
                     icon: LogIn,
-                    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'],
+                    roles: ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro', 'super_admin'],
                   }}
                 />
               </SidebarMenu>
