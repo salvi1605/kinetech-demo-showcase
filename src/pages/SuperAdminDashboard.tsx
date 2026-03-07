@@ -95,7 +95,9 @@ export default function SuperAdminDashboard() {
 
       // Fetch counts per clinic in parallel
       const today = format(new Date(), 'yyyy-MM-dd');
-      const last30Days = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+      const dateFrom = format(dateRange.from, 'yyyy-MM-dd');
+      const dateTo = format(dateRange.to, 'yyyy-MM-dd');
+      const days = differenceInDays(dateRange.to, dateRange.from) + 1;
 
       const [
         { data: patients },
