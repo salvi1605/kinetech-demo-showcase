@@ -6,8 +6,9 @@ export type EffectiveRole = 'super_admin' | 'tenant_owner' | 'admin_clinic' | 'r
 
 interface UseUserRoleResult {
   effectiveRole: EffectiveRole;
-  isAdmin: boolean; // tenant_owner OR admin_clinic
+  isAdmin: boolean; // super_admin OR tenant_owner OR admin_clinic
   isTenantOwner: boolean;
+  isSuperAdmin: boolean;
   isLoading: boolean;
 }
 
