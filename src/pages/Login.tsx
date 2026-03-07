@@ -226,8 +226,8 @@ export const Login = () => {
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-lg mx-auto mb-4 flex items-center justify-center">
             <span className="text-white font-bold text-2xl">A</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Agendix</h1>
-          <p className="text-muted-foreground">Sistema de Gestión de Turnos</p>
+          <h1 className="text-2xl font-bold text-foreground">AgendixPro</h1>
+          <p className="text-muted-foreground">Software de agenda y gestión para clínicas</p>
         </div>
 
         {/* Login/Signup Form */}
