@@ -178,7 +178,7 @@ export default function Pricing() {
           </span>
           <nav className="flex flex-wrap justify-center gap-4">
             <Link to="/home" className="hover:text-foreground">Inicio</Link>
-            <Link to="/privacy" className="hover:text-foreground">Privacidad</Link>
+            <Link to="/contact" className="hover:text-foreground">Contacto</Link>
             <Link to="/terms" className="hover:text-foreground">Términos</Link>
             <Link to="/cancellation-policy" className="hover:text-foreground">
               Cancelación y Reembolsos
