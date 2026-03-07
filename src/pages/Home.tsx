@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   CalendarCheck,
@@ -9,18 +8,14 @@ import {
   Activity,
   HeadsetIcon,
   CheckCircle2,
-  Mail,
   MessageCircle,
   ArrowRight,
-  Settings,
-  UserPlus,
-  Sparkles,
+  Mail,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const solveIcons = [CalendarCheck, Users, Clock, Activity, HeadsetIcon];
-const stepIcons = [Settings, UserPlus, Sparkles];
 
 export default function Home() {
   const { t } = useLanguage();
@@ -53,22 +48,29 @@ export default function Home() {
 
       <Separator />
 
-      {/* ── Qué resuelve ── */}
+      {/* ── Qué resuelve — 2-col modern cards ── */}
       <section id="funcionalidades" className="container py-16 md:py-20">
         <h2 className="mb-12 text-center text-3xl font-bold">
           {t.home.solves.heading}
         </h2>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2">
           {t.home.solves.items.map((s, i) => {
             const Icon = solveIcons[i];
             return (
-              <Card key={i} className="border-muted">
-                <CardContent className="flex flex-col items-start gap-3 p-6">
-                  <Icon className="h-8 w-8 text-primary" />
-                  <h3 className="text-lg font-semibold">{s.title}</h3>
-                  <p className="text-sm text-muted-foreground">{s.desc}</p>
-                </CardContent>
-              </Card>
+              <div
+                key={i}
+                className={`group rounded-xl border border-border/60 bg-card p-8 shadow-sm transition-shadow hover:shadow-md ${
+                  i === t.home.solves.items.length - 1 && t.home.solves.items.length % 2 !== 0
+                    ? "sm:col-span-2 sm:max-w-lg sm:mx-auto"
+                    : ""
+                }`}
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
+              </div>
             );
           })}
         </div>
@@ -129,12 +131,11 @@ export default function Home() {
           <h2 className="mb-6 text-3xl font-bold">{t.home.contact.heading}</h2>
           <p className="mb-8 text-muted-foreground">{t.home.contact.desc}</p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <a
-              href="mailto:agendixpro@gmail.com"
-              className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
-            >
-              <Mail className="h-4 w-4" />
-              agendixpro@gmail.com
+            <a href="mailto:agendixpro2026@gmail.com">
+              <Button variant="outline" size="sm">
+                <Mail className="mr-2 h-4 w-4" />
+                {t.common.emailButton}
+              </Button>
             </a>
             <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">

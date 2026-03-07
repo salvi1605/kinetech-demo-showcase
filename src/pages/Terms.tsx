@@ -90,7 +90,7 @@ export function Terms() {
             <h2 className="mb-3 text-xl font-semibold">{t.terms.s8title}</h2>
             <p>
               {t.terms.s8body1}
-              <a href="mailto:agendixpro@gmail.com" className="font-medium text-primary hover:underline">agendixpro@gmail.com</a>
+              <a href="mailto:agendixpro2026@gmail.com" className="font-medium text-primary hover:underline">{t.terms.s8emailButton}</a>
               {t.terms.s8body2}
               <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{t.terms.s8whatsapp}</a>.
             </p>

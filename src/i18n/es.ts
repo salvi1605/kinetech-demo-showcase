@@ -10,10 +10,15 @@ export const es = {
   footer: {
     rights: "Todos los derechos reservados.",
     cancellation: "Cancelación y Reembolsos",
+    tagline: "Software de gestión para clínicas",
+    contactLabel: "Contacto:",
+    emailButton: "Correo",
+    whatsappButton: "WhatsApp",
   },
   common: {
     backHome: "Volver al inicio",
     lastUpdated: "Última actualización: 7 de marzo de 2026",
+    emailButton: "Mándanos un Correo",
   },
 
   // ── Home ──
@@ -21,7 +26,7 @@ export const es = {
     hero: {
       title: "AgendixPro",
       subtitle: "Software de agenda y gestión para clínicas y profesionales de salud.",
-      desc: "AgendixPro ayuda a organizar turnos, pacientes, profesionales, tratamientos y operación diaria en una sola plataforma web, con soporte y mantenimiento incluidos.",
+      desc: "AgendixPro permite gestionar turnos, pacientes, disponibilidad de profesionales y la operación diaria de una clínica desde una sola plataforma web.",
       cta: "Solicitar información",
       ctaAlt: "Ver plan y precios",
     },
@@ -30,7 +35,7 @@ export const es = {
       items: [
         { title: "Gestión de agenda y turnos", desc: "Organiza la agenda diaria de cada profesional con turnos, estados y seguimiento en tiempo real." },
         { title: "Gestión de pacientes", desc: "Registra datos personales, clínicos, obra social y documentos de cada paciente en un solo lugar." },
-        { title: "Disponibilidad de profesionales", desc: "Configura franjas horarias, excepciones y feriados para cada profesional de forma flexible." },
+        { title: "Disponibilidad de profesionales", desc: "Configura horarios, excepciones y feriados para cada profesional de forma flexible." },
         { title: "Operación diaria de la clínica", desc: "Controla asistencia, no-shows, reportes operativos y seguimiento de tratamientos." },
         { title: "Soporte y mantenimiento continuo", desc: "Acompañamiento permanente para resolver dudas, ajustar configuraciones y mejorar el sistema." },
       ],
@@ -68,9 +73,16 @@ export const es = {
     heading: "Planes y servicio",
     subtitle: "AgendixPro ofrece software de gestión clínica con mantenimiento y soporte continuo.",
     plan: "Plan Clínica",
-    price: "USD 100",
+    standardLabel: "Precio estándar",
+    price: "USD 500",
     perMonth: "/ mes",
-    planDesc: "Acceso completo a la plataforma + mantenimiento mensual.",
+    setupLabel: "Configuración inicial (setup)",
+    setupPrice: "USD 500",
+    planDesc: "AgendixPro ofrece un precio promocional especial para clínicas fundadoras durante la etapa inicial del sistema.",
+    founderAvailable: "Precio fundador disponible actualmente.",
+    founderLabel: "Precio fundador",
+    founderPrice: "USD 120",
+    founderNote: "El precio fundador se ofrece por tiempo limitado a clínicas que participan en la etapa inicial del producto.",
     includesLabel: "Incluye:",
     included: [
       "Acceso a la plataforma web",
@@ -92,7 +104,7 @@ export const es = {
     steps: [
       { title: "Contacto inicial", desc: "Escribinos por WhatsApp o email para contarnos las necesidades de tu clínica." },
       { title: "Confirmación del alcance", desc: "Definimos juntos el alcance del servicio, funcionalidades incluidas y condiciones." },
-      { title: "Activación y cobro mensual", desc: "Activamos la plataforma y comienza el servicio con facturación mensual en USD." },
+      { title: "Activación de la plataforma y facturación mensual", desc: "Activamos la plataforma y comienza el servicio con facturación mensual en USD." },
     ],
   },
 
@@ -102,7 +114,7 @@ export const es = {
     subtitle: "Si quieres conocer AgendixPro, validar disponibilidad o consultar condiciones del servicio, escríbenos.",
     directContact: "Contacto directo",
     whatsapp: "WhatsApp",
-    email: "Email",
+    email: "Correo",
     emailAction: "Mándanos un Correo",
     responseTime: "Tiempo de respuesta",
     responseTimeDesc: "Respondemos dentro de las 24 horas hábiles.",
@@ -119,7 +131,7 @@ export const es = {
     message: "Mensaje",
     messagePlaceholder: "Cuéntanos qué necesitas",
     send: "Enviar mensaje",
-    formNote: "El formulario es solo visual por ahora. Para respuesta inmediata, usa WhatsApp o email.",
+    formNote: "El formulario es solo visual por ahora. Para respuesta inmediata, usa WhatsApp o el botón de correo.",
     toastTitle: "Mensaje enviado",
     toastDesc: "Nos pondremos en contacto a la brevedad.",
   },
@@ -162,9 +174,10 @@ export const es = {
     s7dataTitle: "Datos tras cancelación",
     s7dataBody: "Una vez cancelado el servicio, los datos del cliente se conservarán durante un plazo razonable para facilitar una eventual reactivación o exportación. Pasado ese plazo, los datos podrán ser eliminados de forma permanente.",
     s8title: "8. Contacto",
-    s8body1: "Para cualquier consulta sobre estos términos, puedes escribirnos a ",
+    s8body1: "Para cualquier consulta sobre estos términos, puedes ",
     s8body2: " o contactarnos por ",
     s8whatsapp: "WhatsApp",
+    s8emailButton: "escribirnos por correo",
   },
 
   // ── Privacy ──
@@ -198,7 +211,8 @@ export const es = {
     s7title: "7. Cambios a esta política",
     s7body: "Podemos actualizar esta política de privacidad periódicamente. Los cambios relevantes serán comunicados a través de la plataforma o por email. El uso continuado del servicio después de una actualización implica la aceptación de los nuevos términos.",
     s8title: "8. Contacto para consultas de privacidad",
-    s8body: "Para cualquier consulta relacionada con esta política o con el tratamiento de tus datos, puedes escribirnos a ",
+    s8body: "Para cualquier consulta relacionada con esta política o con el tratamiento de tus datos, puedes ",
+    s8emailButton: "escribirnos por correo",
   },
 
   // ── Cancellation ──
@@ -214,7 +228,8 @@ export const es = {
     s4title: "4. Datos del cliente",
     s4body: "Tras la cancelación, los datos del cliente se conservarán durante un plazo de 30 días para facilitar la exportación o reactivación. Luego de ese período, los datos serán eliminados de forma permanente, salvo obligación legal que indique lo contrario.",
     s5title: "5. Contacto",
-    s5body: "Para solicitar una cancelación o consultar sobre reembolsos, escribí a ",
+    s5body: "Para solicitar una cancelación o consultar sobre reembolsos, ",
+    s5emailButton: "escríbenos por correo",
   },
 };
 

@@ -12,10 +12,15 @@ export const en: Translations = {
   footer: {
     rights: "All rights reserved.",
     cancellation: "Cancellation & Refunds",
+    tagline: "Management software for clinics",
+    contactLabel: "Contact:",
+    emailButton: "Email",
+    whatsappButton: "WhatsApp",
   },
   common: {
     backHome: "Back to home",
     lastUpdated: "Last updated: March 7, 2026",
+    emailButton: "Send us an Email",
   },
 
   // ── Home ──
@@ -23,7 +28,7 @@ export const en: Translations = {
     hero: {
       title: "AgendixPro",
       subtitle: "Scheduling & management software for clinics and healthcare professionals.",
-      desc: "AgendixPro helps organize appointments, patients, practitioners, treatments, and daily operations in a single web platform—with support and maintenance included.",
+      desc: "AgendixPro lets you manage appointments, patients, practitioner availability, and daily clinic operations from a single web platform.",
       cta: "Request information",
       ctaAlt: "View plan & pricing",
     },
@@ -32,7 +37,7 @@ export const en: Translations = {
       items: [
         { title: "Appointment & schedule management", desc: "Organize each practitioner's daily schedule with appointments, statuses, and real-time tracking." },
         { title: "Patient management", desc: "Store personal, clinical, insurance, and document data for every patient in one place." },
-        { title: "Practitioner availability", desc: "Set up time slots, exceptions, and holidays for each practitioner flexibly." },
+        { title: "Practitioner availability", desc: "Set up schedules, exceptions, and holidays for each practitioner flexibly." },
         { title: "Daily clinic operations", desc: "Track attendance, no-shows, operational reports, and treatment follow-ups." },
         { title: "Ongoing support & maintenance", desc: "Continuous assistance to answer questions, adjust settings, and improve the system." },
       ],
@@ -70,9 +75,16 @@ export const en: Translations = {
     heading: "Plans & Service",
     subtitle: "AgendixPro offers clinical management software with ongoing maintenance and support.",
     plan: "Clinic Plan",
-    price: "USD 100",
+    standardLabel: "Standard price",
+    price: "USD 500",
     perMonth: "/ month",
-    planDesc: "Full platform access + monthly maintenance.",
+    setupLabel: "Initial setup",
+    setupPrice: "USD 500",
+    planDesc: "AgendixPro offers a special promotional price for founding clinics during the initial stage of the system.",
+    founderAvailable: "Founder pricing currently available.",
+    founderLabel: "Founder price",
+    founderPrice: "USD 120",
+    founderNote: "The founder price is offered for a limited time to clinics participating in the initial stage of the product.",
     includesLabel: "Includes:",
     included: [
       "Web platform access",
@@ -94,7 +106,7 @@ export const en: Translations = {
     steps: [
       { title: "Initial contact", desc: "Reach out via WhatsApp or email to tell us about your clinic's needs." },
       { title: "Scope confirmation", desc: "Together we define the service scope, included features, and conditions." },
-      { title: "Activation & monthly billing", desc: "We activate the platform and the service begins with monthly billing in USD." },
+      { title: "Platform activation & monthly billing", desc: "We activate the platform and the service begins with monthly billing in USD." },
     ],
   },
 
@@ -121,7 +133,7 @@ export const en: Translations = {
     message: "Message",
     messagePlaceholder: "Tell us what you need",
     send: "Send message",
-    formNote: "This form is visual-only for now. For an immediate response, use WhatsApp or email.",
+    formNote: "This form is visual-only for now. For an immediate response, use WhatsApp or the email button.",
     toastTitle: "Message sent",
     toastDesc: "We'll get back to you shortly.",
   },
@@ -164,9 +176,10 @@ export const en: Translations = {
     s7dataTitle: "Data after cancellation",
     s7dataBody: "Once the service is cancelled, client data will be retained for a reasonable period to facilitate potential reactivation or export. After that period, data may be permanently deleted.",
     s8title: "8. Contact",
-    s8body1: "For any questions about these terms, you can write to us at ",
+    s8body1: "For any questions about these terms, you can ",
     s8body2: " or contact us via ",
     s8whatsapp: "WhatsApp",
+    s8emailButton: "send us an email",
   },
 
   // ── Privacy ──
@@ -200,7 +213,8 @@ export const en: Translations = {
     s7title: "7. Changes to this policy",
     s7body: "We may update this privacy policy periodically. Relevant changes will be communicated through the platform or by email. Continued use of the service after an update implies acceptance of the new terms.",
     s8title: "8. Contact for privacy inquiries",
-    s8body: "For any questions related to this policy or the handling of your data, you can write to us at ",
+    s8body: "For any questions related to this policy or the handling of your data, you can ",
+    s8emailButton: "send us an email",
   },
 
   // ── Cancellation ──
@@ -216,6 +230,7 @@ export const en: Translations = {
     s4title: "4. Client data",
     s4body: "After cancellation, client data will be retained for 30 days to facilitate export or reactivation. After that period, data will be permanently deleted, unless a legal obligation indicates otherwise.",
     s5title: "5. Contact",
-    s5body: "To request a cancellation or inquire about refunds, write to ",
+    s5body: "To request a cancellation or inquire about refunds, ",
+    s5emailButton: "send us an email",
   },
 };
