@@ -355,7 +355,7 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div>
                         <p className="text-lg font-bold text-foreground">{clinic.totalAppointments}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Citas (30d)</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Citas ({dateRange.preset === '7d' ? '7d' : dateRange.preset === '30d' ? '30d' : dateRange.preset === '90d' ? '90d' : `${differenceInDays(dateRange.to, dateRange.from) + 1}d`})</p>
                       </div>
                     </div>
 
