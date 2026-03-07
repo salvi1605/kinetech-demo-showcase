@@ -368,7 +368,7 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      <CreateClinicDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} onCreated={handleClinicCreated} />
+      <CreateClinicDialog open={createDialogOpen} onOpenChange={handleCreateDialogClose} />
     </div>
   );
 }
