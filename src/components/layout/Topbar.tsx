@@ -286,6 +286,21 @@ export const Topbar = () => {
                   </div>
                 )}
 
+                {state.isSuperAdmin && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
+                      navigate('/super-admin');
+                    }}
+                  >
+                    <Shield className="h-4 w-4 mr-2 text-primary" />
+                    Panel Global
+                  </Button>
+                )}
+
                 <Button 
                   variant="outline" 
                   size="sm" 
