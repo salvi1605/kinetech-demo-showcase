@@ -71,6 +71,12 @@ const App = () => (
                 </AuthRouteGuard>
               } />
               
+              <Route path="/super-admin" element={
+                <AuthRouteGuard requireClinic={false}>
+                  <SuperAdminDashboard />
+                </AuthRouteGuard>
+              } />
+              
               <Route path="/no-access" element={
                 <AuthRouteGuard requireClinic={false}>
                   <NoAccess />
