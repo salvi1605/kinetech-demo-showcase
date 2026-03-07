@@ -657,6 +657,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         hasRolesPending: action.payload,
       };
     
+    case 'SET_IS_SUPER_ADMIN':
+      return {
+        ...state,
+        isSuperAdmin: action.payload,
+      };
+    
     default:
       return state;
   }
