@@ -30,6 +30,17 @@ export const AuthRouteGuard = ({ children, requireClinic = true }: AuthRouteGuar
     return <Navigate to="/login" replace />;
   }
 
+  // Super admin without clinic → go to SelectClinic
+  if (state.isSuperAdmin && !state.currentClinicId) {
+    if (location.pathname === '/select-clinic' || location.pathname === '/no-access') {
+      return <>{children}</>;
+    }
+    if (!requireClinic) {
+      return <>{children}</>;
+    }
+    return <Navigate to="/select-clinic" replace />;
+  }
+
   // User with roles but no clinics -> redirect to /no-access
   if (state.hasRolesPending) {
     if (location.pathname !== '/no-access') {
@@ -40,8 +51,6 @@ export const AuthRouteGuard = ({ children, requireClinic = true }: AuthRouteGuar
 
   // If requireClinic is false, handle special routing
   if (!requireClinic) {
-    // User without roles trying to access create-clinic -> allow
-    // User with roles trying to access create-clinic -> redirect to no-access
     if (location.pathname === '/create-clinic' && !state.canCreateClinic && !state.currentClinicId) {
       return <Navigate to="/no-access" replace />;
     }
@@ -52,9 +61,9 @@ export const AuthRouteGuard = ({ children, requireClinic = true }: AuthRouteGuar
   if (!state.currentClinicId) {
     // No clinic selected - determine where to go
     if (state.canCreateClinic) {
-      // User can create clinic (no roles)
-      if (location.pathname !== '/create-clinic') {
-        return <Navigate to="/create-clinic" replace />;
+      // User can create clinic (no roles) - blocked now, redirect to no-access
+      if (location.pathname !== '/no-access') {
+        return <Navigate to="/no-access" replace />;
       }
     } else {
       // Has clinic access somewhere, needs to select
