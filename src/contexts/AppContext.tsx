@@ -424,6 +424,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         currentUserName: '',
         canCreateClinic: false,
         hasRolesPending: false,
+        isSuperAdmin: false,
       };
     
     case 'SET_AUTH_LOADING':
