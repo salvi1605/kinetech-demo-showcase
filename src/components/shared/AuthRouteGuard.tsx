@@ -30,15 +30,15 @@ export const AuthRouteGuard = ({ children, requireClinic = true }: AuthRouteGuar
     return <Navigate to="/login" replace />;
   }
 
-  // Super admin without clinic → go to SelectClinic
+  // Super admin without clinic → go to SuperAdmin dashboard
   if (state.isSuperAdmin && !state.currentClinicId) {
-    if (location.pathname === '/select-clinic' || location.pathname === '/no-access') {
+    if (location.pathname === '/super-admin' || location.pathname === '/select-clinic' || location.pathname === '/no-access') {
       return <>{children}</>;
     }
     if (!requireClinic) {
       return <>{children}</>;
     }
-    return <Navigate to="/select-clinic" replace />;
+    return <Navigate to="/super-admin" replace />;
   }
 
   // User with roles but no clinics -> redirect to /no-access
