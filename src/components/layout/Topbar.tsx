@@ -197,6 +197,17 @@ export const Topbar = () => {
           </div>
         )}
 
+        {/* Super Admin Dashboard Button */}
+        {state.isSuperAdmin && (
+          <Button variant="outline" size="sm" onClick={() => {
+            dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
+            navigate('/super-admin');
+          }} className="gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            Panel Global
+          </Button>
+        )}
+
         {/* Change Clinic Button */}
         {state.isAuthenticated && (
           <Button variant="ghost" size="sm" onClick={() => navigate('/select-clinic')}>
