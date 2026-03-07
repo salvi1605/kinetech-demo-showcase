@@ -675,7 +675,7 @@ const AppContext = createContext<{
 } | null>(null);
 
 // Helper function to get user clinics and check count
-const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[]; userId: string } | null> => {
+const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[]; userId: string; isSuperAdmin: boolean } | null> => {
   try {
     // Get user from public.users
     const { data: userData, error: userError } = await supabase
