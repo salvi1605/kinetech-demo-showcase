@@ -292,7 +292,7 @@ export const Topbar = () => {
                     size="sm" 
                     className="w-full justify-start"
                     onClick={() => {
-                      dispatch({ type: 'CLEAR_CLINIC' });
+                      dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
                       navigate('/super-admin');
                     }}
                   >
