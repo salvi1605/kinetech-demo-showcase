@@ -251,7 +251,8 @@ export type AppAction =
   | { type: 'SET_TEST_DATE'; payload: string | undefined }
   | { type: 'SET_APPOINTMENTS'; payload: Appointment[] }
   | { type: 'SET_CAN_CREATE_CLINIC'; payload: boolean }
-  | { type: 'SET_HAS_ROLES_PENDING'; payload: boolean };
+  | { type: 'SET_HAS_ROLES_PENDING'; payload: boolean }
+  | { type: 'SET_IS_SUPER_ADMIN'; payload: boolean };
 
 // Utility functions for appointment indexing
 const getSlotKey = (appointment: Appointment): string => {
