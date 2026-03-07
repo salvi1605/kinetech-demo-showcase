@@ -92,12 +92,12 @@ export default function Home() {
             >
               Funcionalidades
             </button>
-            <button
-              onClick={() => scrollTo("contacto")}
+            <Link
+              to="/contact"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Contacto
-            </button>
+            </Link>
             <Button asChild size="sm">
               <Link to="/login">Iniciar Sesión</Link>
             </Button>
