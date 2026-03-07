@@ -1,4 +1,4 @@
-import { Users, Settings, Calendar as CalendarIcon, X, LogOut, Building, Menu, Wrench } from 'lucide-react';
+import { Users, Settings, Calendar as CalendarIcon, X, LogOut, Building, Menu, Wrench, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -197,6 +197,17 @@ export const Topbar = () => {
           </div>
         )}
 
+        {/* Super Admin Dashboard Button */}
+        {state.isSuperAdmin && (
+          <Button variant="outline" size="sm" onClick={() => {
+            dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
+            navigate('/super-admin');
+          }} className="gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            Panel Global
+          </Button>
+        )}
+
         {/* Change Clinic Button */}
         {state.isAuthenticated && (
           <Button variant="ghost" size="sm" onClick={() => navigate('/select-clinic')}>
@@ -273,6 +284,21 @@ export const Topbar = () => {
                     <Building className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm font-medium truncate">{state.currentClinicName}</span>
                   </div>
+                )}
+
+                {state.isSuperAdmin && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
+                      navigate('/super-admin');
+                    }}
+                  >
+                    <Shield className="h-4 w-4 mr-2 text-primary" />
+                    Panel Global
+                  </Button>
                 )}
 
                 <Button 
