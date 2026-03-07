@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 // Types
-export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner';
+export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' | 'super_admin';
 
 export interface Preferences {
   timezone: string;
