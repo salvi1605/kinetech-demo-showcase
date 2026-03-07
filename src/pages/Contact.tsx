@@ -57,7 +57,7 @@ export default function Contact() {
                 className="flex items-center gap-3 text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 <Mail className="h-5 w-5 text-primary" />
-                agendixpro@gmail.com
+                Mándanos un Correo
               </a>
 
               <a
