@@ -72,6 +72,9 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         </div>
       </header>
 
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
+
       {/* Content */}
       <main className="flex-1">{children}</main>
 
