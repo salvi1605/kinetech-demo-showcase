@@ -185,10 +185,11 @@ export default function SuperAdminDashboard() {
     toast({ title: 'Clínica seleccionada', description: `Accediendo a ${clinicName}` });
   };
 
-  const handleClinicCreated = () => {
-    setCreateDialogOpen(false);
-    loadDashboardData();
-    toast({ title: '¡Clínica creada!', description: 'La nueva clínica se ha creado correctamente.' });
+  const handleCreateDialogClose = (open: boolean) => {
+    setCreateDialogOpen(open);
+    if (!open) {
+      loadDashboardData();
+    }
   };
 
   if (isLoading) {
