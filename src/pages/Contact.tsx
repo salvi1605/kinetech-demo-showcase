@@ -4,21 +4,47 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageCircle, Clock, Send, ShieldCheck } from "lucide-react";
+import { Mail, MessageCircle, Clock, Send, ShieldCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Contact() {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [form, setForm] = useState({ name: "", clinic: "", email: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: t.contact.toastTitle, description: t.contact.toastDesc });
-    setForm({ name: "", clinic: "", email: "", message: "" });
+    setSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-contact-email", {
+        body: {
+          name: form.name,
+          clinic: form.clinic,
+          email: form.email,
+          message: form.message,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({ title: t.contact.toastTitle, description: t.contact.toastDesc });
+      setForm({ name: "", clinic: "", email: "", message: "" });
+    } catch (err) {
+      console.error("Contact form error:", err);
+      toast({
+        title: t.contact.toastErrorTitle ?? "Error",
+        description: t.contact.toastErrorDesc ?? "No se pudo enviar el mensaje. Intentá de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -77,23 +103,27 @@ export default function Contact() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="c-name">{t.contact.name}</Label>
-                <Input id="c-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.contact.namePlaceholder} />
+                <Input id="c-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.contact.namePlaceholder} maxLength={100} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="c-clinic">{t.contact.clinic}</Label>
-                <Input id="c-clinic" value={form.clinic} onChange={(e) => setForm({ ...form, clinic: e.target.value })} placeholder={t.contact.clinicPlaceholder} />
+                <Input id="c-clinic" value={form.clinic} onChange={(e) => setForm({ ...form, clinic: e.target.value })} placeholder={t.contact.clinicPlaceholder} maxLength={100} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="c-email">{t.contact.emailLabel}</Label>
-                <Input id="c-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t.contact.emailPlaceholder} />
+                <Input id="c-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t.contact.emailPlaceholder} maxLength={255} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="c-msg">{t.contact.message}</Label>
-                <Textarea id="c-msg" rows={4} required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder={t.contact.messagePlaceholder} />
+                <Textarea id="c-msg" rows={4} required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder={t.contact.messagePlaceholder} maxLength={2000} />
               </div>
-              <Button type="submit" className="w-full" size="lg">
-                <Send className="mr-2 h-4 w-4" />
-                {t.contact.send}
+              <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                {submitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                {submitting ? (t.contact.sending ?? "Enviando...") : t.contact.send}
               </Button>
               <p className="text-xs text-center text-muted-foreground">{t.contact.formNote}</p>
             </form>

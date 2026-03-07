@@ -131,9 +131,12 @@ export const es = {
     message: "Mensaje",
     messagePlaceholder: "Cuéntanos qué necesitas",
     send: "Enviar mensaje",
-    formNote: "El formulario es solo visual por ahora. Para respuesta inmediata, usa WhatsApp o el botón de correo.",
+    formNote: "Tu mensaje será enviado directamente a nuestro equipo.",
+    sending: "Enviando...",
     toastTitle: "Mensaje enviado",
     toastDesc: "Nos pondremos en contacto a la brevedad.",
+    toastErrorTitle: "Error al enviar",
+    toastErrorDesc: "No se pudo enviar el mensaje. Intentá de nuevo.",
   },
 
   // ── Terms ──

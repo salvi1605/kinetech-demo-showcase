@@ -133,9 +133,12 @@ export const en: Translations = {
     message: "Message",
     messagePlaceholder: "Tell us what you need",
     send: "Send message",
-    formNote: "This form is visual-only for now. For an immediate response, use WhatsApp or the email button.",
+    formNote: "Your message will be sent directly to our team.",
+    sending: "Sending...",
     toastTitle: "Message sent",
     toastDesc: "We'll get back to you shortly.",
+    toastErrorTitle: "Error sending",
+    toastErrorDesc: "Could not send the message. Please try again.",
   },
 
   // ── Terms ──
