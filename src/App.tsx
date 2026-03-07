@@ -38,6 +38,7 @@ import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import Treatments from "@/pages/Treatments";
 import Reports from "@/pages/Reports";
+import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 
 const queryClient = new QueryClient();
 
