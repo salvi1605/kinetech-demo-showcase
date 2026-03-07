@@ -893,6 +893,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        // Super admin always goes to SelectClinic (even with 1 clinic-role)
+        if (clinicsResult.isSuperAdmin) {
+          if (clinicsResult.clinics.length === 1) {
+            // Auto-select if super_admin has exactly 1 clinic role
+            const clinic = clinicsResult.clinics[0];
+            const result = await getUserRoleFromDB(userId, clinic.clinic_id);
+            if (result) {
+              // Override role to super_admin for the user object
+              result.user.role = 'super_admin';
+              dispatch({ type: 'LOGIN', payload: result.user });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: result.clinicId, name: result.clinicName },
+              });
+              dispatch({ type: 'SET_USER_ROLE', payload: 'super_admin' });
+            }
+          } else {
+            // Multiple clinics or no clinic roles: go to SelectClinic
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id, full_name, email')
+              .eq('auth_user_id', userId)
+              .single();
+
+            if (userData) {
+              dispatch({
+                type: 'LOGIN',
+                payload: {
+                  id: userData.id,
+                  name: userData.full_name,
+                  email: userData.email,
+                  role: 'super_admin',
+                  clinicId: undefined,
+                },
+              });
+            }
+          }
+
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
         if (clinicsResult.clinics.length === 1) {
           const clinic = clinicsResult.clinics[0];
           const result = await getUserRoleFromDB(userId, clinic.clinic_id);
