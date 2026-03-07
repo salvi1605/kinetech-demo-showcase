@@ -63,7 +63,9 @@ export const useUserRole = (): UseUserRoleResult => {
         // Determine effective role (highest privilege)
         const roleIds = userRoles.map(r => r.role_id);
         
-        if (roleIds.includes('tenant_owner')) {
+        if (roleIds.includes('super_admin')) {
+          setEffectiveRole('super_admin');
+        } else if (roleIds.includes('tenant_owner')) {
           setEffectiveRole('tenant_owner');
         } else if (roleIds.includes('admin_clinic')) {
           setEffectiveRole('admin_clinic');
