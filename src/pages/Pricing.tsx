@@ -125,7 +125,7 @@ export default function Pricing() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild className="flex-1">
                 <a
-                  href="https://wa.me/5491100000000"
+                  href="https://wa.me/12262244099"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
