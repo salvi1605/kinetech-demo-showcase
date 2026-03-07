@@ -42,6 +42,7 @@ import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import Home from "@/pages/Home";
 import Pricing from "@/pages/Pricing";
 import CancellationPolicy from "@/pages/CancellationPolicy";
+import Contact from "@/pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/home" element={<Home />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
