@@ -39,6 +39,9 @@ import Privacy from "@/pages/Privacy";
 import Treatments from "@/pages/Treatments";
 import Reports from "@/pages/Reports";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
+import Home from "@/pages/Home";
+import Pricing from "@/pages/Pricing";
+import CancellationPolicy from "@/pages/CancellationPolicy";
 
 const queryClient = new QueryClient();
 
