@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Globe } from "lucide-react";
+import { Globe, Mail, MessageCircle } from "lucide-react";
 import { ReactNode } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -26,7 +26,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {/* Header */}
+      {/* Header — sticky */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/home" className="text-xl font-bold tracking-tight">
@@ -76,16 +76,40 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/50 py-8">
-        <div className="container flex flex-col items-center gap-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <span>© {new Date().getFullYear()} AgendixPro. {t.footer.rights}</span>
-          <nav className="flex flex-wrap justify-center gap-4">
-            {footerLinks.map((link) => (
-              <Link key={link.to} to={link.to} className="hover:text-foreground">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+      <footer className="border-t bg-muted/50 py-10">
+        <div className="container space-y-6">
+          {/* Identity row */}
+          <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+            <span className="text-lg font-bold">AgendixPro</span>
+            <span className="text-sm text-muted-foreground">{t.footer.tagline}</span>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-sm text-muted-foreground">{t.footer.contactLabel}</span>
+              <a href="mailto:agendixpro2026@gmail.com">
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  {t.footer.emailButton}
+                </Button>
+              </a>
+              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  {t.footer.whatsappButton}
+                </Button>
+              </a>
+            </div>
+          </div>
+
+          {/* Links + copyright */}
+          <div className="flex flex-col items-center gap-4 border-t pt-6 text-sm text-muted-foreground sm:flex-row sm:justify-between">
+            <span>© {new Date().getFullYear()} AgendixPro. {t.footer.rights}</span>
+            <nav className="flex flex-wrap justify-center gap-4">
+              {footerLinks.map((link) => (
+                <Link key={link.to} to={link.to} className="hover:text-foreground transition-colors">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </div>
       </footer>
     </div>

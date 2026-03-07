@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, XCircle, MessageCircle, Mail, Send, FileCheck, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, XCircle, MessageCircle, Mail, Send, FileCheck, Zap, Sparkles } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -27,11 +28,43 @@ export default function Pricing() {
             <p className="text-sm font-medium uppercase tracking-wider text-primary">
               {t.pricing.plan}
             </p>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-4xl font-bold">{t.pricing.price}</span>
-              <span className="text-muted-foreground">{t.pricing.perMonth}</span>
+
+            {/* Standard pricing */}
+            <div className="mt-6 space-y-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground">{t.pricing.standardLabel}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold line-through text-muted-foreground/60">{t.pricing.price}</span>
+                  <span className="text-muted-foreground/60">{t.pricing.perMonth}</span>
+                </div>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground">{t.pricing.setupLabel}</span>
+                <span className="text-lg font-semibold text-muted-foreground/60 line-through">{t.pricing.setupPrice}</span>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{t.pricing.planDesc}</p>
+
+            <Separator className="my-6" />
+
+            {/* Founder pricing */}
+            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-6 text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <Badge variant="secondary" className="text-xs font-semibold">
+                  {t.pricing.founderAvailable}
+                </Badge>
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">{t.pricing.founderLabel}</p>
+              <div className="mt-2 flex items-baseline justify-center gap-1">
+                <span className="text-4xl font-bold">{t.pricing.founderPrice}</span>
+                <span className="text-muted-foreground">{t.pricing.perMonth}</span>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">{t.pricing.planDesc}</p>
+            </div>
+
+            <p className="mt-4 text-xs text-center text-muted-foreground italic">
+              {t.pricing.founderNote}
+            </p>
 
             <Separator className="my-6" />
 
@@ -66,9 +99,11 @@ export default function Pricing() {
                   {t.pricing.ctaWhatsApp}
                 </Button>
               </a>
-              <a href="mailto:agendixpro@gmail.com" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <Mail className="h-4 w-4" />
-                {t.pricing.ctaEmail}
+              <a href="mailto:agendixpro2026@gmail.com">
+                <Button variant="outline" size="sm">
+                  <Mail className="mr-2 h-4 w-4" />
+                  {t.pricing.ctaEmail}
+                </Button>
               </a>
             </div>
           </CardContent>
