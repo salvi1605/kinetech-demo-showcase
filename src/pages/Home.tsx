@@ -85,18 +85,24 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <span className="text-xl font-bold tracking-tight">AgendixPro</span>
-          <nav className="hidden items-center gap-6 sm:flex">
+          <nav className="hidden items-center gap-6 md:flex">
             <button
               onClick={() => scrollTo("funcionalidades")}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Funcionalidades
             </button>
-            <Link
-              to="/contact"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Precios
+            </Link>
+            <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Contacto
+            </Link>
+            <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Términos
+            </Link>
+            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Privacidad
             </Link>
             <Button asChild size="sm">
               <Link to="/login">Iniciar Sesión</Link>
