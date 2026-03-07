@@ -821,13 +821,45 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        // Set super_admin flag
+        if (clinicsResult.isSuperAdmin) {
+          dispatch({ type: 'SET_IS_SUPER_ADMIN', payload: true });
+        }
+
+        // Super admin with no clinic-specific roles → go to SelectClinic (sees all clinics)
+        if (clinicsResult.isSuperAdmin && clinicsResult.clinics.length === 0) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, full_name, email')
+            .eq('auth_user_id', userId)
+            .single();
+
+          if (userData) {
+            dispatch({
+              type: 'LOGIN',
+              payload: {
+                id: userData.id,
+                name: userData.full_name,
+                email: userData.email,
+                role: 'super_admin',
+                clinicId: undefined,
+              },
+            });
+          }
+
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+
         if (clinicsResult.clinics.length === 0) {
           const { data: userRolesData } = await supabase
             .from('user_roles')
             .select('role_id')
             .eq('user_id', clinicsResult.userId);
 
-          const hasRoles = (userRolesData && userRolesData.length > 0);
+          // Filter out super_admin for this check (already handled above)
+          const nonSuperRoles = (userRolesData || []).filter(r => r.role_id !== 'super_admin');
+          const hasRoles = nonSuperRoles.length > 0;
 
           const { data: userData } = await supabase
             .from('users')
@@ -851,8 +883,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
               dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
             } else {
-              dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: true });
-              dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: false });
+              // No roles at all and not super_admin → no-access (can't self-create anymore)
+              dispatch({ type: 'SET_HAS_ROLES_PENDING', payload: true });
+              dispatch({ type: 'SET_CAN_CREATE_CLINIC', payload: false });
             }
           }
 
