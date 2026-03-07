@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  ArrowLeft,
   CheckCircle2,
   XCircle,
   MessageCircle,
@@ -12,6 +11,7 @@ import {
   FileCheck,
   Zap,
 } from "lucide-react";
+import PublicLayout from "@/components/layout/PublicLayout";
 
 const included = [
   "Acceso a la plataforma web",
@@ -51,22 +51,7 @@ const steps = [
 
 export default function Pricing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/home" className="text-xl font-bold tracking-tight">
-            AgendixPro
-          </Link>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/home">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Link>
-          </Button>
-        </div>
-      </header>
-
+    <PublicLayout>
       {/* Encabezado */}
       <section className="container py-16 text-center md:py-24">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
@@ -89,68 +74,67 @@ export default function Pricing() {
               <span className="text-4xl font-bold">USD 100</span>
               <span className="text-muted-foreground">/ mes</span>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Precio inicial para clínica fundadora. Sujeto a ajuste en futuras
-              versiones comerciales.
+            <p className="mt-2 text-sm text-muted-foreground">
+              Acceso completo a la plataforma + mantenimiento mensual.
             </p>
 
             <Separator className="my-6" />
 
-            <h3 className="mb-4 text-sm font-semibold">Qué incluye</h3>
-            <ul className="space-y-3">
-              {included.map((item) => (
-                <li key={item} className="flex items-start gap-3">
+            <p className="mb-3 text-sm font-semibold">Incluye:</p>
+            <ul className="space-y-2">
+              {included.map((i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span className="text-sm">{item}</span>
+                  <span className="text-muted-foreground">{i}</span>
                 </li>
               ))}
             </ul>
 
             <Separator className="my-6" />
 
-            <h3 className="mb-4 text-sm font-semibold">
-              Qué no incluye por defecto
-            </h3>
-            <ul className="space-y-3">
-              {notIncluded.map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{item}</span>
+            <p className="mb-3 text-sm font-semibold">No incluye:</p>
+            <ul className="space-y-2">
+              {notIncluded.map((n) => (
+                <li key={n} className="flex items-start gap-2 text-sm">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive/70" />
+                  <span className="text-muted-foreground">{n}</span>
                 </li>
               ))}
             </ul>
 
             <Separator className="my-6" />
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="flex-1">
-                <a
-                  href="https://wa.me/12262244099"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+            <div className="flex flex-col items-center gap-3">
+              <a
+                href="https://wa.me/12262244099"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
+                <Button className="w-full" size="lg">
                   <MessageCircle className="mr-2 h-4 w-4" />
-                  Hablar por WhatsApp
-                </a>
-              </Button>
-              <Button asChild variant="outline" className="flex-1">
-                <a href="mailto:agendixpro@gmail.com">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Escribir por email
-                </a>
-              </Button>
+                  Contactar por WhatsApp
+                </Button>
+              </a>
+              <a
+                href="mailto:agendixpro@gmail.com"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                Mándanos un Correo
+              </a>
             </div>
           </CardContent>
         </Card>
       </section>
 
-      {/* Cómo se contrata */}
-      <section className="border-t bg-muted/30 py-16">
+      {/* Cómo empezar */}
+      <section className="bg-muted/30 py-16">
         <div className="container">
-          <h2 className="mb-12 text-center text-2xl font-bold sm:text-3xl">
-            Cómo se contrata
+          <h2 className="mb-12 text-center text-2xl font-bold">
+            ¿Cómo empezar?
           </h2>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl gap-10 md:grid-cols-3">
             {steps.map((st) => (
               <div
                 key={st.num}
@@ -168,24 +152,6 @@ export default function Pricing() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t bg-muted/50 py-8">
-        <div className="container flex flex-col items-center gap-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <span>
-            © {new Date().getFullYear()} AgendixPro. Todos los derechos
-            reservados.
-          </span>
-          <nav className="flex flex-wrap justify-center gap-4">
-            <Link to="/home" className="hover:text-foreground">Inicio</Link>
-            <Link to="/contact" className="hover:text-foreground">Contacto</Link>
-            <Link to="/terms" className="hover:text-foreground">Términos</Link>
-            <Link to="/cancellation-policy" className="hover:text-foreground">
-              Cancelación y Reembolsos
-            </Link>
-          </nav>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }

@@ -1,13 +1,13 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Mail, MessageCircle, Clock, Send, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import PublicLayout from "@/components/layout/PublicLayout";
 
 export default function Contact() {
   const { toast } = useToast();
@@ -20,23 +20,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-14 items-center justify-between">
-          <Link to="/home" className="text-lg font-bold tracking-tight text-primary">
-            AgendixPro
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link to="/home" className="text-sm text-muted-foreground hover:text-foreground">Inicio</Link>
-            <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground">Pricing</Link>
-            <Link to="/login">
-              <Button size="sm">Iniciar sesión</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <PublicLayout>
       {/* Encabezado */}
       <section className="container py-16 md:py-20 text-center">
         <h1 className="text-4xl font-bold tracking-tight md:text-5xl">Contacto</h1>
@@ -48,85 +32,100 @@ export default function Contact() {
       <div className="container grid gap-12 pb-16 md:grid-cols-2 md:gap-16">
         {/* Contacto directo */}
         <div className="space-y-8">
-          <Card>
-            <CardContent className="space-y-6 p-6">
-              <h2 className="text-xl font-semibold">Contacto directo</h2>
-
-              <a
-                href="mailto:agendixpro@gmail.com"
-                className="flex items-center gap-3 text-sm font-medium text-foreground hover:text-primary transition-colors"
-              >
-                <Mail className="h-5 w-5 text-primary" />
-                Mándanos un Correo
-              </a>
-
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Contacto directo</h2>
+            <div className="space-y-4">
               <a
                 href="https://wa.me/12262244099"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
               >
-                <Button className="w-full" size="lg">
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Hablar por WhatsApp
-                </Button>
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">WhatsApp</p>
+                  <p className="text-sm text-muted-foreground">+1 (226) 224-4099</p>
+                </div>
               </a>
+              <a
+                href="mailto:agendixpro@gmail.com"
+                className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+              >
+                <Mail className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Email</p>
+                  <p className="text-sm text-muted-foreground">Mándanos un Correo</p>
+                </div>
+              </a>
+            </div>
+          </div>
 
-              <div className="flex items-start gap-2 rounded-md bg-muted/60 p-3 text-sm text-muted-foreground">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Respondemos habitualmente en menos de 24 horas hábiles.</span>
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <Clock className="mt-0.5 h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">Tiempo de respuesta</p>
+                <p className="text-sm text-muted-foreground">Respondemos dentro de las 24 horas hábiles.</p>
               </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex items-start gap-3 rounded-lg border p-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <p className="text-sm text-muted-foreground">
-              AgendixPro es una plataforma web para gestión clínica y operación de agenda.
-            </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">Compromiso</p>
+                <p className="text-sm text-muted-foreground">
+                  Sin compromisos iniciales. Consultá libremente sobre el servicio.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Formulario */}
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="mb-6 text-xl font-semibold">Envíanos un mensaje</h2>
+        <Card className="border-muted">
+          <CardContent className="p-6 md:p-8">
+            <h2 className="text-xl font-semibold mb-1">Enviar mensaje</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Completá el formulario y te responderemos a la brevedad.
+            </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
+                <Label htmlFor="c-name">Nombre</Label>
                 <Input
-                  id="name"
+                  id="c-name"
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Tu nombre completo"
+                  placeholder="Tu nombre"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="clinic">Clínica / Empresa</Label>
+                <Label htmlFor="c-clinic">Clínica / Consultorio</Label>
                 <Input
-                  id="clinic"
+                  id="c-clinic"
                   value={form.clinic}
                   onChange={(e) => setForm({ ...form, clinic: e.target.value })}
-                  placeholder="Nombre de tu clínica o empresa"
+                  placeholder="Nombre de la clínica (opcional)"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="c-email">Email</Label>
                 <Input
-                  id="email"
+                  id="c-email"
                   type="email"
                   required
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="correo@ejemplo.com"
+                  placeholder="tu@email.com"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="message">Mensaje</Label>
+                <Label htmlFor="c-msg">Mensaje</Label>
                 <Textarea
-                  id="message"
-                  required
+                  id="c-msg"
                   rows={4}
+                  required
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   placeholder="Cuéntanos qué necesitas"
@@ -143,22 +142,6 @@ export default function Contact() {
           </CardContent>
         </Card>
       </div>
-
-      <Separator />
-
-      {/* Footer */}
-      <footer className="border-t bg-muted/50 py-8">
-        <div className="container flex flex-col items-center gap-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <span>© {new Date().getFullYear()} AgendixPro. Todos los derechos reservados.</span>
-          <nav className="flex flex-wrap justify-center gap-4">
-            <Link to="/home" className="hover:text-foreground">Inicio</Link>
-            <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
-            <Link to="/privacy" className="hover:text-foreground">Privacidad</Link>
-            <Link to="/terms" className="hover:text-foreground">Términos</Link>
-            <Link to="/cancellation-policy" className="hover:text-foreground">Cancelación y Reembolsos</Link>
-          </nav>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }
