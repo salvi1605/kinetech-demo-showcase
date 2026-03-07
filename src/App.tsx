@@ -93,7 +93,7 @@ const App = () => (
               
               {/* Protected Routes - Clinic Required */}
               <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
-                <Route index element={<Calendar />} />
+                <Route path="calendar" element={<Calendar />} />
                 <Route path="calendar" element={<Calendar />} />
                 <Route path="patients" element={<Patients />} />
                 <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
