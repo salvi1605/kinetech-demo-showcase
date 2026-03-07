@@ -808,11 +808,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const bootstrapUser = async (userId: string, userMetadata: any) => {
       try {
-        await supabase.functions.invoke('ensure-public-user', {
+        const { error: ensureError } = await supabase.functions.invoke('ensure-public-user', {
           body: {
             fullName: userMetadata?.full_name ?? null,
           },
         });
+        if (ensureError) {
+          console.warn('[Bootstrap] ensure-public-user failed, retrying...', ensureError.message);
+          // Wait briefly and retry once — token may have been mid-refresh
+          await new Promise(r => setTimeout(r, 1500));
+          const { error: retryError } = await supabase.functions.invoke('ensure-public-user', {
+            body: { fullName: userMetadata?.full_name ?? null },
+          });
+          if (retryError) {
+            console.error('[Bootstrap] ensure-public-user retry failed:', retryError.message);
+          }
+        }
 
         const clinicsResult = await getUserClinicsFromDB(userId);
 
