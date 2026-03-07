@@ -92,12 +92,12 @@ export default function Home() {
             >
               Funcionalidades
             </button>
-            <button
-              onClick={() => scrollTo("contacto")}
+            <Link
+              to="/contact"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Contacto
-            </button>
+            </Link>
             <Button asChild size="sm">
               <Link to="/login">Iniciar Sesión</Link>
             </Button>
@@ -241,7 +241,7 @@ export default function Home() {
           <span>© {new Date().getFullYear()} AgendixPro. Todos los derechos reservados.</span>
           <nav className="flex flex-wrap justify-center gap-4">
             <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
-            <button onClick={() => scrollTo("contacto")} className="hover:text-foreground">Contacto</button>
+            <Link to="/contact" className="hover:text-foreground">Contacto</Link>
             <Link to="/privacy" className="hover:text-foreground">Privacidad</Link>
             <Link to="/terms" className="hover:text-foreground">Términos</Link>
             <Link to="/cancellation-policy" className="hover:text-foreground">Cancelación y Reembolsos</Link>
