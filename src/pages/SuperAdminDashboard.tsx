@@ -180,7 +180,7 @@ export default function SuperAdminDashboard() {
   };
 
   const handleSelectClinic = (clinicId: string, clinicName: string) => {
-    dispatch({ type: 'SET_CLINIC', payload: { clinicId, clinicName } });
+    dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: clinicId, name: clinicName } });
     navigate('/', { replace: true });
     toast({ title: 'Clínica seleccionada', description: `Accediendo a ${clinicName}` });
   };
