@@ -1,21 +1,22 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import PublicLayout from "@/components/layout/PublicLayout";
 
 export default function CancellationPolicy() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/home" className="text-xl font-bold tracking-tight">AgendixPro</Link>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/home"><ArrowLeft className="mr-2 h-4 w-4" />Volver</Link>
-          </Button>
-        </div>
-      </header>
-
+    <PublicLayout>
       <main className="container py-16 md:py-24">
         <article className="prose prose-neutral dark:prose-invert mx-auto max-w-2xl">
+          <div className="mb-6 not-prose">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/home">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al inicio
+              </Link>
+            </Button>
+          </div>
+
           <h1>Política de Cancelación y Reembolsos</h1>
           <p className="text-muted-foreground">Última actualización: marzo 2026</p>
 
@@ -57,12 +58,6 @@ export default function CancellationPolicy() {
           </p>
         </article>
       </main>
-
-      <footer className="border-t bg-muted/50 py-6">
-        <div className="container text-center text-sm text-muted-foreground">
-          <Link to="/home" className="hover:text-foreground">← Volver a AgendixPro</Link>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }
