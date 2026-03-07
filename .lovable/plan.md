@@ -1,63 +1,41 @@
 
 
-## Plan: Sistema de cambio de idioma (ES/EN) para páginas públicas
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-### Alcance
-Implementar un toggle de idioma español/inglés en el header del `PublicLayout` que cambie todos los textos de las 6 páginas públicas: Home, Pricing, Contact, Terms, Privacy y CancellationPolicy.
+## Causa raíz
 
-### Enfoque técnico
-Crear un sistema de internacionalización ligero basado en React Context (sin librerías externas), con diccionarios de traducciones en memoria (se pierde al refrescar, idioma por defecto: español).
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-### Archivos a crear
-1. **`src/contexts/LanguageContext.tsx`** — Context + Provider con estado `locale: 'es' | 'en'` y función `toggleLocale`. Hook `useLanguage()` y helper `t(key)`.
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-2. **`src/i18n/es.ts`** — Diccionario completo en español con todas las cadenas de las 6 páginas + layout (nav labels, footer, hero, solves, features, steps, pricing cards, contact form, terms sections, privacy sections, cancellation sections).
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-3. **`src/i18n/en.ts`** — Diccionario equivalente en inglés.
+## Plan de corrección (2 partes)
 
-4. **`src/i18n/index.ts`** — Export centralizado de ambos diccionarios.
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-### Archivos a modificar
-5. **`src/components/layout/PublicLayout.tsx`** — Agregar botón de idioma (bandera o "ES | EN") en el header, junto al botón de login. Leer `navLinks` y `footerLinks` desde el diccionario activo.
-
-6. **`src/pages/Home.tsx`** — Reemplazar todos los textos hardcodeados por `t('home.hero.title')`, etc.
-
-7. **`src/pages/Pricing.tsx`** — Igual, textos desde diccionario.
-
-8. **`src/pages/Contact.tsx`** — Igual.
-
-9. **`src/pages/Terms.tsx`** — Igual.
-
-10. **`src/pages/Privacy.tsx`** — Igual.
-
-11. **`src/pages/CancellationPolicy.tsx`** — Igual.
-
-12. **`src/App.tsx`** — Envolver las rutas públicas con `<LanguageProvider>`.
-
-### Diseño del botón
-Un botón compacto en el header con icono `Globe` de lucide-react mostrando "ES" o "EN" según el idioma activo. Al hacer click, alterna entre ambos.
-
-### Estructura del diccionario (ejemplo)
-```typescript
-// src/i18n/es.ts
-export const es = {
-  nav: { home: "Inicio", pricing: "Precios", contact: "Contacto", terms: "Términos", privacy: "Privacidad", login: "Iniciar Sesión" },
-  footer: { rights: "Todos los derechos reservados.", cancellation: "Cancelación y Reembolsos" },
-  home: {
-    hero: { title: "AgendixPro", subtitle: "Software de agenda y gestión...", cta: "Solicitar información", ctaAlt: "Ver plan y precios" },
-    solves: { heading: "¿Qué resuelve AgendixPro?", items: [...] },
-    // ...
-  },
-  pricing: { ... },
-  contact: { ... },
-  terms: { ... },
-  privacy: { ... },
-  cancellation: { ... },
-};
+```sql
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
 ```
 
-### Notas
-- Estado en memoria efímera (sin localStorage), respetando las reglas del proyecto.
-- Idioma por defecto: español.
-- Solo aplica a las páginas públicas; las páginas internas de la app (calendar, patients, etc.) quedan en español.
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 

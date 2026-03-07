@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Terms() {
+  const { t } = useLanguage();
+
   return (
     <PublicLayout>
       <div className="container max-w-3xl py-12 md:py-16">
@@ -12,148 +15,84 @@ export function Terms() {
           <Button asChild variant="ghost" size="sm">
             <Link to="/home">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al inicio
+              {t.common.backHome}
             </Link>
           </Button>
         </div>
 
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Términos del Servicio</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Última actualización: 7 de marzo de 2026</p>
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t.terms.heading}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t.common.lastUpdated}</p>
 
         <Separator className="my-8" />
 
         <div className="space-y-8 text-[0.95rem] leading-relaxed text-foreground/90">
+          <section><p>{t.terms.intro}</p></section>
+
           <section>
-            <p>
-              AgendixPro ofrece acceso a una plataforma web para gestión de agenda clínica y servicios
-              de mantenimiento según el plan contratado. Al utilizar el servicio, el cliente acepta las
-              condiciones descritas en este documento. Si no está de acuerdo con alguna de ellas,
-              no debe utilizar la plataforma.
-            </p>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s1title}</h2>
+            <p>{t.terms.s1body}</p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-semibold">1. Uso general del servicio</h2>
-            <p>
-              AgendixPro proporciona herramientas para organizar turnos, registrar pacientes,
-              gestionar disponibilidad de profesionales y realizar seguimiento operativo dentro de
-              clínicas y consultorios de salud. El acceso se otorga mediante cuentas de usuario
-              individuales asociadas a una clínica registrada en la plataforma.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-xl font-semibold">2. Responsabilidades del cliente</h2>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s2title}</h2>
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-              <li>Usar la plataforma conforme a las leyes y regulaciones aplicables en su jurisdicción.</li>
-              <li>Mantener la confidencialidad de sus credenciales de acceso.</li>
-              <li>No compartir cuentas de usuario entre personas diferentes.</li>
-              <li>Asegurarse de que la información registrada (pacientes, turnos, etc.) sea precisa y esté debidamente autorizada.</li>
-              <li>Cumplir con sus propias obligaciones profesionales y normativas de salud según corresponda.</li>
+              {t.terms.s2items.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
-            <p className="mt-3 text-sm text-muted-foreground italic">
-              AgendixPro no se responsabiliza por el uso indebido de la plataforma ni por el incumplimiento
-              de regulaciones locales por parte del cliente.
-            </p>
+            <p className="mt-3 text-sm text-muted-foreground italic">{t.terms.s2note}</p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-semibold">3. Alcance del mantenimiento mensual</h2>
-            <p>
-              El plan mensual incluye acceso a la plataforma, mantenimiento técnico general,
-              corrección de errores dentro del alcance existente, ajustes menores de configuración
-              y soporte operativo básico. El alcance específico del mantenimiento se define al
-              momento de la contratación y puede variar según el plan acordado.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              No se incluyen desarrollos de funcionalidades nuevas fuera del alcance acordado,
-              integraciones con sistemas externos no contempladas, ni trabajo adicional sin
-              acuerdo previo.
-            </p>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s3title}</h2>
+            <p>{t.terms.s3body}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t.terms.s3note}</p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-semibold">4. Limitaciones del servicio</h2>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s4title}</h2>
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-              <li>AgendixPro es una herramienta de gestión operativa; no constituye software médico certificado ni reemplaza el criterio profesional.</li>
-              <li>No garantizamos disponibilidad ininterrumpida del servicio. Si bien trabajamos para mantener la plataforma operativa, pueden ocurrir interrupciones por mantenimiento o causas externas.</li>
-              <li>No nos hacemos responsables por pérdidas derivadas del uso o imposibilidad de uso de la plataforma.</li>
+              {t.terms.s4items.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-semibold">5. Privacidad y datos</h2>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s5title}</h2>
             <p>
-              El tratamiento de datos personales se rige por nuestra{" "}
-              <Link to="/privacy" className="font-medium text-primary hover:underline">
-                Política de Privacidad
-              </Link>
-              . Al utilizar AgendixPro, el cliente acepta los términos descritos en dicha política.
+              {t.terms.s5body1}
+              <Link to="/privacy" className="font-medium text-primary hover:underline">{t.terms.s5link}</Link>
+              {t.terms.s5body2}
             </p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-semibold">6. Cambios al servicio</h2>
-            <p>
-              AgendixPro se reserva el derecho de modificar funcionalidades, precios o condiciones
-              del servicio. Los cambios relevantes serán comunicados con anticipación razonable.
-              El uso continuado de la plataforma después de un cambio implica la aceptación
-              de las nuevas condiciones.
-            </p>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s6title}</h2>
+            <p>{t.terms.s6body}</p>
           </section>
 
           <section id="cancelacion" className="rounded-lg border bg-muted/30 p-6">
-            <h2 className="mb-4 text-xl font-semibold">7. Cancelación y Reembolsos</h2>
+            <h2 className="mb-4 text-xl font-semibold">{t.terms.s7title}</h2>
             <div className="space-y-4 text-muted-foreground">
               <div>
-                <h3 className="mb-1 font-medium text-foreground">Cancelación</h3>
-                <p>
-                  El cliente puede solicitar la cancelación de su suscripción en cualquier momento
-                  contactando al equipo de soporte. La cancelación se aplicará a los futuros períodos
-                  de facturación; el acceso al servicio se mantendrá activo hasta el final del
-                  período en curso ya pagado.
-                </p>
+                <h3 className="mb-1 font-medium text-foreground">{t.terms.s7cancelTitle}</h3>
+                <p>{t.terms.s7cancelBody}</p>
               </div>
               <div>
-                <h3 className="mb-1 font-medium text-foreground">Reembolsos</h3>
-                <p>
-                  Los pagos ya procesados correspondientes al período de facturación en curso
-                  no son reembolsables, salvo en caso de error de cobro comprobable.
-                  Si el cliente identifica un cobro incorrecto, puede contactar a soporte para
-                  que se realice una revisión del caso.
-                </p>
+                <h3 className="mb-1 font-medium text-foreground">{t.terms.s7refundTitle}</h3>
+                <p>{t.terms.s7refundBody}</p>
               </div>
               <div>
-                <h3 className="mb-1 font-medium text-foreground">Datos tras cancelación</h3>
-                <p>
-                  Una vez cancelado el servicio, los datos del cliente se conservarán durante
-                  un plazo razonable para facilitar una eventual reactivación o exportación.
-                  Pasado ese plazo, los datos podrán ser eliminados de forma permanente.
-                </p>
+                <h3 className="mb-1 font-medium text-foreground">{t.terms.s7dataTitle}</h3>
+                <p>{t.terms.s7dataBody}</p>
               </div>
             </div>
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-semibold">8. Contacto</h2>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.s8title}</h2>
             <p>
-              Para cualquier consulta sobre estos términos, puedes escribirnos a{" "}
-              <a
-                href="mailto:agendixpro@gmail.com"
-                className="font-medium text-primary hover:underline"
-              >
-                agendixpro@gmail.com
-              </a>{" "}
-              o contactarnos por{" "}
-              <a
-                href="https://wa.me/12262244099"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                WhatsApp
-              </a>
-              .
+              {t.terms.s8body1}
+              <a href="mailto:agendixpro@gmail.com" className="font-medium text-primary hover:underline">agendixpro@gmail.com</a>
+              {t.terms.s8body2}
+              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{t.terms.s8whatsapp}</a>.
             </p>
           </section>
         </div>

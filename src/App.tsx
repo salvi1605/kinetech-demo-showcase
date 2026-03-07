@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Context
 import { AppProvider } from "@/contexts/AppContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 // Route Guards
 import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
@@ -55,14 +56,14 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/cancellation-policy" element={<CancellationPolicy />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
+              {/* Public Routes (wrapped in LanguageProvider) */}
+              <Route path="/" element={<LanguageProvider><Home /></LanguageProvider>} />
+              <Route path="/home" element={<LanguageProvider><Home /></LanguageProvider>} />
+              <Route path="/pricing" element={<LanguageProvider><Pricing /></LanguageProvider>} />
+              <Route path="/cancellation-policy" element={<LanguageProvider><CancellationPolicy /></LanguageProvider>} />
+              <Route path="/contact" element={<LanguageProvider><Contact /></LanguageProvider>} />
+              <Route path="/terms" element={<LanguageProvider><Terms /></LanguageProvider>} />
+              <Route path="/privacy" element={<LanguageProvider><Privacy /></LanguageProvider>} />
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               

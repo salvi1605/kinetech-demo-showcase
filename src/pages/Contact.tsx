@@ -8,53 +8,43 @@ import { Mail, MessageCircle, Clock, Send, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Contact() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ name: "", clinic: "", email: "", message: "" });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Mensaje enviado", description: "Nos pondremos en contacto a la brevedad." });
+    toast({ title: t.contact.toastTitle, description: t.contact.toastDesc });
     setForm({ name: "", clinic: "", email: "", message: "" });
   };
 
   return (
     <PublicLayout>
-      {/* Encabezado */}
       <section className="container py-16 md:py-20 text-center">
-        <h1 className="text-4xl font-bold tracking-tight md:text-5xl">Contacto</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-          Si quieres conocer AgendixPro, validar disponibilidad o consultar condiciones del servicio, escríbenos.
-        </p>
+        <h1 className="text-4xl font-bold tracking-tight md:text-5xl">{t.contact.heading}</h1>
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">{t.contact.subtitle}</p>
       </section>
 
       <div className="container grid gap-12 pb-16 md:grid-cols-2 md:gap-16">
-        {/* Contacto directo */}
         <div className="space-y-8">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Contacto directo</h2>
+            <h2 className="text-xl font-semibold mb-4">{t.contact.directContact}</h2>
             <div className="space-y-4">
-              <a
-                href="https://wa.me/12262244099"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
-              >
+              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <MessageCircle className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-medium">WhatsApp</p>
+                  <p className="font-medium">{t.contact.whatsapp}</p>
                   <p className="text-sm text-muted-foreground">+1 (226) 224-4099</p>
                 </div>
               </a>
-              <a
-                href="mailto:agendixpro@gmail.com"
-                className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
-              >
+              <a href="mailto:agendixpro@gmail.com" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <Mail className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">Mándanos un Correo</p>
+                  <p className="font-medium">{t.contact.email}</p>
+                  <p className="text-sm text-muted-foreground">{t.contact.emailAction}</p>
                 </div>
               </a>
             </div>
@@ -66,78 +56,46 @@ export default function Contact() {
             <div className="flex items-start gap-3">
               <Clock className="mt-0.5 h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Tiempo de respuesta</p>
-                <p className="text-sm text-muted-foreground">Respondemos dentro de las 24 horas hábiles.</p>
+                <p className="font-medium">{t.contact.responseTime}</p>
+                <p className="text-sm text-muted-foreground">{t.contact.responseTimeDesc}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Compromiso</p>
-                <p className="text-sm text-muted-foreground">
-                  Sin compromisos iniciales. Consultá libremente sobre el servicio.
-                </p>
+                <p className="font-medium">{t.contact.commitment}</p>
+                <p className="text-sm text-muted-foreground">{t.contact.commitmentDesc}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Formulario */}
         <Card className="border-muted">
           <CardContent className="p-6 md:p-8">
-            <h2 className="text-xl font-semibold mb-1">Enviar mensaje</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Completá el formulario y te responderemos a la brevedad.
-            </p>
+            <h2 className="text-xl font-semibold mb-1">{t.contact.formTitle}</h2>
+            <p className="text-sm text-muted-foreground mb-6">{t.contact.formSubtitle}</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="c-name">Nombre</Label>
-                <Input
-                  id="c-name"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Tu nombre"
-                />
+                <Label htmlFor="c-name">{t.contact.name}</Label>
+                <Input id="c-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.contact.namePlaceholder} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="c-clinic">Clínica / Consultorio</Label>
-                <Input
-                  id="c-clinic"
-                  value={form.clinic}
-                  onChange={(e) => setForm({ ...form, clinic: e.target.value })}
-                  placeholder="Nombre de la clínica (opcional)"
-                />
+                <Label htmlFor="c-clinic">{t.contact.clinic}</Label>
+                <Input id="c-clinic" value={form.clinic} onChange={(e) => setForm({ ...form, clinic: e.target.value })} placeholder={t.contact.clinicPlaceholder} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="c-email">Email</Label>
-                <Input
-                  id="c-email"
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="tu@email.com"
-                />
+                <Label htmlFor="c-email">{t.contact.emailLabel}</Label>
+                <Input id="c-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t.contact.emailPlaceholder} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="c-msg">Mensaje</Label>
-                <Textarea
-                  id="c-msg"
-                  rows={4}
-                  required
-                  value={form.message}
-                  onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  placeholder="Cuéntanos qué necesitas"
-                />
+                <Label htmlFor="c-msg">{t.contact.message}</Label>
+                <Textarea id="c-msg" rows={4} required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder={t.contact.messagePlaceholder} />
               </div>
               <Button type="submit" className="w-full" size="lg">
                 <Send className="mr-2 h-4 w-4" />
-                Enviar mensaje
+                {t.contact.send}
               </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                El formulario es solo visual por ahora. Para respuesta inmediata, usa WhatsApp o email.
-              </p>
+              <p className="text-xs text-center text-muted-foreground">{t.contact.formNote}</p>
             </form>
           </CardContent>
         </Card>
