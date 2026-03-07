@@ -57,7 +57,6 @@ const App = () => (
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
-              <Route path="/welcome" element={<Welcome />} />
               <Route path="/home" element={<Home />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/cancellation-policy" element={<CancellationPolicy />} />
