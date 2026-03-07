@@ -73,7 +73,7 @@ const CURRENCIES = [
   { value: 'EUR', label: 'Euro (EUR)' },
 ];
 
-export function CreateClinicDialog({ open, onOpenChange, onSuccess }: CreateClinicDialogProps) {
+export function CreateClinicDialog({ open, onOpenChange, onSuccess, isSuperAdmin = false }: CreateClinicDialogProps) {
   const [isCreating, setIsCreating] = useState(false);
 
   const form = useForm<CreateClinicFormData>({
@@ -89,64 +89,76 @@ export function CreateClinicDialog({ open, onOpenChange, onSuccess }: CreateClin
   const onSubmit = async (data: CreateClinicFormData) => {
     setIsCreating(true);
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      // Get user record
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (!userData) throw new Error('User record not found');
-
-      // Create clinic
-      const { data: clinic, error: clinicError } = await supabase
-        .from('clinics')
-        .insert({
-          name: data.name,
-          country_code: data.country_code,
-          timezone: data.timezone,
-          default_locale: 'es',
-          default_currency: data.default_currency,
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (clinicError) throw clinicError;
-
-      // Create default clinic settings
-      const { error: settingsError } = await supabase
-        .from('clinic_settings')
-        .insert({
-          clinic_id: clinic.id,
-          min_slot_minutes: 30,
-          workday_start: '08:00',
-          workday_end: '19:00',
-          allow_professional_self_block: true,
-          auto_mark_no_show: true,
-          auto_mark_no_show_time: '00:00',
+      if (isSuperAdmin) {
+        // Use super_admin RPC
+        const { data: clinicId, error } = await supabase.rpc('super_admin_create_clinic', {
+          p_name: data.name,
+          p_country_code: data.country_code,
+          p_timezone: data.timezone,
+          p_default_currency: data.default_currency,
         });
 
-      if (settingsError) throw settingsError;
+        if (error) throw error;
+        
+        toast.success(`Clínica "${data.name}" creada exitosamente`);
+        form.reset();
+        onSuccess(clinicId);
+      } else {
+        // Original flow for non-super-admin
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No user found');
 
-      // Assign current user as admin_clinic
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userData.id,
-          clinic_id: clinic.id,
-          role_id: 'admin_clinic',
-          active: true,
-        });
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .single();
 
-      if (roleError) throw roleError;
+        if (!userData) throw new Error('User record not found');
 
-      form.reset();
-      onSuccess(clinic.id);
+        const { data: clinic, error: clinicError } = await supabase
+          .from('clinics')
+          .insert({
+            name: data.name,
+            country_code: data.country_code,
+            timezone: data.timezone,
+            default_locale: 'es',
+            default_currency: data.default_currency,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (clinicError) throw clinicError;
+
+        const { error: settingsError } = await supabase
+          .from('clinic_settings')
+          .insert({
+            clinic_id: clinic.id,
+            min_slot_minutes: 30,
+            workday_start: '08:00',
+            workday_end: '19:00',
+            allow_professional_self_block: true,
+            auto_mark_no_show: true,
+            auto_mark_no_show_time: '00:00',
+          });
+
+        if (settingsError) throw settingsError;
+
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userData.id,
+            clinic_id: clinic.id,
+            role_id: 'admin_clinic',
+            active: true,
+          });
+
+        if (roleError) throw roleError;
+
+        form.reset();
+        onSuccess(clinic.id);
+      }
     } catch (error: any) {
       console.error('Error creating clinic:', error);
       toast.error(error.message || 'Error al crear clínica');
