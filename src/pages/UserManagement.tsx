@@ -257,13 +257,14 @@ export default function UserManagement() {
   // Get primary role based on priority
   const getPrimaryRole = (userRoles: any[]): string => {
     const rolePriority: Record<string, number> = {
+      'super_admin': 5,
       'tenant_owner': 4,
       'admin_clinic': 3,
       'receptionist': 2,
       'health_pro': 1
     };
 
-    const sortedRoles = [...userRoles].sort((a, b) => 
+    const sortedRoles = [...userRoles].sort((a: any, b: any) => 
       (rolePriority[b.role_id] || 0) - (rolePriority[a.role_id] || 0)
     );
 
