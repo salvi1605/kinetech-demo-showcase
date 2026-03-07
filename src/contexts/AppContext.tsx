@@ -65,6 +65,7 @@ export interface AppState {
   testCurrentDate?: string; // YYYY-MM-DD - For testing purposes only
   canCreateClinic: boolean; // true si usuario puede crear clínica (sin roles)
   hasRolesPending: boolean; // true si tiene roles pero ninguna clínica accesible
+  isSuperAdmin: boolean; // true si el usuario tiene rol super_admin global
 }
 
 export type PatientDocument = {
