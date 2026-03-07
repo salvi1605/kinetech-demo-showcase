@@ -200,7 +200,7 @@ export const Topbar = () => {
         {/* Super Admin Dashboard Button */}
         {state.isSuperAdmin && (
           <Button variant="outline" size="sm" onClick={() => {
-            dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
+            dispatch({ type: 'CLEAR_CLINIC' });
             navigate('/super-admin');
           }} className="gap-2">
             <Shield className="h-4 w-4 text-primary" />
