@@ -66,13 +66,13 @@ export function useOperationalReport(filters: ReportFilters) {
 
       // Group by period
       const periods = filters.groupBy === 'month'
-        ? eachMonthOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
+        ? eachMonthOfInterval({ start: parseLocalDate(filters.dateFrom), end: parseLocalDate(filters.dateTo) })
         : filters.groupBy === 'day'
-          ? eachDayOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
-          : eachWeekOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) }, { weekStartsOn: 1 });
+          ? eachDayOfInterval({ start: parseLocalDate(filters.dateFrom), end: parseLocalDate(filters.dateTo) })
+          : eachWeekOfInterval({ start: parseLocalDate(filters.dateFrom), end: parseLocalDate(filters.dateTo) }, { weekStartsOn: 1 });
 
-      const rangeStart = new Date(filters.dateFrom);
-      const rangeEnd = new Date(filters.dateTo);
+      const rangeStart = parseLocalDate(filters.dateFrom);
+      const rangeEnd = parseLocalDate(filters.dateTo);
 
       const data = periods.map(periodStart => {
         const rawStart = filters.groupBy === 'month' ? startOfMonth(periodStart) : filters.groupBy === 'day' ? periodStart : startOfWeek(periodStart, { weekStartsOn: 1 });
