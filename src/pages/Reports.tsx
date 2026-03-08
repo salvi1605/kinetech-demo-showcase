@@ -85,11 +85,12 @@ export default function Reports() {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Agrupar por</Label>
-              <Select value={groupBy} onValueChange={v => setGroupBy(v as 'week' | 'month')}>
+              <Select value={groupBy} onValueChange={v => setGroupBy(v as 'day' | 'week' | 'month')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="day">Día</SelectItem>
                   <SelectItem value="week">Semana</SelectItem>
                   <SelectItem value="month">Mes</SelectItem>
                 </SelectContent>

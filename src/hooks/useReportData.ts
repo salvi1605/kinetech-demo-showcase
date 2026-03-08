@@ -94,7 +94,9 @@ export function useOperationalReport(filters: ReportFilters) {
 
         const label = filters.groupBy === 'month'
           ? format(pStart, 'MMM yyyy', { locale: es })
-          : format(pStart, 'dd/MM', { locale: es });
+          : filters.groupBy === 'day'
+            ? format(pStart, 'dd/MM', { locale: es })
+            : format(pStart, 'dd/MM', { locale: es });
 
         return {
           label,
