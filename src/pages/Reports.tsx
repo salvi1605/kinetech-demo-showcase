@@ -20,7 +20,7 @@ export default function Reports() {
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(subMonths(now, 2)), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
   const [practitionerId, setPractitionerId] = useState<string>('');
-  const [groupBy, setGroupBy] = useState<'week' | 'month'>('week');
+  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('week');
   const [activeTab, setActiveTab] = useState('operational');
 
   const { data: practitioners } = useReportPractitioners();
