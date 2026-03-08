@@ -178,8 +178,8 @@ export function useProductivityReport(filters: ReportFilters) {
         // Calc available hours: count weekdays in range with availability
         let availMinutes = 0;
         const practAvail = (availability || []).filter(a => a.practitioner_id === p.id);
-        const d = new Date(filters.dateFrom);
-        const endD = new Date(filters.dateTo);
+        const d = new Date(parseLocalDate(filters.dateFrom));
+        const endD = parseLocalDate(filters.dateTo);
         while (d <= endD) {
           const dow = d.getDay();
           practAvail.filter(a => a.weekday === dow).forEach(a => {
