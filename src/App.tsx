@@ -11,6 +11,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 // Route Guards
 import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
 import { AuthRouteGuard } from "@/components/shared/AuthRouteGuard";
+import { PublicRouteGuard } from "@/components/shared/PublicRouteGuard";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 // Layout
@@ -56,15 +57,15 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Public Routes (wrapped in LanguageProvider) */}
-              <Route path="/" element={<LanguageProvider><Home /></LanguageProvider>} />
-              <Route path="/home" element={<LanguageProvider><Home /></LanguageProvider>} />
-              <Route path="/pricing" element={<LanguageProvider><Pricing /></LanguageProvider>} />
-              <Route path="/cancellation-policy" element={<LanguageProvider><CancellationPolicy /></LanguageProvider>} />
-              <Route path="/contact" element={<LanguageProvider><Contact /></LanguageProvider>} />
-              <Route path="/terms" element={<LanguageProvider><Terms /></LanguageProvider>} />
-              <Route path="/privacy" element={<LanguageProvider><Privacy /></LanguageProvider>} />
-              <Route path="/login" element={<Login />} />
+              {/* Public Routes - redirect to app if authenticated */}
+              <Route path="/" element={<PublicRouteGuard><LanguageProvider><Home /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/home" element={<PublicRouteGuard><LanguageProvider><Home /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/pricing" element={<PublicRouteGuard><LanguageProvider><Pricing /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/cancellation-policy" element={<PublicRouteGuard><LanguageProvider><CancellationPolicy /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/contact" element={<PublicRouteGuard><LanguageProvider><Contact /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/terms" element={<PublicRouteGuard><LanguageProvider><Terms /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/privacy" element={<PublicRouteGuard><LanguageProvider><Privacy /></LanguageProvider></PublicRouteGuard>} />
+              <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Auth Required - No Clinic Setup */}
