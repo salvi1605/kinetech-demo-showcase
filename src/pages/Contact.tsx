@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { supabase } from "@/integrations/supabase/client";
+const FORMSPREE_URL = "https://formspree.io/f/xeerorql";
 
 export default function Contact() {
   const { toast } = useToast();
