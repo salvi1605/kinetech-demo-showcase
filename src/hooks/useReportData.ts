@@ -4,6 +4,12 @@ import { useApp } from '@/contexts/AppContext';
 import { format, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+/** Parse 'YYYY-MM-DD' as local date (avoids UTC shift from new Date(string)) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 interface ReportFilters {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;
@@ -60,13 +66,13 @@ export function useOperationalReport(filters: ReportFilters) {
 
       // Group by period
       const periods = filters.groupBy === 'month'
-        ? eachMonthOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
+        ? eachMonthOfInterval({ start: parseLocalDate(filters.dateFrom), end: parseLocalDate(filters.dateTo) })
         : filters.groupBy === 'day'
-          ? eachDayOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
-          : eachWeekOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) }, { weekStartsOn: 1 });
+          ? eachDayOfInterval({ start: parseLocalDate(filters.dateFrom), end: parseLocalDate(filters.dateTo) })
+          : eachWeekOfInterval({ start: parseLocalDate(filters.dateFrom), end: parseLocalDate(filters.dateTo) }, { weekStartsOn: 1 });
 
-      const rangeStart = new Date(filters.dateFrom);
-      const rangeEnd = new Date(filters.dateTo);
+      const rangeStart = parseLocalDate(filters.dateFrom);
+      const rangeEnd = parseLocalDate(filters.dateTo);
 
       const data = periods.map(periodStart => {
         const rawStart = filters.groupBy === 'month' ? startOfMonth(periodStart) : filters.groupBy === 'day' ? periodStart : startOfWeek(periodStart, { weekStartsOn: 1 });
@@ -172,8 +178,8 @@ export function useProductivityReport(filters: ReportFilters) {
         // Calc available hours: count weekdays in range with availability
         let availMinutes = 0;
         const practAvail = (availability || []).filter(a => a.practitioner_id === p.id);
-        const d = new Date(filters.dateFrom);
-        const endD = new Date(filters.dateTo);
+        const d = new Date(parseLocalDate(filters.dateFrom));
+        const endD = parseLocalDate(filters.dateTo);
         while (d <= endD) {
           const dow = d.getDay();
           practAvail.filter(a => a.weekday === dow).forEach(a => {
