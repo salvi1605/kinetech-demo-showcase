@@ -22,16 +22,18 @@ export default function Contact() {
     setSubmitting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("send-contact-email", {
-        body: {
+      const res = await fetch(FORMSPREE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
           name: form.name,
           clinic: form.clinic,
           email: form.email,
           message: form.message,
-        },
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) throw new Error("Formspree error");
 
       toast({ title: t.contact.toastTitle, description: t.contact.toastDesc });
       setForm({ name: "", clinic: "", email: "", message: "" });
