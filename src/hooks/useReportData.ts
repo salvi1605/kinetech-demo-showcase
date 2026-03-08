@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
-import { format, eachWeekOfInterval, startOfWeek, endOfWeek, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ReportFilters {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;
   practitionerId?: string;
-  groupBy?: 'week' | 'month';
+  groupBy?: 'day' | 'week' | 'month';
 }
 
 // ─── 1. Operational Report ───
@@ -61,14 +61,16 @@ export function useOperationalReport(filters: ReportFilters) {
       // Group by period
       const periods = filters.groupBy === 'month'
         ? eachMonthOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
-        : eachWeekOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) }, { weekStartsOn: 1 });
+        : filters.groupBy === 'day'
+          ? eachDayOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) })
+          : eachWeekOfInterval({ start: new Date(filters.dateFrom), end: new Date(filters.dateTo) }, { weekStartsOn: 1 });
 
       const rangeStart = new Date(filters.dateFrom);
       const rangeEnd = new Date(filters.dateTo);
 
       const data = periods.map(periodStart => {
-        const rawStart = filters.groupBy === 'month' ? startOfMonth(periodStart) : startOfWeek(periodStart, { weekStartsOn: 1 });
-        const rawEnd = filters.groupBy === 'month' ? endOfMonth(periodStart) : endOfWeek(periodStart, { weekStartsOn: 1 });
+        const rawStart = filters.groupBy === 'month' ? startOfMonth(periodStart) : filters.groupBy === 'day' ? periodStart : startOfWeek(periodStart, { weekStartsOn: 1 });
+        const rawEnd = filters.groupBy === 'month' ? endOfMonth(periodStart) : filters.groupBy === 'day' ? periodStart : endOfWeek(periodStart, { weekStartsOn: 1 });
         // Clamp to filter range
         const pStart = rawStart < rangeStart ? rangeStart : rawStart;
         const pEnd = rawEnd > rangeEnd ? rangeEnd : rawEnd;
@@ -92,7 +94,9 @@ export function useOperationalReport(filters: ReportFilters) {
 
         const label = filters.groupBy === 'month'
           ? format(pStart, 'MMM yyyy', { locale: es })
-          : format(pStart, 'dd/MM', { locale: es });
+          : filters.groupBy === 'day'
+            ? format(pStart, 'dd/MM', { locale: es })
+            : format(pStart, 'dd/MM', { locale: es });
 
         return {
           label,

@@ -20,7 +20,7 @@ export default function Reports() {
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(subMonths(now, 2)), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
   const [practitionerId, setPractitionerId] = useState<string>('');
-  const [groupBy, setGroupBy] = useState<'week' | 'month'>('week');
+  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('week');
   const [activeTab, setActiveTab] = useState('operational');
 
   const { data: practitioners } = useReportPractitioners();
@@ -85,11 +85,12 @@ export default function Reports() {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Agrupar por</Label>
-              <Select value={groupBy} onValueChange={v => setGroupBy(v as 'week' | 'month')}>
+              <Select value={groupBy} onValueChange={v => setGroupBy(v as 'day' | 'week' | 'month')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="day">Día</SelectItem>
                   <SelectItem value="week">Semana</SelectItem>
                   <SelectItem value="month">Mes</SelectItem>
                 </SelectContent>

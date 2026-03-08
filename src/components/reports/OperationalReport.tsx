@@ -14,7 +14,7 @@ interface Props {
   dateFrom: string;
   dateTo: string;
   practitionerId?: string;
-  groupBy: 'week' | 'month';
+  groupBy: 'day' | 'week' | 'month';
 }
 
 export default function OperationalReport({ dateFrom, dateTo, practitionerId, groupBy }: Props) {
