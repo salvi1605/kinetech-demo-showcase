@@ -11,6 +11,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 // Route Guards
 import { PatientRouteGuard } from "@/components/shared/PatientRouteGuard";
 import { AuthRouteGuard } from "@/components/shared/AuthRouteGuard";
+import { PublicRouteGuard } from "@/components/shared/PublicRouteGuard";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 // Layout
