@@ -8,7 +8,7 @@ interface ReportFilters {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;
   practitionerId?: string;
-  groupBy?: 'week' | 'month';
+  groupBy?: 'day' | 'week' | 'month';
 }
 
 // ─── 1. Operational Report ───
