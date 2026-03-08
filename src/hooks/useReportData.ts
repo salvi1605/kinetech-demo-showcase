@@ -4,6 +4,12 @@ import { useApp } from '@/contexts/AppContext';
 import { format, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+/** Parse 'YYYY-MM-DD' as local date (avoids UTC shift from new Date(string)) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 interface ReportFilters {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;
