@@ -1,41 +1,53 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+## Problem: Duplicate Evolution Notes (648 appointments affected)
 
-## Causa raíz
+The `patient_clinical_notes` table has **648 appointments with duplicate evolution entries**. This is what causes the multiple textboxes and text duplication the professionals are seeing.
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+### Root Cause
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+Two issues working together:
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+1. **No unique constraint** on `(appointment_id, note_type)` in the `patient_clinical_notes` table. Nothing prevents duplicate rows at the DB level.
 
-## Plan de corrección (2 partes)
+2. **Race condition** in `usePatientClinicalNotes.ts`: When the hook creates missing evolution stubs (bulk insert), the **realtime subscription** detects the insert and triggers `fetchData()` again. The second call races with the first, finds the same "missing" appointments, and inserts another batch of stubs before the first batch is visible.
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+### Plan
+
+#### 1. Clean up existing duplicates and add unique constraint (DB migration)
 
 ```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
+-- Delete duplicate rows, keeping the one with the most content (longest body) or oldest
+DELETE FROM patient_clinical_notes
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id,
+      ROW_NUMBER() OVER (
+        PARTITION BY appointment_id, note_type
+        ORDER BY LENGTH(COALESCE(body,'')) DESC, created_at ASC
+      ) as rn
+    FROM patient_clinical_notes
+    WHERE appointment_id IS NOT NULL
+  ) ranked
+  WHERE rn > 1
+);
+
+-- Add unique constraint to prevent future duplicates
+CREATE UNIQUE INDEX idx_unique_evolution_per_appointment
+  ON patient_clinical_notes (appointment_id, note_type)
+  WHERE appointment_id IS NOT NULL;
 ```
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+#### 2. Fix race condition in `usePatientClinicalNotes.ts`
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+- Add a `useRef` lock (`isFetchingRef`) to prevent concurrent `fetchData` calls.
+- Use `INSERT ... ON CONFLICT DO NOTHING` via upsert for stub creation instead of plain insert, so even if the race happens, duplicates won't be created.
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+#### 3. Fix stub insert to use upsert in `usePatientClinicalNotes.ts`
+
+Replace the bulk `.insert(inserts)` with `.upsert(inserts, { onConflict: 'appointment_id,note_type' })` so it gracefully handles the case where stubs already exist.
+
+### Files to modify
+- `usePatientClinicalNotes.ts` — add fetch lock + upsert instead of insert
+- DB migration — cleanup + unique index
 
