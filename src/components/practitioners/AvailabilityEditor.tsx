@@ -17,6 +17,7 @@ export interface AvailabilityDay {
   day: DayKey;
   active: boolean;
   slots: DaySlot[];
+  capacity: number;
 }
 
 interface AvailabilityEditorProps {
