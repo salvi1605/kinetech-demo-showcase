@@ -23,6 +23,7 @@ export interface AvailabilityDay {
 interface AvailabilityEditorProps {
   value: AvailabilityDay[];
   onChange: (value: AvailabilityDay[]) => void;
+  showCapacity?: boolean;
 }
 
 const DAY_LABELS: Record<DayKey, string> = {
