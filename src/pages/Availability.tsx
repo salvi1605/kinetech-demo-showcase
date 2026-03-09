@@ -33,7 +33,7 @@ export const Availability = () => {
       setLoadingAvailability(true);
       const { data, error } = await supabase
         .from('practitioner_availability')
-        .select('practitioner_id, weekday, from_time, to_time')
+        .select('practitioner_id, weekday, from_time, to_time, capacity')
         .eq('clinic_id', clinicId);
 
       if (error) throw error;
