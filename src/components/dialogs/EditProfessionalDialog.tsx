@@ -107,7 +107,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
         const [availRes, treatRes] = await Promise.all([
           supabase
             .from('practitioner_availability')
-            .select('weekday, from_time, to_time')
+            .select('weekday, from_time, to_time, capacity')
             .eq('practitioner_id', professional.id),
           supabase
             .from('practitioner_treatments')
@@ -269,7 +269,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
             from_time: slot.from,
             to_time: slot.to,
             slot_minutes: 30,
-            capacity: 1,
+            capacity: day.capacity || 2,
           }))
         );
 

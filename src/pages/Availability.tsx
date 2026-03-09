@@ -33,13 +33,13 @@ export const Availability = () => {
       setLoadingAvailability(true);
       const { data, error } = await supabase
         .from('practitioner_availability')
-        .select('practitioner_id, weekday, from_time, to_time')
+        .select('practitioner_id, weekday, from_time, to_time, capacity')
         .eq('clinic_id', clinicId);
 
       if (error) throw error;
 
       // Group by practitioner_id
-      const grouped: Record<string, { weekday: number; from_time: string; to_time: string }[]> = {};
+      const grouped: Record<string, { weekday: number; from_time: string; to_time: string; capacity?: number | null }[]> = {};
       (data || []).forEach(row => {
         if (!grouped[row.practitioner_id]) grouped[row.practitioner_id] = [];
         grouped[row.practitioner_id].push(row);
@@ -114,7 +114,7 @@ export const Availability = () => {
           from_time: slot.from,
           to_time: slot.to,
           slot_minutes: 30,
-          capacity: 1,
+          capacity: day.capacity || 2,
         }))
       );
 
@@ -184,6 +184,7 @@ export const Availability = () => {
                   <AvailabilityEditor
                     value={avail}
                     onChange={(val) => handleChange(p.id, val)}
+                    showCapacity
                   />
                   <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
                     <div className="mt-4 flex justify-end">

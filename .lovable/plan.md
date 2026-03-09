@@ -1,24 +1,41 @@
 
 
-## Analysis
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-You're correct. If the 3 practitioners for this clinic produce 49 time blocks on Wednesday, and each can attend 2 patients simultaneously, the capacity should be **49 × 2 = 98**.
+## Causa raíz
 
-The problem: the `capacity` field in `practitioner_availability` is currently **1** for all records. The report code already uses this field (line 101: `const concurrent = a.capacity || 1`), so the fix is straightforward.
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-## Plan
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-### 1. Update existing `capacity` values in the database
-Run an UPDATE to set `capacity = 2` for all `practitioner_availability` records in this clinic (since all professionals currently handle 2 simultaneous patients).
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-### 2. Add capacity editor to the Availability screen
-In `src/pages/Availability.tsx` and `src/components/practitioners/AvailabilityEditor.tsx`, add a numeric input (1–10) for "Pacientes simultáneos" per practitioner-day or globally per practitioner. This value maps directly to the `capacity` column already saved on each availability row.
+## Plan de corrección (2 partes)
 
-### 3. Ensure save logic persists the capacity value
-Currently `handleSave` in `Availability.tsx` hardcodes `capacity: 1` (line ~100). Update it to use the value configured by the user in the editor.
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-### Technical details
-- The `AvailabilityDay` type needs a `capacity` field (or a top-level per-practitioner capacity).
-- The `dbAvailabilityToEditor` helper in `src/utils/availabilityHelpers.ts` needs to read and pass through the `capacity` value.
-- No schema migration needed — the column already exists with default 1.
+```sql
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
+```
+
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 

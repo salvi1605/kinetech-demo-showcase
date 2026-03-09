@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Users } from 'lucide-react';
 import { TimePicker } from '@/components/shared/TimePicker';
 
 export type DayKey = 'lun' | 'mar' | 'mié' | 'jue' | 'vie' | 'sáb' | 'dom';
@@ -17,11 +18,13 @@ export interface AvailabilityDay {
   day: DayKey;
   active: boolean;
   slots: DaySlot[];
+  capacity: number;
 }
 
 interface AvailabilityEditorProps {
   value: AvailabilityDay[];
   onChange: (value: AvailabilityDay[]) => void;
+  showCapacity?: boolean;
 }
 
 const DAY_LABELS: Record<DayKey, string> = {
@@ -34,7 +37,7 @@ const DAY_LABELS: Record<DayKey, string> = {
   dom: 'Domingo',
 };
 
-export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps) {
+export function AvailabilityEditor({ value, onChange, showCapacity = false }: AvailabilityEditorProps) {
   const dayOrder: DayKey[] = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
 
   // Utilidades para formato 24H
@@ -158,6 +161,24 @@ export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps)
                   <Label htmlFor={`day-${d}`} className="font-medium cursor-pointer">
                     {DAY_LABELS[d]}
                   </Label>
+                  {showCapacity && day.active && (
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={day.capacity}
+                        onChange={e => {
+                          const val = Math.max(1, Math.min(10, parseInt(e.target.value) || 1));
+                          setDay(d, { capacity: val });
+                        }}
+                        className="w-16 h-7 text-xs text-center"
+                        title="Pacientes simultáneos"
+                        aria-label={`Pacientes simultáneos ${DAY_LABELS[d]}`}
+                      />
+                    </div>
+                  )}
                 </div>
 
               <div className="flex-1 space-y-2">
