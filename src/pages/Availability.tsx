@@ -39,7 +39,7 @@ export const Availability = () => {
       if (error) throw error;
 
       // Group by practitioner_id
-      const grouped: Record<string, { weekday: number; from_time: string; to_time: string }[]> = {};
+      const grouped: Record<string, { weekday: number; from_time: string; to_time: string; capacity?: number | null }[]> = {};
       (data || []).forEach(row => {
         if (!grouped[row.practitioner_id]) grouped[row.practitioner_id] = [];
         grouped[row.practitioner_id].push(row);
