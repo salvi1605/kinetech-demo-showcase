@@ -54,14 +54,51 @@ export function useOperationalReport(filters: ReportFilters) {
       const { data: availability, error: aErr } = await aq;
       if (aErr) throw aErr;
 
-      // Calculate slots per day of week from availability
-      const slotsPerWeekday: Record<number, number> = {};
+      // Fetch clinic settings for sub_slots_per_block
+      const { data: clinicSettings } = await supabase
+        .from('clinic_settings')
+        .select('sub_slots_per_block')
+        .eq('clinic_id', clinicId!)
+        .maybeSingle();
+      const subSlotsPerBlock = clinicSettings?.sub_slots_per_block || 1;
+
+      // Fetch schedule exceptions (closures, holidays) to zero-out capacity on closed days
+      const { data: exceptions } = await supabase
+        .from('schedule_exceptions')
+        .select('date, practitioner_id, type, from_time, to_time')
+        .eq('clinic_id', clinicId!)
+        .gte('date', filters.dateFrom)
+        .lte('date', filters.dateTo);
+
+      // Build a set of fully-closed dates (clinic-wide closures & holidays)
+      const closedDates = new Set<string>();
+      // Build per-practitioner closed dates
+      const practitionerClosedDates = new Map<string, Set<string>>();
+      (exceptions || []).forEach(ex => {
+        if (!ex.practitioner_id) {
+          // Clinic-wide closure or holiday
+          closedDates.add(ex.date);
+        } else {
+          // Practitioner-specific block – if it covers the full day (no from/to or type=closure)
+          if (!practitionerClosedDates.has(ex.practitioner_id)) {
+            practitionerClosedDates.set(ex.practitioner_id, new Set());
+          }
+          if (ex.type === 'closure' || (!ex.from_time && !ex.to_time)) {
+            practitionerClosedDates.get(ex.practitioner_id)!.add(ex.date);
+          }
+        }
+      });
+
+      // Calculate slots per day of week from availability (per practitioner for exception handling)
+      interface PractSlot { practitionerId: string; weekday: number; slots: number; }
+      const practSlots: PractSlot[] = [];
       (availability || []).forEach(a => {
         const from = timeToMinutes(a.from_time);
         const to = timeToMinutes(a.to_time);
         const slotMin = a.slot_minutes || 30;
-        const slots = Math.floor((to - from) / slotMin);
-        slotsPerWeekday[a.weekday] = (slotsPerWeekday[a.weekday] || 0) + slots;
+        const blocks = Math.floor((to - from) / slotMin);
+        const slots = blocks * subSlotsPerBlock;
+        practSlots.push({ practitionerId: a.practitioner_id, weekday: a.weekday, slots });
       });
 
       // Group by period
