@@ -36,7 +36,7 @@ const DAY_LABELS: Record<DayKey, string> = {
   dom: 'Domingo',
 };
 
-export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps) {
+export function AvailabilityEditor({ value, onChange, showCapacity = false }: AvailabilityEditorProps) {
   const dayOrder: DayKey[] = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
 
   // Utilidades para formato 24H
