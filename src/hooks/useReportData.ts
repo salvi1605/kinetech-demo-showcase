@@ -126,12 +126,21 @@ export function useOperationalReport(filters: ReportFilters) {
         // Agendados = todo menos cancelados (scheduled + confirmed + completed + no_show)
         const booked = periodAppts.filter(a => a.status !== 'cancelled').length;
 
-        // Estimate capacity: count business days in period * slots per weekday
+        // Estimate capacity: sum practitioner slots per day, excluding closed days
         let capacity = 0;
         const d = new Date(pStart);
         while (d <= pEnd) {
           const dow = d.getDay();
-          capacity += slotsPerWeekday[dow] || 0;
+          const dateStr = format(d, 'yyyy-MM-dd');
+          if (!closedDates.has(dateStr)) {
+            // Sum slots for each practitioner that isn't individually blocked on this date
+            practSlots.filter(ps => ps.weekday === dow).forEach(ps => {
+              const practClosed = practitionerClosedDates.get(ps.practitionerId);
+              if (!practClosed || !practClosed.has(dateStr)) {
+                capacity += ps.slots;
+              }
+            });
+          }
           d.setDate(d.getDate() + 1);
         }
 
