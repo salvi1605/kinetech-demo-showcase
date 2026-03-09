@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   fetchEvolutionNotes, 
@@ -24,6 +24,7 @@ export function usePatientClinicalNotes(
   const [snapshots, setSnapshots] = useState<ClinicalSummaryDay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const isFetchingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     if (!patientId || !clinicId) {
@@ -31,6 +32,10 @@ export function usePatientClinicalNotes(
       setSnapshots([]);
       return;
     }
+
+    // Prevent concurrent fetches (race condition with realtime)
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
 
     setIsLoading(true);
     setError(null);
@@ -68,12 +73,12 @@ export function usePatientClinicalNotes(
           status: 'active',
         }));
 
+        // Use upsert with onConflict to avoid duplicates
         const { error: insertError } = await supabase
           .from('patient_clinical_notes')
-          .insert(inserts);
+          .upsert(inserts, { onConflict: 'appointment_id,note_type', ignoreDuplicates: true });
 
         if (!insertError) {
-          // Re-fetch evolutions to include the newly created stubs
           const refreshed = await fetchEvolutionNotes(patientId, clinicId);
           setEvolutions(refreshed);
           setSnapshots(snapshotsData);
@@ -95,6 +100,7 @@ export function usePatientClinicalNotes(
       setError(err instanceof Error ? err : new Error('Failed to fetch clinical notes'));
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   }, [patientId, clinicId]);
 
