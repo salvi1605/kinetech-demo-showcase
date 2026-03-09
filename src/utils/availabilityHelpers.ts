@@ -23,10 +23,13 @@ const numberToDayKey: Record<number, DayKey> = {
 const ALL_DAYS: DayKey[] = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
 
 export const dbAvailabilityToEditor = (
-  dbAvailability: { weekday: number; from_time: string; to_time: string }[]
+  dbAvailability: { weekday: number; from_time: string; to_time: string; capacity?: number | null }[]
 ): AvailabilityDay[] => {
   const daySlots: Record<DayKey, { from: string; to: string }[]> = {
     lun: [], mar: [], mié: [], jue: [], vie: [], sáb: [], dom: [],
+  };
+  const dayCapacity: Record<DayKey, number> = {
+    lun: 2, mar: 2, mié: 2, jue: 2, vie: 2, sáb: 2, dom: 2,
   };
 
   dbAvailability.forEach(s => {
@@ -36,6 +39,9 @@ export const dbAvailabilityToEditor = (
         from: s.from_time.substring(0, 5),
         to: s.to_time.substring(0, 5),
       });
+      if (s.capacity != null) {
+        dayCapacity[dayKey] = s.capacity;
+      }
     }
   });
 
@@ -43,6 +49,7 @@ export const dbAvailabilityToEditor = (
     day,
     active: daySlots[day].length > 0,
     slots: daySlots[day],
+    capacity: dayCapacity[day],
   }));
 };
 

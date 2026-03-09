@@ -42,13 +42,13 @@ interface NewProfessionalDialogProps {
 
 // Inicializar días con todos inactivos
 const initialDays: AvailabilityDay[] = [
-  { day: 'lun', active: false, slots: [] },
-  { day: 'mar', active: false, slots: [] },
-  { day: 'mié', active: false, slots: [] },
-  { day: 'jue', active: false, slots: [] },
-  { day: 'vie', active: false, slots: [] },
-  { day: 'sáb', active: false, slots: [] },
-  { day: 'dom', active: false, slots: [] },
+  { day: 'lun', active: false, slots: [], capacity: 2 },
+  { day: 'mar', active: false, slots: [], capacity: 2 },
+  { day: 'mié', active: false, slots: [], capacity: 2 },
+  { day: 'jue', active: false, slots: [], capacity: 2 },
+  { day: 'vie', active: false, slots: [], capacity: 2 },
+  { day: 'sáb', active: false, slots: [], capacity: 2 },
+  { day: 'dom', active: false, slots: [], capacity: 2 },
 ];
 
 export const NewProfessionalDialog = ({ onClose }: NewProfessionalDialogProps) => {

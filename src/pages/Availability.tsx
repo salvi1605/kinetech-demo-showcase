@@ -114,7 +114,7 @@ export const Availability = () => {
           from_time: slot.from,
           to_time: slot.to,
           slot_minutes: 30,
-          capacity: 1,
+          capacity: day.capacity || 2,
         }))
       );
 
