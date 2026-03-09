@@ -184,6 +184,7 @@ export const Availability = () => {
                   <AvailabilityEditor
                     value={avail}
                     onChange={(val) => handleChange(p.id, val)}
+                    showCapacity
                   />
                   <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
                     <div className="mt-4 flex justify-end">

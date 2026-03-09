@@ -161,6 +161,24 @@ export function AvailabilityEditor({ value, onChange, showCapacity = false }: Av
                   <Label htmlFor={`day-${d}`} className="font-medium cursor-pointer">
                     {DAY_LABELS[d]}
                   </Label>
+                  {showCapacity && day.active && (
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={day.capacity}
+                        onChange={e => {
+                          const val = Math.max(1, Math.min(10, parseInt(e.target.value) || 1));
+                          setDay(d, { capacity: val });
+                        }}
+                        className="w-16 h-7 text-xs text-center"
+                        title="Pacientes simultáneos"
+                        aria-label={`Pacientes simultáneos ${DAY_LABELS[d]}`}
+                      />
+                    </div>
+                  )}
                 </div>
 
               <div className="flex-1 space-y-2">
