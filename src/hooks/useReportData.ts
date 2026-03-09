@@ -44,7 +44,7 @@ export function useOperationalReport(filters: ReportFilters) {
       // Fetch availability to estimate capacity
       let aq = supabase
         .from('practitioner_availability')
-        .select('practitioner_id, weekday, from_time, to_time, slot_minutes')
+        .select('practitioner_id, weekday, from_time, to_time, slot_minutes, capacity')
         .eq('clinic_id', clinicId!);
 
       if (filters.practitionerId) {
@@ -54,15 +54,7 @@ export function useOperationalReport(filters: ReportFilters) {
       const { data: availability, error: aErr } = await aq;
       if (aErr) throw aErr;
 
-      // Fetch clinic settings for sub_slots_per_block
-      const { data: clinicSettings } = await supabase
-        .from('clinic_settings')
-        .select('sub_slots_per_block')
-        .eq('clinic_id', clinicId!)
-        .maybeSingle();
-      const subSlotsPerBlock = clinicSettings?.sub_slots_per_block || 1;
-
-      // Fetch schedule exceptions (closures, holidays) to zero-out capacity on closed days
+      // Fetch schedule exceptions (closures, practitioner blocks)
       const { data: exceptions } = await supabase
         .from('schedule_exceptions')
         .select('date, practitioner_id, type, from_time, to_time')
@@ -70,34 +62,45 @@ export function useOperationalReport(filters: ReportFilters) {
         .gte('date', filters.dateFrom)
         .lte('date', filters.dateTo);
 
+      // Fetch holidays to zero-out capacity on holiday dates
+      const { data: holidays } = await supabase
+        .from('holiday_calendar')
+        .select('date')
+        .or(`clinic_id.eq.${clinicId!},clinic_id.is.null`)
+        .gte('date', filters.dateFrom)
+        .lte('date', filters.dateTo);
+
       // Build a set of fully-closed dates (clinic-wide closures & holidays)
       const closedDates = new Set<string>();
+      (holidays || []).forEach(h => closedDates.add(h.date));
       // Build per-practitioner closed dates
       const practitionerClosedDates = new Map<string, Set<string>>();
       (exceptions || []).forEach(ex => {
         if (!ex.practitioner_id) {
-          // Clinic-wide closure or holiday
+          // Clinic-wide closure
           closedDates.add(ex.date);
         } else {
-          // Practitioner-specific block – if it covers the full day (no from/to or type=closure)
+          // Practitioner-specific block – full day if no time range or type=practitioner_block without times
           if (!practitionerClosedDates.has(ex.practitioner_id)) {
             practitionerClosedDates.set(ex.practitioner_id, new Set());
           }
-          if (ex.type === 'closure' || (!ex.from_time && !ex.to_time)) {
+          if (!ex.from_time && !ex.to_time) {
             practitionerClosedDates.get(ex.practitioner_id)!.add(ex.date);
           }
         }
       });
 
-      // Calculate slots per day of week from availability (per practitioner for exception handling)
+      // Calculate slots per day of week from availability
+      // Capacity = blocks × concurrent patients (from practitioner_availability.capacity)
       interface PractSlot { practitionerId: string; weekday: number; slots: number; }
       const practSlots: PractSlot[] = [];
       (availability || []).forEach(a => {
         const from = timeToMinutes(a.from_time);
         const to = timeToMinutes(a.to_time);
         const slotMin = a.slot_minutes || 30;
+        const concurrent = a.capacity || 1;
         const blocks = Math.floor((to - from) / slotMin);
-        const slots = blocks * subSlotsPerBlock;
+        const slots = blocks * concurrent;
         practSlots.push({ practitionerId: a.practitioner_id, weekday: a.weekday, slots });
       });
 
