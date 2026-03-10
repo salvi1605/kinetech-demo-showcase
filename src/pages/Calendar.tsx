@@ -777,11 +777,11 @@ export const Calendar = () => {
                     style={styles}
                     role="button"
                     tabIndex={0}
-                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        onSubSlotClick({ dayIndex, time, subSlot: subIndex });
+                        onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 });
                       }
                     }}
                     aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
