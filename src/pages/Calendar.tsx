@@ -1381,7 +1381,7 @@ export const Calendar = () => {
                                         key={`${time}-${subIndex}`}
                                         className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors relative"
                                         style={{ borderLeftColor: getPractitionerColor(appointment.practitionerId) }}
-                                        onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                         onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                                       >
                                         {isExclusiveTreatment(appointment) && (
                                           <Tooltip>
