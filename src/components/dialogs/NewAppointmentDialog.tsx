@@ -270,13 +270,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       
       window.dispatchEvent(new Event('appointmentUpdated'));
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating appointment:', error);
+      // Detectar error de constraint única (doble reserva concurrente)
+      const isUniqueViolation = error?.code === '23505' || error?.message?.includes('uq_appointments_active_slot') || error?.message?.includes('duplicate key');
       toast({
-        title: "Error",
-        description: "No se pudo crear el turno",
+        title: isUniqueViolation ? "Horario ya reservado" : "Error",
+        description: isUniqueViolation
+          ? "Este horario ya fue reservado por otro usuario. Actualiza la agenda e intenta nuevamente."
+          : "No se pudo crear el turno",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
