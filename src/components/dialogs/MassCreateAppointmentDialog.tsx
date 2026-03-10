@@ -228,9 +228,12 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
       }
     } catch (error: any) {
       console.error('Error creating appointments:', error);
+      const isUniqueViolation = error?.code === '23505' || error?.message?.includes('uq_appointments_active_slot') || error?.message?.includes('duplicate key');
       toast({
-        title: 'Error al crear citas',
-        description: error.message || 'No se pudieron crear las citas',
+        title: isUniqueViolation ? 'Horario ya reservado' : 'Error al crear citas',
+        description: isUniqueViolation
+          ? 'Uno o más horarios ya fueron reservados por otro usuario. Actualiza la agenda e intenta nuevamente.'
+          : (error.message || 'No se pudieron crear las citas'),
         variant: 'destructive',
       });
     } finally {

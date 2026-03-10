@@ -53,6 +53,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   const [quickPatientName, setQuickPatientName] = useState('');
   const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const practitionerSelectRef = useRef<HTMLButtonElement>(null);
   const patientSearchRef = useRef<HTMLInputElement>(null);
@@ -183,7 +184,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
 
   // Crear cita segura - CONECTADO A BD
   const createAppointment = async (data: NewAppointmentForm) => {
-    if (!selectedSlot) return;
+    if (!selectedSlot || isSubmitting) return;
+    setIsSubmitting(true);
     
     // Guarda de seguridad: rechazar si falta algún ID
     if (!data.patientId || !data.practitionerId) {
@@ -268,13 +270,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       
       window.dispatchEvent(new Event('appointmentUpdated'));
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating appointment:', error);
+      // Detectar error de constraint única (doble reserva concurrente)
+      const isUniqueViolation = error?.code === '23505' || error?.message?.includes('uq_appointments_active_slot') || error?.message?.includes('duplicate key');
       toast({
-        title: "Error",
-        description: "No se pudo crear el turno",
+        title: isUniqueViolation ? "Horario ya reservado" : "Error",
+        description: isUniqueViolation
+          ? "Este horario ya fue reservado por otro usuario. Actualiza la agenda e intenta nuevamente."
+          : "No se pudo crear el turno",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -593,8 +601,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
               >
                 Cancelar
               </Button>
-              <Button type="submit">
-                Confirmar turno
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Guardando…' : 'Confirmar turno'}
               </Button>
             </DialogFooter>
           </form>
