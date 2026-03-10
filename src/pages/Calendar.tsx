@@ -704,10 +704,10 @@ export const Calendar = () => {
   // Handlers de interacción (mantener para compatibilidad)
   const handleSlotClick = (dayIndex: number, time: string, subIndex?: number) => {
     if (subIndex !== undefined) {
-      onSubSlotClick({ dayIndex, time, subSlot: subIndex });
+      onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 });
     } else {
       // Fallback para clicks sin subIndex específico
-      onSubSlotClick({ dayIndex, time, subSlot: 0 });
+      onSubSlotClick({ dayIndex, time, subSlot: 1 });
     }
   };
 
