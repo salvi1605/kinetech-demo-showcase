@@ -569,7 +569,9 @@ export const Calendar = () => {
   // Handler de clic en sub-slot
   const onSubSlotClick = (meta: { dayIndex: number; time: string; subSlot: number }) => {
     const dateISO = format(weekDates[meta.dayIndex], 'yyyy-MM-dd');
-    const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
+    // meta.subSlot is 1-based (for DB/RPC); convert to 0-based for internal map lookup
+    const subSlot0 = meta.subSlot - 1;
+    const key = getSlotKey({ dateISO, hour: meta.time, subSlot: subSlot0 });
     const appointment = appointmentsBySlotKey.get(key);
     const isPast = isPastDay(dateISO);
 
@@ -704,10 +706,10 @@ export const Calendar = () => {
   // Handlers de interacción (mantener para compatibilidad)
   const handleSlotClick = (dayIndex: number, time: string, subIndex?: number) => {
     if (subIndex !== undefined) {
-      onSubSlotClick({ dayIndex, time, subSlot: subIndex });
+      onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 });
     } else {
       // Fallback para clicks sin subIndex específico
-      onSubSlotClick({ dayIndex, time, subSlot: 0 });
+      onSubSlotClick({ dayIndex, time, subSlot: 1 });
     }
   };
 
@@ -777,11 +779,11 @@ export const Calendar = () => {
                     style={styles}
                     role="button"
                     tabIndex={0}
-                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                    onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        onSubSlotClick({ dayIndex, time, subSlot: subIndex });
+                        onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 });
                       }
                     }}
                     aria-label={`Turno de ${patient?.name || 'Paciente'} con ${practitioner?.name || 'Profesional'} a las ${time}, sub-slot ${subIndex + 1}`}
@@ -903,7 +905,7 @@ export const Calendar = () => {
                       ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                   }`}
-                  onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                  onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                   aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
@@ -1008,8 +1010,8 @@ export const Calendar = () => {
                      ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
                      : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                  }`}
-               onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-               aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
+                onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
+                aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                tabIndex={0}
              >
                <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
@@ -1381,7 +1383,7 @@ export const Calendar = () => {
                                         key={`${time}-${subIndex}`}
                                         className="p-3 cursor-pointer border-l-4 hover:opacity-80 transition-colors relative"
                                         style={{ borderLeftColor: getPractitionerColor(appointment.practitionerId) }}
-                                        onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
+                                         onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                                       >
                                         {isExclusiveTreatment(appointment) && (
                                           <Tooltip>
@@ -1487,9 +1489,9 @@ export const Calendar = () => {
                                             ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' 
                                             : 'border-green-300 bg-green-50 hover:bg-green-100'
                                         }`}
-                                        onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                      >
-                                        <div className="flex items-center justify-center">
+                                         onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
+                                       >
+                                         <div className="flex items-center justify-center">
                                           <span className={`text-lg ${isSelected ? 'text-blue-600' : 'text-green-600'}`}>
                                             {isSelected ? '✓' : <Plus className="h-4 w-4" />}
                                           </span>
