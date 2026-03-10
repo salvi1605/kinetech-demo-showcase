@@ -1008,8 +1008,8 @@ export const Calendar = () => {
                      ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
                      : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                  }`}
-               onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-               aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
+                onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
+                aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                tabIndex={0}
              >
                <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
