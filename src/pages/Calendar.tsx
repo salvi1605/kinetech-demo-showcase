@@ -1487,9 +1487,9 @@ export const Calendar = () => {
                                             ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' 
                                             : 'border-green-300 bg-green-50 hover:bg-green-100'
                                         }`}
-                                        onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex })}
-                                      >
-                                        <div className="flex items-center justify-center">
+                                         onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
+                                       >
+                                         <div className="flex items-center justify-center">
                                           <span className={`text-lg ${isSelected ? 'text-blue-600' : 'text-green-600'}`}>
                                             {isSelected ? '✓' : <Plus className="h-4 w-4" />}
                                           </span>
