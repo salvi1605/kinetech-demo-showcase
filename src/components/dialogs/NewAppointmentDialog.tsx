@@ -184,7 +184,8 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
 
   // Crear cita segura - CONECTADO A BD
   const createAppointment = async (data: NewAppointmentForm) => {
-    if (!selectedSlot) return;
+    if (!selectedSlot || isSubmitting) return;
+    setIsSubmitting(true);
     
     // Guarda de seguridad: rechazar si falta algún ID
     if (!data.patientId || !data.practitionerId) {
