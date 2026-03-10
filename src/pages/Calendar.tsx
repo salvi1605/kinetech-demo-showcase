@@ -569,7 +569,9 @@ export const Calendar = () => {
   // Handler de clic en sub-slot
   const onSubSlotClick = (meta: { dayIndex: number; time: string; subSlot: number }) => {
     const dateISO = format(weekDates[meta.dayIndex], 'yyyy-MM-dd');
-    const key = getSlotKey({ dateISO, hour: meta.time, subSlot: meta.subSlot });
+    // meta.subSlot is 1-based (for DB/RPC); convert to 0-based for internal map lookup
+    const subSlot0 = meta.subSlot - 1;
+    const key = getSlotKey({ dateISO, hour: meta.time, subSlot: subSlot0 });
     const appointment = appointmentsBySlotKey.get(key);
     const isPast = isPastDay(dateISO);
 
