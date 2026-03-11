@@ -65,10 +65,12 @@ export default function Home() {
               key={i}
               className="group rounded-xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md overflow-hidden"
             >
-              {/* Placeholder image area */}
-              <div className="flex h-48 items-center justify-center bg-muted/50">
-                <Image className="h-12 w-12 text-muted-foreground/40" />
-              </div>
+              <img
+                src={previewImages[i]}
+                alt={item.title}
+                className="h-48 w-full object-cover object-top"
+                loading="lazy"
+              />
               <div className="p-6">
                 <h3 className="text-lg font-semibold">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
