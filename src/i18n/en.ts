@@ -26,43 +26,63 @@ export const en: Translations = {
   // ── Home ──
   home: {
     hero: {
-      title: "AgendixPro",
-      subtitle: "Scheduling & management software for clinics and healthcare professionals.",
-      desc: "AgendixPro lets you manage appointments, patients, practitioner availability, and daily clinic operations from a single web platform.",
-      cta: "Request information",
-      ctaAlt: "View plan & pricing",
+      title: "Complete appointment, patient, and daily operations management for health clinics",
+      subtitle: "Organize your practitioners' schedules, manage patients, and control your clinic's operations from a single platform.",
+      cta: "Request a demo",
+      ctaAlt: "Chat on WhatsApp",
     },
-    solves: {
-      heading: "What does AgendixPro solve?",
+    productPreview: {
+      heading: "What AgendixPro looks like",
       items: [
-        { title: "Appointment & schedule management", desc: "Organize each practitioner's daily schedule with appointments, statuses, and real-time tracking." },
-        { title: "Patient management", desc: "Store personal, clinical, insurance, and document data for every patient in one place." },
-        { title: "Practitioner availability", desc: "Set up schedules, exceptions, and holidays for each practitioner flexibly." },
-        { title: "Daily clinic operations", desc: "Track attendance, no-shows, operational reports, and treatment follow-ups." },
-        { title: "Ongoing support & maintenance", desc: "Continuous assistance to answer questions, adjust settings, and improve the system." },
+        { title: "Weekly schedule", desc: "View and manage each practitioner's appointments in a clear, organized calendar." },
+        { title: "Patient profile", desc: "Access clinical information, personal data, and patient documentation in one place." },
+        { title: "Clinical history", desc: "Record sessions, progress, and treatment follow-ups in a structured way." },
+      ],
+    },
+    features: {
+      heading: "What you can manage with AgendixPro",
+      items: [
+        { title: "Schedule management", desc: "Organize appointments by practitioner, time slot, and availability." },
+        { title: "Patient management", desc: "Record personal, clinical, and documentation data in a complete profile." },
+        { title: "Practitioner availability", desc: "Set up schedules, exceptions, and holidays flexibly." },
+        { title: "Operational control", desc: "Monitor attendance, no-shows, and the daily state of the schedule." },
+      ],
+    },
+    support: {
+      heading: "Ongoing support",
+      items: [
+        "Support to resolve system questions",
+        "Continuous maintenance and improvements",
+        "Adjustments based on the clinic's needs",
       ],
     },
     includes: {
-      heading: "What's included in the service?",
+      heading: "The system includes",
       items: [
-        "Per-practitioner weekly schedule view",
+        "Per-practitioner weekly schedule",
         "Complete patient records",
-        "Availability & exception management",
-        "Operational tracking & reports",
+        "Availability management",
+        "Attendance & no-show tracking",
+        "Operational reports",
         "Web access for the entire team",
       ],
     },
-    howItWorks: {
-      heading: "How does it work?",
-      steps: [
-        { title: "Initial setup", desc: "We create the clinic, practitioners, schedules, and treatments based on the team's needs." },
-        { title: "Team access", desc: "Each team member receives a user account with the appropriate role and permissions to start working." },
-        { title: "Support & continuous improvement", desc: "Monthly maintenance, updates, and assistance so the system evolves with the clinic." },
+    trust: {
+      text: "AgendixPro is currently being used in kinesiology clinics to manage schedules, patients, and daily operations.",
+    },
+    audience: {
+      heading: "Designed for",
+      items: [
+        "Kinesiology clinics",
+        "Rehabilitation centers",
+        "Professionals with appointment-based schedules",
+        "Health teams that manage patients daily",
       ],
     },
     maintenance: {
-      heading: "Service with ongoing maintenance",
-      desc: "AgendixPro is not just software—it's a full service that includes professional support. Every monthly plan includes maintenance with updates, configuration adjustments, and ongoing assistance so the system runs optimally at all times.",
+      heading: "AgendixPro is not just software.",
+      desc: "It includes support, maintenance, and guidance to help you implement the system correctly in your clinic.",
+      note: "This is especially useful for small clinics that need simple and reliable technology.",
     },
     contact: {
       heading: "Contact",

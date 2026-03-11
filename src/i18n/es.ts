@@ -24,43 +24,63 @@ export const es = {
   // ── Home ──
   home: {
     hero: {
-      title: "AgendixPro",
-      subtitle: "Software de agenda y gestión para clínicas y profesionales de salud.",
-      desc: "AgendixPro permite gestionar turnos, pacientes, disponibilidad de profesionales y la operación diaria de una clínica desde una sola plataforma web.",
-      cta: "Solicitar información",
-      ctaAlt: "Ver plan y precios",
+      title: "Gestión completa de turnos, pacientes y operación diaria para clínicas de salud",
+      subtitle: "Organiza la agenda de tus profesionales, gestiona pacientes y controla la operación de tu clínica desde una sola plataforma.",
+      cta: "Solicitar demo",
+      ctaAlt: "Hablar por WhatsApp",
     },
-    solves: {
-      heading: "¿Qué resuelve AgendixPro?",
+    productPreview: {
+      heading: "Cómo se ve AgendixPro",
       items: [
-        { title: "Gestión de agenda y turnos", desc: "Organiza la agenda diaria de cada profesional con turnos, estados y seguimiento en tiempo real." },
-        { title: "Gestión de pacientes", desc: "Registra datos personales, clínicos, obra social y documentos de cada paciente en un solo lugar." },
-        { title: "Disponibilidad de profesionales", desc: "Configura horarios, excepciones y feriados para cada profesional de forma flexible." },
-        { title: "Operación diaria de la clínica", desc: "Controla asistencia, no-shows, reportes operativos y seguimiento de tratamientos." },
-        { title: "Soporte y mantenimiento continuo", desc: "Acompañamiento permanente para resolver dudas, ajustar configuraciones y mejorar el sistema." },
+        { title: "Agenda semanal", desc: "Visualiza y gestiona los turnos de cada profesional en una agenda clara y organizada." },
+        { title: "Ficha de paciente", desc: "Accede a la información clínica, datos personales y documentación del paciente en un solo lugar." },
+        { title: "Historial clínico", desc: "Registra sesiones, evolución y seguimiento de tratamientos de forma estructurada." },
+      ],
+    },
+    features: {
+      heading: "Lo que puedes gestionar con AgendixPro",
+      items: [
+        { title: "Gestión de agenda", desc: "Organiza turnos por profesional, horario y disponibilidad." },
+        { title: "Gestión de pacientes", desc: "Registra datos personales, clínicos y documentación en una ficha completa." },
+        { title: "Disponibilidad de profesionales", desc: "Configura horarios, excepciones y feriados de forma flexible." },
+        { title: "Control operativo", desc: "Monitorea asistencia, no-shows y el estado diario de la agenda." },
+      ],
+    },
+    support: {
+      heading: "Acompañamiento continuo",
+      items: [
+        "Soporte para resolver dudas del sistema",
+        "Mantenimiento y mejoras continuas",
+        "Ajustes según las necesidades de la clínica",
       ],
     },
     includes: {
-      heading: "¿Qué incluye el servicio?",
+      heading: "El sistema incluye",
       items: [
-        "Agenda por profesional con vista semanal",
+        "Agenda semanal por profesional",
         "Registro completo de pacientes",
-        "Gestión de disponibilidad y excepciones",
-        "Seguimiento operativo y reportes",
+        "Gestión de disponibilidad",
+        "Control de asistencia y no-shows",
+        "Reportes operativos",
         "Acceso web para todo el equipo",
       ],
     },
-    howItWorks: {
-      heading: "¿Cómo funciona?",
-      steps: [
-        { title: "Configuración inicial", desc: "Creamos la clínica, profesionales, horarios y tratamientos según las necesidades del equipo." },
-        { title: "Acceso del equipo", desc: "Cada miembro recibe su usuario con el rol y permisos correspondientes para comenzar a operar." },
-        { title: "Soporte y mejora continua", desc: "Mantenimiento mensual, actualizaciones y asistencia para que el sistema evolucione con la clínica." },
+    trust: {
+      text: "AgendixPro está siendo utilizado actualmente en clínicas de kinesiología para gestionar agenda, pacientes y operación diaria.",
+    },
+    audience: {
+      heading: "Diseñado para",
+      items: [
+        "Clínicas de kinesiología",
+        "Centros de rehabilitación",
+        "Profesionales con agenda por turnos",
+        "Equipos de salud que gestionan pacientes diariamente",
       ],
     },
     maintenance: {
-      heading: "Servicio con mantenimiento continuo",
-      desc: "AgendixPro no es solo un software: es un servicio completo que incluye acompañamiento profesional. Cada plan mensual incluye mantenimiento con actualizaciones, ajustes de configuración y asistencia continua para que el sistema funcione de manera óptima en todo momento.",
+      heading: "AgendixPro no es solo un software.",
+      desc: "Incluye soporte, mantenimiento y acompañamiento para ayudarte a implementar el sistema correctamente en tu clínica.",
+      note: "Esto es especialmente útil para clínicas pequeñas que necesitan tecnología simple y confiable.",
     },
     contact: {
       heading: "Contacto",

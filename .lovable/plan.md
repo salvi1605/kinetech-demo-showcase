@@ -1,48 +1,41 @@
 
 
-# Plan: Mejorar Home pública + fix build error
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-## 1. Fix build error (ErrorBoundary.tsx)
+## Causa raíz
 
-Reemplazar `process.env.NODE_ENV` por `import.meta.env.DEV` (Vite no expone `process`).
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-## 2. Actualizar i18n (es.ts y en.ts)
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-Reestructurar `home` con las nuevas secciones:
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-- **hero**: Nuevo título, subtítulo, CTA "Solicitar demo", CTA alt "Hablar por WhatsApp"
-- **productPreview**: 3 tarjetas con título + descripción (capturas placeholder)
-- **features** (antes `solves`): Solo 4 items de funcionalidades (sin soporte)
-- **support**: Bloque separado "Acompañamiento continuo" con 3 items
-- **includes**: Lista simplificada de 6 items con nuevo heading "El sistema incluye"
-- **trust**: Frase de confianza
-- **audience**: "Diseñado para" con 4 items
-- **maintenance**: Texto simplificado (software + acompañamiento)
-- Eliminar `howItWorks` (no solicitado en la nueva estructura)
-- Mantener `contact` igual
+## Plan de corrección (2 partes)
 
-## 3. Actualizar Home.tsx
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-Reescribir las secciones del componente:
+```sql
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
+```
 
-1. **Hero** — título grande, subtítulo, 2 CTAs (demo + WhatsApp)
-2. **Product Preview** — 3 tarjetas con imagen placeholder + título + desc
-3. **Features** — grid 2x2 con las 4 funcionalidades
-4. **Support** — bloque simple con 3 items de acompañamiento
-5. **Includes** — lista con checks (6 items)
-6. **Trust** — bloque de texto centrado
-7. **Audience** — "Diseñado para" con 4 items
-8. **Maintenance** — texto simplificado
-9. **Contact** — sin cambios
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
 
-## 4. Navegación
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
 
-Ya cumple: Inicio, Precios, Contacto, Iniciar sesión (+ Terms/Privacy en footer). No se toca `PublicLayout`.
-
-## Archivos a modificar
-
-- `src/components/shared/ErrorBoundary.tsx` — fix build error
-- `src/i18n/es.ts` — nuevas keys de home
-- `src/i18n/en.ts` — equivalentes en inglés
-- `src/pages/Home.tsx` — nueva estructura de secciones
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 
