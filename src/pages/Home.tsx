@@ -16,8 +16,12 @@ import {
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
+import previewAgenda from "@/assets/preview-agenda.jpg";
+import previewPaciente from "@/assets/preview-paciente.jpg";
+import previewHistorial from "@/assets/preview-historial.jpg";
 
 const featureIcons = [CalendarCheck, Users, Clock, Activity];
+const previewImages = [previewAgenda, previewPaciente, previewHistorial];
 
 export default function Home() {
   const { t } = useLanguage();
