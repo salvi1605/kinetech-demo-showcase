@@ -11,13 +11,17 @@ import {
   ArrowRight,
   Mail,
   HeadsetIcon,
-  Image,
+  
   Target,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
+import previewAgenda from "@/assets/preview-agenda.jpg";
+import previewPaciente from "@/assets/preview-paciente.jpg";
+import previewHistorial from "@/assets/preview-historial.jpg";
 
 const featureIcons = [CalendarCheck, Users, Clock, Activity];
+const previewImages = [previewAgenda, previewPaciente, previewHistorial];
 
 export default function Home() {
   const { t } = useLanguage();
@@ -61,10 +65,12 @@ export default function Home() {
               key={i}
               className="group rounded-xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md overflow-hidden"
             >
-              {/* Placeholder image area */}
-              <div className="flex h-48 items-center justify-center bg-muted/50">
-                <Image className="h-12 w-12 text-muted-foreground/40" />
-              </div>
+              <img
+                src={previewImages[i]}
+                alt={item.title}
+                className="h-48 w-full object-cover object-top"
+                loading="lazy"
+              />
               <div className="p-6">
                 <h3 className="text-lg font-semibold">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
