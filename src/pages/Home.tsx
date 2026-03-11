@@ -11,7 +11,7 @@ import {
   ArrowRight,
   Mail,
   HeadsetIcon,
-  Image,
+  
   Target,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
