@@ -1,43 +1,41 @@
 
 
-# Plan: Implementar cambios aprobados de auditoría de integridad
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-## Dependencias detectadas sobre borrados físicos
+## Causa raíz
 
-**`demoDataService.ts`** realiza borrado físico de clínicas y sus datos en este orden: appointments → patients → practitioners → clinic_settings → clinics. Este orden es compatible con RESTRICT porque elimina hijos antes que padres. **No hay riesgo.**
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-**No existe código que borre practitioners o clinics directamente** fuera del servicio de demo. Las ediciones de profesionales solo borran registros hijos (availability, treatments).
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-**`patient_clinical_notes.appointment_id`** mantiene CASCADE (no está en scope) — el borrado de citas individuales sigue limpiando notas clínicas automáticamente.
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-**Conclusión: todos los cambios aprobados son seguros de aplicar.**
+## Plan de corrección (2 partes)
 
----
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-## Migración única a ejecutar
+```sql
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
+```
 
-### 1. Foreign Keys — CASCADE → RESTRICT/SET NULL
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
 
-| Tabla | Columna | Antes | Después |
-|---|---|---|---|
-| `appointments` | `practitioner_id` | CASCADE | RESTRICT |
-| `appointments` | `clinic_id` | CASCADE | RESTRICT |
-| `patients` | `clinic_id` | CASCADE | RESTRICT |
-| `patient_clinical_notes` | `clinic_id` | CASCADE | RESTRICT |
-| `patient_clinical_notes` | `practitioner_id` | CASCADE | SET NULL |
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
 
-### 2. Trigger de validación cross-clinic
-
-Función `fn_validate_appointment_clinic_consistency()` + trigger `trg_validate_appointment_clinic` en `BEFORE INSERT OR UPDATE` sobre `appointments`. Valida que patient y practitioner pertenezcan a la misma clinic_id de la cita.
-
-### 3. Índice faltante
-
-`CREATE INDEX IF NOT EXISTS idx_clinical_notes_practitioner ON patient_clinical_notes(practitioner_id)`
-
-### No se modifica
-
-- Ningún dato existente
-- Ninguna otra FK fuera de las 5 listadas
-- Ningún archivo frontend
-- `appointments.patient_id` FK (ya es SET NULL, no cambia)
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 
