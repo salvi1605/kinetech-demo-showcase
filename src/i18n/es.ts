@@ -111,7 +111,7 @@ export const es = {
       ],
     },
     founder: {
-      name: "Founder Program",
+      name: "Programa Fundador",
       badge: "Early Clinics",
       price: "USD 120",
       desc: "Para clínicas que participaron en la etapa inicial del sistema.",
