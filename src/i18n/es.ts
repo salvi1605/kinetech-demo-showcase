@@ -94,7 +94,7 @@ export const es = {
     subtitle: "Elegí el plan que mejor se adapte a tu clínica. Todas las funcionalidades incluidas en ambos planes.",
     perMonth: "/ mes",
     professional: {
-      name: "Starter",
+      name: "Inicial",
       price: "USD 500",
       setupLabel: "Implementación",
       setupPrice: "USD 500 – 1.000",
@@ -111,7 +111,7 @@ export const es = {
       ],
     },
     founder: {
-      name: "Founder Program",
+      name: "Programa Fundador",
       badge: "Early Clinics",
       price: "USD 120",
       desc: "Para clínicas que participaron en la etapa inicial del sistema.",
@@ -123,7 +123,7 @@ export const es = {
         "Precio preferencial mientras mantengan el uso activo",
       ],
       extras: [
-        "Todo lo incluido en el plan Starter",
+        "Todo lo incluido en el plan Inicial",
         "Acceso prioritario a mejoras del sistema",
         "Soporte directo",
       ],
