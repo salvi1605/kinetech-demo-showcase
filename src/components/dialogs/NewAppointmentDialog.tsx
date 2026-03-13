@@ -367,7 +367,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccionar hora" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent portal={false}>
                             {timeSlots.map((time) => (
                               <SelectItem key={time} value={time}>
                                 {time}
