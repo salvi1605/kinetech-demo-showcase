@@ -1,26 +1,41 @@
 
 
-# Remove attendance marking from health_pro role
+# Diagnóstico: Mirian no puede editar el historial de Torti
 
-## What changes
+## Causa raíz
 
-The tri-state attendance checkbox in the calendar and the status field in the appointment edit dialog should not be available to the `health_pro` role. Currently, `health_pro` is included in the permission check for these features.
+La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
 
-## Changes
+El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
 
-### 1. `src/pages/Calendar.tsx` — Remove `health_pro` from checkbox permission (2 locations)
+Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
 
-- **Line 770**: Change `['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro']` to `['admin_clinic', 'tenant_owner', 'receptionist']`
-- **Line 1379**: Same change — remove `'health_pro'` from the permission array
+## Plan de corrección (2 partes)
 
-This hides the tri-state attendance checkbox (Asistió / No Asistió toggle) from professionals.
+### 1. Backfill de stubs faltantes (migración SQL)
+Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
 
-### 2. `src/components/dialogs/AppointmentDetailDialog.tsx` — Disable status field for health_pro
+```sql
+INSERT INTO patient_clinical_notes (
+  patient_id, clinic_id, practitioner_id, appointment_id,
+  note_date, start_time, note_type, body, treatment_type, status
+)
+SELECT 
+  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
+  a.date, a.start_time, 'evolution', '', 
+  COALESCE(tt.name, 'FKT'), 'active'
+FROM appointments a
+LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
+LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
+WHERE n.id IS NULL AND a.status != 'cancelled';
+```
 
-- **Line 663**: The status `Select` is controlled by `disabled={!canEdit}`. Add an additional condition: disable the status dropdown when the user role is `health_pro`, so professionals can view the current status but cannot change it. Change to `disabled={!canEdit || state.userRole === 'health_pro'}`.
+Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
 
-This ensures that even when a professional opens the edit form, they cannot modify the attendance status.
+### 2. Fallback en el frontend (protección futura)
+Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
 
-## No backend changes needed
-The RLS policies remain unchanged — this is purely a UI permission restriction.
+### Detalle técnico adicional
+- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
+- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
 
