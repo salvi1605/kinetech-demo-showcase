@@ -913,6 +913,31 @@ export const PatientDetailTabs = () => {
           fetchPatientAppointments();
         }}
       />
+
+      <AlertDialog open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás por eliminar <span className="font-medium">"{docToDelete?.name}"</span>. Esta acción es <span className="font-semibold text-destructive">permanente</span> y no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (docToDelete) {
+                  await deleteDocument(docToDelete.id, docToDelete.url);
+                  setDocToDelete(null);
+                }
+              }}
+            >
+              Sí, eliminar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
