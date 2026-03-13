@@ -41,7 +41,7 @@ export const DynamicTreatmentSelect = ({
       <SelectTrigger className={cn(className)}>
         <SelectValue placeholder={loading ? 'Cargando...' : placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent portal={false}>
         {options.map(t => (
           <SelectItem key={t.id} value={t.name}>
             {t.name}

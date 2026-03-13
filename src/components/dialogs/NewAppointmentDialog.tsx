@@ -399,7 +399,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                        <SelectTrigger ref={practitionerSelectRef}>
                          <SelectValue placeholder="Seleccionar kinesiólogo" />
                        </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent portal={false}>
                         {state.practitioners.length === 0 ? (
                           <div className="p-2 text-center text-sm text-muted-foreground">
                             Cargando...
