@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, CalendarPlus, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download, ChevronRight } from 'lucide-react';
 import { format, subMonths, addMonths } from 'date-fns';
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useApp, Appointment } from '@/contexts/AppContext';
 import { formatPatientFullName } from '@/utils/formatters';
@@ -45,6 +46,7 @@ export const PatientDetailTabs = () => {
   const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showAppointmentDetail, setShowAppointmentDetail] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<{ id: string; url: string; name: string } | null>(null);
 
   const handleOpenAppointment = useCallback((apt: Appointment) => {
     // Inject into global store so AppointmentDetailDialog can find it
@@ -854,11 +856,7 @@ export const PatientDetailTabs = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={async () => {
-                                  if (confirm(`¿Eliminar "${doc.name}"?`)) {
-                                    await deleteDocument(doc.id, doc.url);
-                                  }
-                                }}
+                                onClick={() => setDocToDelete({ id: doc.id, url: doc.url, name: doc.name })}
                                 className="text-destructive hover:text-destructive"
                                 aria-label="Eliminar documento"
                               >
@@ -915,6 +913,31 @@ export const PatientDetailTabs = () => {
           fetchPatientAppointments();
         }}
       />
+
+      <AlertDialog open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás por eliminar <span className="font-medium">"{docToDelete?.name}"</span>. Esta acción es <span className="font-semibold text-destructive">permanente</span> y no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (docToDelete) {
+                  await deleteDocument(docToDelete.id, docToDelete.url);
+                  setDocToDelete(null);
+                }
+              }}
+            >
+              Sí, eliminar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
