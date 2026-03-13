@@ -856,11 +856,7 @@ export const PatientDetailTabs = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={async () => {
-                                  if (confirm(`¿Eliminar "${doc.name}"?`)) {
-                                    await deleteDocument(doc.id, doc.url);
-                                  }
-                                }}
+                                onClick={() => setDocToDelete({ id: doc.id, url: doc.url, name: doc.name })}
                                 className="text-destructive hover:text-destructive"
                                 aria-label="Eliminar documento"
                               >
