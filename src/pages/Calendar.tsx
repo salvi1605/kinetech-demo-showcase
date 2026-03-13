@@ -767,7 +767,7 @@ export const Calendar = () => {
               const patient = state.patients.find(p => p.id === appointment.patientId);
               const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
               const styles = getPractitionerStyles(appointment.practitionerId);
-              const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
+              const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist'].includes(state.userRole);
               const stateAttr = statusToChecked(appointment.status as Status);
               const aria = stateAttr === true ? 'true' : stateAttr === 'indeterminate' ? 'mixed' : 'false';
               const statusBadge = getStatusBadge(appointment.status);
