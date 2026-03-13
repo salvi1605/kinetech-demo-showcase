@@ -660,7 +660,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <FormItem>
                     <FormLabel>Estado del turno</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!canEdit || state.userRole === 'health_pro'}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

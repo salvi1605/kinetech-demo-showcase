@@ -1376,7 +1376,7 @@ export const Calendar = () => {
                                    const styles = getPractitionerStyles(appointment.practitionerId);
                                    const canShowCheckbox = appointment.practitionerId && appointment.patientId && appointment.status !== 'cancelled';
                                    const isCompleted = appointment.status === 'completed';
-                                   const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist', 'health_pro'].includes(state.userRole);
+                                   const hasPermission = ['admin_clinic', 'tenant_owner', 'receptionist'].includes(state.userRole);
                                    
                                     return (
                                       <Card
