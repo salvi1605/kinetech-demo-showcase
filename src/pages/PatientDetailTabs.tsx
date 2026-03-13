@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Phone, Mail, Calendar, CalendarPlus, FileText, Plus, Trash2, Eye, MoreHorizontal, User, CreditCard, FileCheck, Download, ChevronRight } from 'lucide-react';
 import { format, subMonths, addMonths } from 'date-fns';
