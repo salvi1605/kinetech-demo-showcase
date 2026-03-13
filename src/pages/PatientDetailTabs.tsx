@@ -850,19 +850,21 @@ export const PatientDetailTabs = () => {
                             >
                               <Download className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={async () => {
-                                if (confirm(`¿Eliminar "${doc.name}"?`)) {
-                                  await deleteDocument(doc.id, doc.url);
-                                }
-                              }}
-                              className="text-destructive hover:text-destructive"
-                              aria-label="Eliminar documento"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  if (confirm(`¿Eliminar "${doc.name}"?`)) {
+                                    await deleteDocument(doc.id, doc.url);
+                                  }
+                                }}
+                                className="text-destructive hover:text-destructive"
+                                aria-label="Eliminar documento"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </RoleGuard>
                           </div>
                         </TableCell>
                       </TableRow>
