@@ -123,7 +123,7 @@ export const es = {
         "Precio preferencial mientras mantengan el uso activo",
       ],
       extras: [
-        "Todo lo incluido en el plan Starter",
+        "Todo lo incluido en el plan Inicial",
         "Acceso prioritario a mejoras del sistema",
         "Soporte directo",
       ],
