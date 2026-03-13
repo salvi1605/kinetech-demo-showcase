@@ -72,7 +72,7 @@ interface SelectContentProps extends React.ComponentPropsWithoutRef<typeof Selec
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   SelectContentProps
->(({ className, children, position = "popper", portal = true, ...props }, ref) => {
+>(({ className, children, position = "popper", portal = false, ...props }, ref) => {
   const content = (
     <SelectPrimitive.Content
       ref={ref}
