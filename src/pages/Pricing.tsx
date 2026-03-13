@@ -1,18 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, MessageCircle, Mail, Send, FileCheck, Zap, Sparkles } from "lucide-react";
+import { CheckCircle2, MessageCircle, Mail, Send, FileCheck, Zap, Sparkles, Star } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-const stepIcons = [Send, FileCheck, Zap];
 
 export default function Pricing() {
   const { t } = useLanguage();
 
   return (
     <PublicLayout>
+      {/* Hero */}
       <section className="container py-16 text-center md:py-24">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
           {t.pricing.heading}
@@ -22,94 +20,107 @@ export default function Pricing() {
         </p>
       </section>
 
-      <section className="container pb-16">
-        <Card className="mx-auto max-w-lg border-primary/30">
-          <CardContent className="p-8">
-            <p className="text-sm font-medium uppercase tracking-wider text-primary">
-              {t.pricing.plan}
-            </p>
+      {/* Plans grid */}
+      <section className="container pb-20">
+        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
+          {/* Professional Plan */}
+          <Card className="relative flex flex-col border-border/60">
+            <CardContent className="flex flex-1 flex-col p-8">
+              <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                {t.pricing.professional.name}
+              </p>
 
-            {/* Standard pricing */}
-            <div className="mt-6 space-y-3">
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-muted-foreground">{t.pricing.standardLabel}</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold line-through text-muted-foreground/60">{t.pricing.price}</span>
-                  <span className="text-muted-foreground/60">{t.pricing.perMonth}</span>
-                </div>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-muted-foreground">{t.pricing.setupLabel}</span>
-                <span className="text-lg font-semibold text-muted-foreground/60 line-through">{t.pricing.setupPrice}</span>
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            {/* Founder pricing */}
-            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-6 text-center">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <Badge variant="secondary" className="text-xs font-semibold">
-                  {t.pricing.founderAvailable}
-                </Badge>
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">{t.pricing.founderLabel}</p>
-              <div className="mt-2 flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-bold">{t.pricing.founderPrice}</span>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold">{t.pricing.professional.price}</span>
                 <span className="text-muted-foreground">{t.pricing.perMonth}</span>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">{t.pricing.planDesc}</p>
-            </div>
 
-            <p className="mt-4 text-xs text-center text-muted-foreground italic">
-              {t.pricing.founderNote}
-            </p>
+              <div className="mt-3 flex items-baseline gap-2 text-sm text-muted-foreground">
+                <span className="font-medium">{t.pricing.professional.setupLabel}:</span>
+                <span>{t.pricing.professional.setupPrice}</span>
+                <span className="text-xs">{t.pricing.professional.setupNote}</span>
+              </div>
 
-            <Separator className="my-6" />
+              <p className="mt-4 text-sm text-muted-foreground">
+                {t.pricing.professional.desc}
+              </p>
 
-            <p className="mb-3 text-sm font-semibold">{t.pricing.includesLabel}</p>
-            <ul className="space-y-2">
-              {t.pricing.included.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span className="text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
+              <ul className="mt-6 flex-1 space-y-2.5">
+                {t.pricing.professional.included.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <Separator className="my-6" />
+              <div className="mt-8">
+                <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="block">
+                  <Button variant="outline" className="w-full" size="lg">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    {t.pricing.professional.cta}
+                  </Button>
+                </a>
+              </div>
+            </CardContent>
+          </Card>
 
-            <p className="mb-3 text-sm font-semibold">{t.pricing.notIncludesLabel}</p>
-            <ul className="space-y-2">
-              {t.pricing.notIncluded.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive/70" />
-                  <span className="text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Founder Program */}
+          <Card className="relative flex flex-col border-2 border-primary/40 shadow-lg">
+            <CardContent className="flex flex-1 flex-col p-8">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                  {t.pricing.founder.name}
+                </p>
+                <Badge className="gap-1 bg-primary/10 text-primary hover:bg-primary/15 border-primary/20">
+                  <Sparkles className="h-3 w-3" />
+                  {t.pricing.founder.badge}
+                </Badge>
+              </div>
 
-            <Separator className="my-6" />
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-primary">{t.pricing.founder.price}</span>
+                <span className="text-muted-foreground">{t.pricing.perMonth}</span>
+              </div>
 
-            <div className="flex flex-col items-center gap-3">
-              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="w-full">
-                <Button className="w-full" size="lg">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  {t.pricing.ctaWhatsApp}
-                </Button>
-              </a>
-              <a href="mailto:agendixpro2026@gmail.com">
-                <Button variant="outline" size="sm">
-                  <Mail className="mr-2 h-4 w-4" />
-                  {t.pricing.ctaEmail}
-                </Button>
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+              <p className="mt-4 text-sm text-muted-foreground">
+                {t.pricing.founder.desc}
+              </p>
+
+              {/* Conditions */}
+              <ul className="mt-6 space-y-2.5">
+                {t.pricing.founder.conditions.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Extras */}
+              <ul className="mt-4 flex-1 space-y-2.5">
+                {t.pricing.founder.extras.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm font-medium">
+                    <Star className="mt-0.5 h-4 w-4 shrink-0 text-primary fill-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-8">
+                <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="block">
+                  <Button className="w-full" size="lg">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    {t.pricing.founder.cta}
+                  </Button>
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
+      {/* How to start */}
       <section className="bg-muted/30 py-16">
         <div className="container">
           <h2 className="mb-12 text-center text-2xl font-bold">{t.pricing.howToStart}</h2>
