@@ -125,7 +125,7 @@ export const en: Translations = {
         "Preferential pricing while active",
       ],
       extras: [
-        "Everything in the Professional plan",
+        "Everything in the Starter plan",
         "Priority access to system improvements",
         "Direct support",
       ],
