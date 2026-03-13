@@ -46,6 +46,7 @@ export const PatientDetailTabs = () => {
   const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showAppointmentDetail, setShowAppointmentDetail] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<{ id: string; url: string; name: string } | null>(null);
 
   const handleOpenAppointment = useCallback((apt: Appointment) => {
     // Inject into global store so AppointmentDetailDialog can find it
