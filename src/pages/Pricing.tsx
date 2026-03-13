@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Sparkles, Star } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
