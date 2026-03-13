@@ -15,6 +15,9 @@ interface DynamicTreatmentSelectProps {
 /**
  * Shared treatment Select that reads from treatment_types DB table.
  * Shows only the treatment name (no description, no color).
+ * 
+ * NOTE: Uses portal={false} to avoid Radix SelectBubbleInput crash
+ * when rendered inside a Dialog portal (known Radix UI issue).
  */
 export const DynamicTreatmentSelect = ({
   value,
@@ -36,10 +39,19 @@ export const DynamicTreatmentSelect = ({
     if (assigned.length > 0) options = assigned;
   }
 
+  // Don't render the Select at all while loading to avoid SelectBubbleInput crash
+  if (loading) {
+    return (
+      <div className={cn("flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground", className)}>
+        Cargando...
+      </div>
+    );
+  }
+
   return (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+    <Select value={value} onValueChange={onValueChange} disabled={disabled} key={`treatment-select-${options.length}`}>
       <SelectTrigger className={cn(className)}>
-        <SelectValue placeholder={loading ? 'Cargando...' : placeholder} />
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent portal={false}>
         {options.map(t => (
@@ -47,7 +59,7 @@ export const DynamicTreatmentSelect = ({
             {t.name}
           </SelectItem>
         ))}
-        {options.length === 0 && !loading && (
+        {options.length === 0 && (
           <div className="p-2 text-center text-xs text-muted-foreground">
             Sin tratamientos configurados
           </div>
