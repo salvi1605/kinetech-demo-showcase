@@ -54,14 +54,6 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <div className="mt-8">
-                <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="block">
-                  <Button variant="outline" className="w-full" size="lg">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    {t.pricing.professional.cta}
-                  </Button>
-                </a>
-              </div>
             </CardContent>
           </Card>
 
