@@ -96,13 +96,12 @@ export const en: Translations = {
     subtitle: "Choose the plan that best fits your clinic. All features included in both plans.",
     perMonth: "/ month",
     professional: {
-      name: "Professional",
+      name: "Starter",
       price: "USD 500",
       setupLabel: "Implementation",
       setupPrice: "USD 500 – 1,000",
       setupNote: "(one-time fee)",
       desc: "The standard plan for clinics looking for a complete management solution.",
-      cta: "Request information",
       included: [
         "Multi-practitioner clinical schedule",
         "Complete patient management",
@@ -118,7 +117,7 @@ export const en: Translations = {
       badge: "Early Clinics",
       price: "USD 120",
       desc: "For clinics that participated in the initial stage of the system.",
-      cta: "Request founder access",
+      
       conditions: [
         "Available for early-stage clinics",
         "No implementation cost",
@@ -126,7 +125,7 @@ export const en: Translations = {
         "Preferential pricing while active",
       ],
       extras: [
-        "Everything in the Professional plan",
+        "Everything in the Starter plan",
         "Priority access to system improvements",
         "Direct support",
       ],

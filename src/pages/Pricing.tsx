@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, MessageCircle, Mail, Send, FileCheck, Zap, Sparkles, Star } from "lucide-react";
+import { CheckCircle2, Sparkles, Star } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -54,14 +53,6 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <div className="mt-8">
-                <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="block">
-                  <Button variant="outline" className="w-full" size="lg">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    {t.pricing.professional.cta}
-                  </Button>
-                </a>
-              </div>
             </CardContent>
           </Card>
 
@@ -107,14 +98,6 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <div className="mt-8">
-                <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="block">
-                  <Button className="w-full" size="lg">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    {t.pricing.founder.cta}
-                  </Button>
-                </a>
-              </div>
             </CardContent>
           </Card>
         </div>

@@ -94,13 +94,12 @@ export const es = {
     subtitle: "Elegí el plan que mejor se adapte a tu clínica. Todas las funcionalidades incluidas en ambos planes.",
     perMonth: "/ mes",
     professional: {
-      name: "Professional",
+      name: "Starter",
       price: "USD 500",
       setupLabel: "Implementación",
       setupPrice: "USD 500 – 1.000",
       setupNote: "(pago único)",
       desc: "El plan estándar para clínicas que buscan una solución completa de gestión.",
-      cta: "Solicitar información",
       included: [
         "Agenda clínica multi-profesional",
         "Gestión completa de pacientes",
@@ -116,7 +115,7 @@ export const es = {
       badge: "Early Clinics",
       price: "USD 120",
       desc: "Para clínicas que participaron en la etapa inicial del sistema.",
-      cta: "Solicitar acceso fundador",
+      
       conditions: [
         "Disponible para clínicas en etapa inicial",
         "Sin costo de implementación",
@@ -124,7 +123,7 @@ export const es = {
         "Precio preferencial mientras mantengan el uso activo",
       ],
       extras: [
-        "Todo lo incluido en el plan Professional",
+        "Todo lo incluido en el plan Starter",
         "Acceso prioritario a mejoras del sistema",
         "Soporte directo",
       ],
