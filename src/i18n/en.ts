@@ -117,7 +117,7 @@ export const en: Translations = {
       badge: "Early Clinics",
       price: "USD 120",
       desc: "For clinics that participated in the initial stage of the system.",
-      cta: "Request founder access",
+      
       conditions: [
         "Available for early-stage clinics",
         "No implementation cost",
