@@ -42,6 +42,7 @@ export default function ClinicSettings() {
   const [clinicSettings, setClinicSettings] = useState<ClinicSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
