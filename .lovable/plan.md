@@ -1,41 +1,44 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Exportación de datos por clínica
 
-## Causa raíz
+## Cambios
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+### 1. Edge Function: `supabase/functions/export-clinic-data/index.ts`
+- Recibe `clinic_id` en el body JSON
+- Extrae JWT del header Authorization, obtiene el auth user
+- Valida que el usuario sea `admin_clinic`, `tenant_owner` o `super_admin` para esa clínica (consulta directa a `user_roles` + `users` con service role)
+- Si no tiene permiso, retorna 403
+- Consulta todas las tablas filtradas por `clinic_id` usando service role client:
+  - `clinics` (registro único)
+  - `clinic_settings`
+  - `patients` (is_deleted = false; todos los campos)
+  - `practitioners`
+  - `practitioner_availability`
+  - `treatment_types`
+  - `practitioner_treatments`
+  - `appointments`
+  - `patient_clinical_notes`
+  - `patient_documents` (solo: id, patient_id, file_type, description, uploaded_at, uploaded_by — sin file_url)
+  - `schedule_exceptions`
+  - `holiday_calendar`
+  - `users`: solo id, full_name, email, phone, is_active, created_at (JOIN con user_roles para filtrar por clinic_id)
+  - `user_roles` (filtrado por clinic_id): id, user_id, role_id, active, created_at
+- Retorna JSON con `exported_at`, cada tabla como key, y `totals` con conteos
+- Sigue el patrón CORS existente en create-user
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
-
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
-
-## Plan de corrección (2 partes)
-
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
-
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
+### 2. Config: `supabase/config.toml`
+```toml
+[functions.export-clinic-data]
+verify_jwt = false
 ```
+(verify_jwt = false, validación manual en código como las demás functions)
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
-
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
-
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### 3. Frontend: `src/pages/ClinicSettings.tsx`
+- Agregar estado `isExporting`
+- Agregar botón "Exportar datos" protegido con `RoleGuard` (`allowedRoles: ['admin_clinic', 'tenant_owner']`) — super_admin pasa automáticamente por RoleGuard
+- Al hacer clic: llama `supabase.functions.invoke('export-clinic-data', { body: { clinic_id } })`
+- Descarga el resultado como archivo `.json` con nombre `clinica-{nombre}-{fecha}.json`
+- Toast de éxito/error y loading state en el botón
+- Ubicación: debajo del EditClinicForm, en una Card separada "Exportar datos"
 
