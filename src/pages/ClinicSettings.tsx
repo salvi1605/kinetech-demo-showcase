@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Plus, Loader2 } from 'lucide-react';
+import { Building2, Plus, Loader2, Download } from 'lucide-react';
 import { EditClinicForm } from '@/components/clinics/EditClinicForm';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
+import { RoleGuard } from '@/components/shared/RoleGuard';
 
 interface Clinic {
   id: string;
@@ -41,6 +42,7 @@ export default function ClinicSettings() {
   const [clinicSettings, setClinicSettings] = useState<ClinicSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
@@ -260,6 +262,60 @@ export default function ClinicSettings() {
             settings={clinicSettings}
             onSuccess={handleClinicUpdated}
           />
+        )}
+
+        {/* Export Data */}
+        {selectedClinic && (
+          <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Exportar datos</CardTitle>
+                <CardDescription>
+                  Descarga todos los datos de esta clínica en formato JSON para respaldo o entrega
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setIsExporting(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('export-clinic-data', {
+                        body: { clinic_id: selectedClinic.id }
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      const safeName = selectedClinic.name.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s-]/g, '').replace(/\s+/g, '-').toLowerCase();
+                      a.download = `clinica-${safeName}-${new Date().toISOString().split('T')[0]}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+                      toast.success('Datos exportados exitosamente');
+                    } catch (err: any) {
+                      console.error('Export error:', err);
+                      toast.error(err?.message || 'Error al exportar datos');
+                    } finally {
+                      setIsExporting(false);
+                    }
+                  }}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {isExporting ? 'Exportando...' : 'Exportar datos de la clínica'}
+                </Button>
+              </CardContent>
+            </Card>
+          </RoleGuard>
         )}
       </div>
 
