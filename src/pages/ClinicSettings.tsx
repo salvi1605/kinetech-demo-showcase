@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Plus, Loader2 } from 'lucide-react';
+import { Building2, Plus, Loader2, Download } from 'lucide-react';
 import { EditClinicForm } from '@/components/clinics/EditClinicForm';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
+import { RoleGuard } from '@/components/shared/RoleGuard';
 
 interface Clinic {
   id: string;
