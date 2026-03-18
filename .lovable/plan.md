@@ -1,41 +1,52 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Horario Especial — Renombrar + obligar profesional + permisos
 
-## Causa raíz
+## Situación actual
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+### Quién puede acceder a la página de Excepciones
+La ruta `/exceptions` está visible en el sidebar y bottom nav para estos roles:
+- `admin_clinic`
+- `tenant_owner`
+- `super_admin`
+- `health_pro`
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+**No tiene acceso:** `receptionist`
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+### Quién puede crear/editar/eliminar excepciones (RLS en `schedule_exceptions`)
+- **ALL** (CRUD completo): roles admin (`is_admin_clinic`) — incluye `admin_clinic`, `tenant_owner`, `super_admin`
+- **ALL** (CRUD completo): `health_pro` — pero solo sobre excepciones donde `practitioner_id = current_practitioner_id()` o donde `practitioner_id IS NULL` y el usuario es `health_pro` de esa clínica
+- **SELECT** (solo lectura): `receptionist`
 
-## Plan de corrección (2 partes)
+En resumen: un `health_pro` puede crear excepciones de tipo `extended_hours` para sí mismo, pero los admins pueden crearlas para cualquier profesional.
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+## Cambios necesarios
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
-```
+### 1. Renombrar "Horario extendido" → "Horario especial"
+Cambio cosmético en 4 archivos:
+- `NewExceptionDialog.tsx` — label del select
+- `Exceptions.tsx` — `TYPE_LABELS` y filtro
+- `Calendar.tsx` — `TYPE_LABELS`
+- Los i18n strings si aplica (actualmente hardcoded en español)
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+### 2. Hacer `practitionerId` obligatorio para `extended_hours`
+Actualmente el formulario lo marca como "(opcional)" para `extended_hours`. Se debe cambiar a obligatorio, igual que `practitioner_block`.
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+Cambios en `NewExceptionDialog.tsx`:
+- En `exceptionSchema.superRefine`: agregar validación de que `practitionerId` es requerido cuando `type === 'extended_hours'`
+- En el label del campo profesional: mostrar "(obligatorio)" para ambos tipos
+- En `basePayload`: asegurar que el `practitioner_id` se envíe siempre para `extended_hours`
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### 3. No hay cambios de permisos necesarios
+La estructura actual ya es correcta: admins gestionan todas las excepciones, health_pro gestiona las propias.
+
+## Archivos a modificar
+
+| Archivo | Cambio |
+|---|---|
+| `src/components/dialogs/NewExceptionDialog.tsx` | Renombrar label + practitioner obligatorio |
+| `src/pages/Exceptions.tsx` | Renombrar en `TYPE_LABELS` y filtro |
+| `src/pages/Calendar.tsx` | Renombrar en `TYPE_LABELS` |
+
+Sin cambios en base de datos, RPCs ni lógica de backend.
 
