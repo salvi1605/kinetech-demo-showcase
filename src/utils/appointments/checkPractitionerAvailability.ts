@@ -39,7 +39,8 @@ function normalizeTime(time: string): string {
 
 /**
  * Verifica si la hora de inicio de una cita cae dentro de la disponibilidad
- * configurada para un profesional en el día de la semana correspondiente.
+ * configurada para un profesional en el día de la semana correspondiente,
+ * O dentro de una excepción de tipo extended_hours para esa fecha específica.
  *
  * Si el profesional NO tiene disponibilidad configurada, se permite (fail-open)
  * para no bloquear en clínicas que aún no la hayan configurado.
@@ -49,22 +50,33 @@ export async function checkPractitionerAvailability(
 ): Promise<AvailabilityResult> {
   const weekday = getWeekdayFromDate(candidate.date);
 
-  const { data: slots, error } = await supabase
-    .from('practitioner_availability')
-    .select('from_time, to_time')
-    .eq('practitioner_id', candidate.practitionerId)
-    .eq('clinic_id', candidate.clinicId)
-    .eq('weekday', weekday);
+  // Fetch regular availability and extended_hours exceptions in parallel
+  const [slotsRes, extendedRes] = await Promise.all([
+    supabase
+      .from('practitioner_availability')
+      .select('from_time, to_time')
+      .eq('practitioner_id', candidate.practitionerId)
+      .eq('clinic_id', candidate.clinicId)
+      .eq('weekday', weekday),
+    supabase
+      .from('schedule_exceptions')
+      .select('from_time, to_time')
+      .eq('practitioner_id', candidate.practitionerId)
+      .eq('clinic_id', candidate.clinicId)
+      .eq('date', candidate.date)
+      .eq('type', 'extended_hours'),
+  ]);
 
-  if (error) {
-    console.error('Error checking practitioner availability:', error);
-    // Fail-open: si hay error de red/permisos, permitir
+  if (slotsRes.error) {
+    console.error('Error checking practitioner availability:', slotsRes.error);
     return { available: true, hasAvailabilityConfigured: false, availableSlots: [] };
   }
 
-  // Si no hay disponibilidad configurada para NINGÚN día, fail-open
-  if (!slots || slots.length === 0) {
-    // Verificar si tiene disponibilidad en ALGÚN día
+  const slots = slotsRes.data || [];
+  const extendedSlots = extendedRes.data || [];
+
+  // If no regular availability for this weekday, check if has ANY availability configured
+  if (slots.length === 0 && extendedSlots.length === 0) {
     const { data: anySlots, error: anyError } = await supabase
       .from('practitioner_availability')
       .select('id')
@@ -73,11 +85,11 @@ export async function checkPractitionerAvailability(
       .limit(1);
 
     if (anyError || !anySlots || anySlots.length === 0) {
-      // No tiene ninguna disponibilidad configurada → fail-open
+      // No availability configured at all → fail-open
       return { available: true, hasAvailabilityConfigured: false, availableSlots: [] };
     }
 
-    // Tiene disponibilidad en otros días pero NO en este día de la semana
+    // Has availability on other days but not this one and no extended_hours
     const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
     return {
       available: false,
@@ -87,15 +99,23 @@ export async function checkPractitionerAvailability(
     };
   }
 
-  // Convertir slots a formato normalizado
-  const availableSlots: AvailabilitySlot[] = slots.map(s => ({
-    from: normalizeTime(s.from_time),
-    to: normalizeTime(s.to_time),
-  }));
+  // Combine regular slots + extended_hours into one list
+  const availableSlots: AvailabilitySlot[] = [
+    ...slots.map(s => ({
+      from: normalizeTime(s.from_time),
+      to: normalizeTime(s.to_time),
+    })),
+    ...extendedSlots
+      .filter(s => s.from_time && s.to_time)
+      .map(s => ({
+        from: normalizeTime(s.from_time!),
+        to: normalizeTime(s.to_time!),
+      })),
+  ];
 
   const startTime = normalizeTime(candidate.startTime);
 
-  // Verificar si startTime cae dentro de algún slot de disponibilidad
+  // Check if startTime falls within any slot (regular or extended)
   const isWithinSlot = availableSlots.some(slot => {
     return startTime >= slot.from && startTime < slot.to;
   });
@@ -104,7 +124,7 @@ export async function checkPractitionerAvailability(
     return { available: true, hasAvailabilityConfigured: true, availableSlots };
   }
 
-  // Formatear los horarios disponibles para el mensaje
+  // Format available slots for the message
   const slotsText = availableSlots
     .map(s => `${s.from}–${s.to}`)
     .join(', ');
