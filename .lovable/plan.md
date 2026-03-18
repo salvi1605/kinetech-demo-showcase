@@ -1,41 +1,102 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Backups automáticos por clínica — Plan de implementación
 
-## Causa raíz
+## Arquitectura
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
-
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
-
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
-
-## Plan de corrección (2 partes)
-
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
-
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
+```text
+┌─────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  pg_cron     │────▶│  backup-clinic-data  │────▶│ Storage bucket  │
+│  (diario)    │     │  (edge function)     │     │ clinic-backups  │
+└─────────────┘     └──────┬───────────────┘     └─────────────────┘
+                           │ import
+                    ┌──────▼───────────────┐
+                    │  _shared/            │
+                    │  buildClinicExport() │
+                    └──────▲───────────────┘
+                           │ import
+                    ┌──────┴───────────────┐
+                    │  export-clinic-data  │◀──── UI (manual)
+                    │  (edge function)     │
+                    └──────────────────────┘
 ```
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+## Archivos a crear/modificar
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+### 1. `supabase/functions/_shared/buildClinicExport.ts` (nuevo)
+- Extrae las líneas 108-175 del actual `export-clinic-data` a una función reutilizable
+- Firma: `buildClinicExport(supabaseAdmin, clinic_id) → Promise<ExportPayload>`
+- Misma lógica, misma sanitización, mismas exclusiones
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### 2. `supabase/functions/export-clinic-data/index.ts` (refactor)
+- Mantiene auth JWT + validación de roles exactamente igual
+- Reemplaza la lógica de queries por `import { buildClinicExport } from '../_shared/buildClinicExport.ts'`
+- Comportamiento externo idéntico
+
+### 3. `supabase/functions/backup-clinic-data/index.ts` (nuevo)
+- Autenticación server-to-server: valida un `Authorization: Bearer <BACKUP_SECRET>` leído desde `Deno.env.get('BACKUP_SECRET')`
+- Obtiene todas las clínicas activas: `clinics.select('id, name').eq('is_active', true)`
+- Itera cada clínica, llama `buildClinicExport()`, guarda en Storage
+- Ruta: `{clinic_id}/{YYYY}/{MM}/{DD}/backup-{ISO timestamp}.json`
+- Error en una clínica no detiene las demás
+- Respuesta: `{ processed, succeeded, failed, details[] }`
+
+### 4. `supabase/config.toml` — agregar:
+```toml
+[functions.backup-clinic-data]
+verify_jwt = false
+```
+
+### 5. Migración SQL (bucket + cron)
+
+**Bucket privado:**
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('clinic-backups', 'clinic-backups', false)
+ON CONFLICT (id) DO NOTHING;
+```
+
+**Cron job** (ejecutado vía `supabase--read_query`, no migración, porque contiene secrets):
+```sql
+-- Habilitar extensiones
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- Job diario a las 03:00 UTC
+SELECT cron.schedule(
+  'backup-all-clinics-daily',
+  '0 3 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://qbavkycmdkugwzumidyy.supabase.co/functions/v1/backup-clinic-data',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer <BACKUP_SECRET_VALUE>"}'::jsonb,
+    body := '{}'::jsonb
+  ) AS request_id;
+  $$
+);
+```
+
+### 6. Secret necesario
+- `BACKUP_SECRET`: token aleatorio seguro para autenticar invocaciones server-to-server del cron. Se configura con `add_secret`.
+
+## Seguridad
+- Bucket `clinic-backups` es privado (no público)
+- Sin políticas RLS de lectura pública — solo accesible via service role
+- La edge function valida `BACKUP_SECRET` antes de ejecutar
+- Misma sanitización de datos que la exportación manual (sin `file_url`, sin `auth_user_id`, campos de users limitados)
+- `SUPABASE_SERVICE_ROLE_KEY` nunca expuesto al cliente
+
+## No se modifica
+- Schema de base de datos (sin tablas nuevas)
+- UI existente
+- Comportamiento de la exportación manual
+- RLS policies existentes
+
+## Resultado
+- 1 módulo compartido nuevo (`_shared/buildClinicExport.ts`)
+- 1 edge function nueva (`backup-clinic-data`)
+- 1 edge function refactorizada (`export-clinic-data`) — mismo comportamiento
+- 1 bucket privado (`clinic-backups`)
+- 1 cron job diario (03:00 UTC)
+- 1 secret nuevo (`BACKUP_SECRET`)
 
