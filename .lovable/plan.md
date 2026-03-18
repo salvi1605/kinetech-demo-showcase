@@ -1,41 +1,83 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Excepciones de horario especial por profesional — Plan
 
-## Causa raíz
+## Resumen del problema
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+El tipo `extended_hours` ya existe en la UI y en la tabla `schedule_exceptions`, pero **no tiene efecto real**: las funciones RPC `validate_and_create_appointment` y `validate_and_update_appointment` solo consultan `practitioner_availability` (horario semanal regular) y `practitioner_block`. Nunca consultan excepciones de tipo `extended_hours`.
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+Resultado: se puede crear la excepción, pero el sistema sigue rechazando citas fuera del horario regular.
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+## Cambio necesario
 
-## Plan de corrección (2 partes)
+Modificar la lógica de validación de disponibilidad en las dos funciones RPC para que, cuando exista una excepción `extended_hours` para ese profesional en esa fecha, se use el rango horario de la excepción **en lugar de** (o **además de**) el horario regular semanal.
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+## Decisiones de diseño
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
+**Semántica de `extended_hours`**: ¿reemplaza o extiende?
+- **Opción A — Reemplaza**: ese día el profesional SOLO atiende en el rango de la excepción (ignora el horario semanal).
+- **Opción B — Extiende**: se suman ambos rangos (el regular + el de la excepción).
+
+Recomiendo **Opción B (extiende)** porque es más flexible y coincide con el nombre "horario extendido". Si el profesional quiere atender SOLO en un rango diferente, puede combinar un `practitioner_block` (bloqueo de todo el día) + un `extended_hours` con el nuevo rango.
+
+Sin embargo, según tu ejemplo ("Victoria normalmente ve 14-19:30 pero el 19 de marzo quiere ver todo el día"), la **Opción B** resuelve directamente: se agrega una excepción de 08:00-14:00 y el sistema permite citas tanto en 08:00-14:00 (excepción) como en 14:00-19:30 (regular).
+
+## Impacto técnico
+
+```text
+Componentes afectados:
+┌──────────────────────────────────────────┐
+│ validate_and_create_appointment (RPC)    │ ← agregar consulta extended_hours
+│ validate_and_update_appointment (RPC)    │ ← agregar consulta extended_hours
+│ checkPractitionerAvailability.ts (front) │ ← agregar consulta extended_hours
+│ useScheduleExceptions.ts (isBlocked)     │ ← no bloquear extended_hours
+└──────────────────────────────────────────┘
+
+NO se modifica:
+- Tabla schedule_exceptions (ya tiene todo lo necesario)
+- UI de excepciones (ya soporta crear extended_hours)
+- Schema de base de datos
 ```
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+## Plan de implementación
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+### Paso 1 — Modificar las 2 funciones RPC (migración SQL)
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+En la sección de verificación de disponibilidad de ambas funciones, antes de rechazar por `OUT_OF_HOURS`, consultar si existe una excepción `extended_hours` para ese profesional+fecha+hora:
+
+```sql
+-- Después de verificar practitioner_availability y ANTES de rechazar:
+IF NOT v_is_within_slot THEN
+  -- Verificar si hay extended_hours para este día
+  SELECT EXISTS(
+    SELECT 1 FROM schedule_exceptions
+    WHERE clinic_id = <clinic> AND practitioner_id = <practitioner>
+      AND date = <date> AND type = 'extended_hours'
+      AND <start_time> >= from_time AND <start_time> < to_time
+  ) INTO v_has_extended;
+
+  IF v_has_extended THEN
+    -- Permitir: cae dentro de horario extendido
+    v_is_within_slot := true;
+  END IF;
+END IF;
+```
+
+### Paso 2 — Actualizar `checkPractitionerAvailability.ts` (frontend)
+
+Agregar una consulta a `schedule_exceptions` de tipo `extended_hours` para la fecha específica y combinar esos slots con los de `practitioner_availability`.
+
+### Paso 3 — Ajustar `isBlocked` en `useScheduleExceptions.ts`
+
+Verificar que `extended_hours` no se trate como bloqueo (actualmente no lo hace, pero confirmar).
+
+### Resumen de archivos
+
+| Archivo | Acción |
+|---|---|
+| Migración SQL (2 funciones RPC) | Modificar |
+| `src/utils/appointments/checkPractitionerAvailability.ts` | Modificar |
+| `src/hooks/useScheduleExceptions.ts` | Verificar (probablemente sin cambios) |
+
+No se crean tablas, buckets, edge functions ni secrets nuevos. Es un cambio puramente de lógica de validación.
 
