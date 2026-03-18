@@ -21,7 +21,7 @@ import type { ScheduleExceptionRow, HolidayRow } from '@/hooks/useScheduleExcept
 const TYPE_LABELS: Record<string, string> = {
   clinic_closed: 'Día cerrado',
   practitioner_block: 'Bloqueo profesional',
-  extended_hours: 'Horario extendido',
+  extended_hours: 'Horario especial',
 };
 
 const TYPE_BADGES: Record<string, string> = {
