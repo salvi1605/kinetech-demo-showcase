@@ -52,7 +52,7 @@ const exceptionSchema = z.object({
       path: ['dateTo'],
     });
   }
-  if (data.type === 'practitioner_block' && !data.practitionerId) {
+  if ((data.type === 'practitioner_block' || data.type === 'extended_hours') && !data.practitionerId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Selecciona un profesional',
