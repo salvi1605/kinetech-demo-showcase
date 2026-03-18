@@ -115,7 +115,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       form.setValue('startTime', appointment.startTime);
       form.setValue('practitionerId', appointment.practitionerId);
       form.setValue('status', appointment.status);
-      form.setValue('treatmentType', appointment.treatmentType || 'fkt');
+      form.setValue('treatmentType', treatmentLabel[appointment.treatmentType || 'fkt'] || appointment.treatmentType || 'FKT');
       form.setValue('notes', appointment.notes || '');
       setIsEditing(false);
     }
