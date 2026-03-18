@@ -190,7 +190,7 @@ export const Exceptions = () => {
                 <SelectItem value="all">Todos los tipos</SelectItem>
                 <SelectItem value="clinic_closed">Día cerrado</SelectItem>
                 <SelectItem value="practitioner_block">Bloqueo profesional</SelectItem>
-                <SelectItem value="extended_hours">Horario extendido</SelectItem>
+                <SelectItem value="extended_hours">Horario especial</SelectItem>
               </SelectContent>
             </Select>
 

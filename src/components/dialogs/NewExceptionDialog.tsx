@@ -358,7 +358,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Profesional {watchType === 'practitioner_block' ? '(obligatorio)' : '(opcional)'}
+                      Profesional {(watchType === 'practitioner_block' || watchType === 'extended_hours') ? '(obligatorio)' : '(opcional)'}
                     </FormLabel>
                     <FormControl>
                       <KinesioCombobox
