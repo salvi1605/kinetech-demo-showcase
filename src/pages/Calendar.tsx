@@ -61,7 +61,7 @@ const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
 const TYPE_LABELS_CAL: Record<string, string> = {
   clinic_closed: 'Día cerrado',
   practitioner_block: 'Bloqueo profesional',
-  extended_hours: 'Horario extendido',
+  extended_hours: 'Horario especial',
 };
 
 // Utilidades para tri-estado

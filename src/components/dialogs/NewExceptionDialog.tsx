@@ -24,7 +24,7 @@ import type { ScheduleExceptionRow } from '@/hooks/useScheduleExceptions';
 const EXCEPTION_TYPES = [
   { value: 'clinic_closed', label: 'Día cerrado (clínica)' },
   { value: 'practitioner_block', label: 'Bloqueo profesional' },
-  { value: 'extended_hours', label: 'Horario extendido' },
+  { value: 'extended_hours', label: 'Horario especial' },
 ] as const;
 
 const MAX_RANGE_DAYS = 90;
@@ -52,7 +52,7 @@ const exceptionSchema = z.object({
       path: ['dateTo'],
     });
   }
-  if (data.type === 'practitioner_block' && !data.practitionerId) {
+  if ((data.type === 'practitioner_block' || data.type === 'extended_hours') && !data.practitionerId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Selecciona un profesional',
@@ -358,7 +358,7 @@ export const NewExceptionDialog = ({ open, onOpenChange, editingException }: New
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Profesional {watchType === 'practitioner_block' ? '(obligatorio)' : '(opcional)'}
+                      Profesional {(watchType === 'practitioner_block' || watchType === 'extended_hours') ? '(obligatorio)' : '(opcional)'}
                     </FormLabel>
                     <FormControl>
                       <KinesioCombobox
