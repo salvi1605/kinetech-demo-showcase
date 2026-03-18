@@ -24,7 +24,7 @@ import type { ScheduleExceptionRow } from '@/hooks/useScheduleExceptions';
 const EXCEPTION_TYPES = [
   { value: 'clinic_closed', label: 'Día cerrado (clínica)' },
   { value: 'practitioner_block', label: 'Bloqueo profesional' },
-  { value: 'extended_hours', label: 'Horario extendido' },
+  { value: 'extended_hours', label: 'Horario especial' },
 ] as const;
 
 const MAX_RANGE_DAYS = 90;
