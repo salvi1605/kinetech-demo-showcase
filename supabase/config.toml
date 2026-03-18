@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.send-contact-email]
 verify_jwt = false
+
+[functions.backup-clinic-data]
+verify_jwt = false
+
+[functions.export-clinic-data]
+verify_jwt = false
