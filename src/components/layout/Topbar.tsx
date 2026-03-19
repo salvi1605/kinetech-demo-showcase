@@ -278,7 +278,7 @@ export const Topbar = () => {
               <SheetHeader>
                 <SheetTitle>Menú</SheetTitle>
               </SheetHeader>
-              <div className="py-4 space-y-4">
+              <AnimatedMenuItems variant="fadeInRight" className="py-4 space-y-4">
                 {/* Clinic Info */}
                 {state.currentClinicName && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
@@ -329,7 +329,7 @@ export const Topbar = () => {
                   <LogOut className="h-4 w-4 mr-2" />
                   Cerrar sesión
                 </Button>
-              </div>
+              </AnimatedMenuItems>
             </SheetContent>
           </Sheet>
         )}

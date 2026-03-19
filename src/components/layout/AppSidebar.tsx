@@ -279,11 +279,18 @@ export function AppSidebar() {
               Sistema
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleAuthItems.map((item) => (
-                  <SidebarItem key={item.title} item={item} />
-                ))}
-              </SidebarMenu>
+            <SidebarMenu>
+              {visibleAuthItems.map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: (visibleNavItems.length + i) * 0.04, ease: [0.25, 0.46, 0.45, 0.94] }}
+                >
+                  <SidebarItem item={item} />
+                </motion.div>
+              ))}
+            </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

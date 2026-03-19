@@ -157,7 +157,7 @@ export const BottomNav = () => {
           <SheetHeader>
             <SheetTitle>Más opciones</SheetTitle>
           </SheetHeader>
-          <div className="py-4 grid grid-cols-3 gap-3">
+          <AnimatedMenuItems variant="scaleIn" staggerDelay={0.04} className="py-4 grid grid-cols-3 gap-3">
             {visibleMore.map((item) => (
               <button
                 key={item.title}
@@ -175,7 +175,7 @@ export const BottomNav = () => {
                 <span className="text-xs font-medium text-center">{item.title}</span>
               </button>
             ))}
-          </div>
+          </AnimatedMenuItems>
         </SheetContent>
       </Sheet>
     </>
