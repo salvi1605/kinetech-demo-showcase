@@ -196,7 +196,7 @@ export default function Home() {
           <h2 className="mb-6 text-3xl font-bold">{t.home.contact.heading}</h2>
           <p className="mb-8 text-muted-foreground">{t.home.contact.desc}</p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <a href="mailto:agendixpro2026@gmail.com">
+            <a href={getMailtoHref()}>
               <Button variant="outline" size="sm">
                 <Mail className="mr-2 h-4 w-4" />
                 {t.common.emailButton}
