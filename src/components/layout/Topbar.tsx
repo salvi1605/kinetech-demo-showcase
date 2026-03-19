@@ -1,4 +1,5 @@
 import { Users, Settings, Calendar as CalendarIcon, X, LogOut, Building, Menu, Wrench, Shield } from 'lucide-react';
+import { AnimatedMenuItems } from '@/components/shared/AnimatedMenuItems';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
