@@ -62,7 +62,7 @@ export default function Contact() {
           <div>
             <h2 className="text-xl font-semibold mb-4">{t.contact.directContact}</h2>
             <div className="space-y-4">
-              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+              <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <MessageCircle className="h-5 w-5 text-primary" />
                 <div>
                    <p className="font-medium">{t.contact.whatsapp}</p>
