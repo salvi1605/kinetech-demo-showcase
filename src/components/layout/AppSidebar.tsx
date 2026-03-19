@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { motion } from 'framer-motion';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Calendar,
