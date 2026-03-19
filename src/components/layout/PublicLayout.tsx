@@ -4,6 +4,7 @@ import { Globe, Mail, MessageCircle, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { AnimatedMenuItems } from "@/components/shared/AnimatedMenuItems";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import {
   Sheet,
   SheetContent,

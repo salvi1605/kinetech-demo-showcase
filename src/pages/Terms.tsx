@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Terms() {

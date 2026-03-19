@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function CancellationPolicy() {

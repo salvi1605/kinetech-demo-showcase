@@ -3,6 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Privacy() {

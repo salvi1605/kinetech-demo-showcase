@@ -15,6 +15,7 @@ import {
   Target,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 import previewAgenda from "@/assets/preview-agenda.jpg";
 import previewPaciente from "@/assets/preview-paciente.jpg";

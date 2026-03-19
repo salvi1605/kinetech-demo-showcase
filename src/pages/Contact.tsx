@@ -8,6 +8,7 @@ import { Mail, MessageCircle, Clock, Send, ShieldCheck, Loader2 } from "lucide-r
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 const FORMSPREE_URL = "https://formspree.io/f/xeerorql";
 
