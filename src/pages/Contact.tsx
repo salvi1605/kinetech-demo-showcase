@@ -8,6 +8,7 @@ import { Mail, MessageCircle, Clock, Send, ShieldCheck, Loader2 } from "lucide-r
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 const FORMSPREE_URL = "https://formspree.io/f/xeerorql";
 
@@ -61,14 +62,14 @@ export default function Contact() {
           <div>
             <h2 className="text-xl font-semibold mb-4">{t.contact.directContact}</h2>
             <div className="space-y-4">
-              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+              <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <MessageCircle className="h-5 w-5 text-primary" />
                 <div>
                    <p className="font-medium">{t.contact.whatsapp}</p>
                    <p className="text-sm text-muted-foreground">{t.contact.whatsappAction}</p>
                 </div>
               </a>
-              <a href="mailto:agendixpro2026@gmail.com" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+              <a href={getMailtoHref()} className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <Mail className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">{t.contact.email}</p>

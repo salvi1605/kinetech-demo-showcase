@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function CancellationPolicy() {
@@ -38,7 +39,7 @@ export default function CancellationPolicy() {
           <h2>{t.cancellation.s5title}</h2>
           <p>
             {t.cancellation.s5body}
-            <a href="mailto:agendixpro2026@gmail.com" className="text-primary hover:underline">
+            <a href={getMailtoHref()} className="text-primary hover:underline">
               {t.cancellation.s5emailButton}
             </a>.
           </p>

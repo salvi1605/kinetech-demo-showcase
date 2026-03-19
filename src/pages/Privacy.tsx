@@ -3,6 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Privacy() {
@@ -84,7 +85,7 @@ export function Privacy() {
             <h2 className="mb-3 text-xl font-semibold">{t.privacy.s8title}</h2>
             <p>
               {t.privacy.s8body}
-              <a href="mailto:agendixpro2026@gmail.com" className="font-medium text-primary hover:underline">{t.privacy.s8emailButton}</a>.
+              <a href={getMailtoHref()} className="font-medium text-primary hover:underline">{t.privacy.s8emailButton}</a>.
             </p>
           </section>
         </div>

@@ -15,6 +15,7 @@ import {
   Target,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 import previewAgenda from "@/assets/preview-agenda.jpg";
 import previewPaciente from "@/assets/preview-paciente.jpg";
@@ -44,7 +45,7 @@ export default function Home() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="mr-2 h-4 w-4" />
               {t.home.hero.ctaAlt}
             </a>
@@ -195,13 +196,13 @@ export default function Home() {
           <h2 className="mb-6 text-3xl font-bold">{t.home.contact.heading}</h2>
           <p className="mb-8 text-muted-foreground">{t.home.contact.desc}</p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <a href="mailto:agendixpro2026@gmail.com">
+            <a href={getMailtoHref()}>
               <Button variant="outline" size="sm">
                 <Mail className="mr-2 h-4 w-4" />
                 {t.common.emailButton}
               </Button>
             </a>
-            <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <MessageCircle className="mr-2 h-4 w-4" />
                 {t.footer.whatsappButton}
