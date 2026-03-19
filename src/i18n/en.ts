@@ -248,7 +248,7 @@ export const en: Translations = {
     s3body: "Information is stored on secure servers with encrypted connections (HTTPS). We implement reasonable technical measures to protect data, including in-transit encryption, role-based access control, and database-level security policies.",
     s3note: "While we take reasonable precautions, no system is completely immune to security risks.",
     s4title: "4. External providers",
-    s4body: "AgendixPro may use third-party services for infrastructure, payment processing, or specific functionalities. These providers are subject to their own privacy policies. We select providers that offer reasonable levels of security and data protection.",
+    s4body: "AgendixPro may use third-party services for infrastructure, payment processing, or specific functionalities. These providers are subject to their own privacy policies. In particular, recurring subscription payments are processed by a specialized external provider that complies with payment industry security standards (PCI-DSS). AgendixPro does not store credit card numbers or sensitive financial data on its own servers. We select providers that offer reasonable levels of security and data protection.",
     s5title: "5. Data retention",
     s5body: "Data is retained as long as the user's account is active and the service is contracted. After service cancellation, data will be retained for a reasonable period to facilitate reactivation or export, and may then be permanently deleted.",
     s6title: "6. User responsibility",
