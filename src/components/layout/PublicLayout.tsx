@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Globe, Mail, MessageCircle } from "lucide-react";
-import { ReactNode } from "react";
+import { Globe, Mail, MessageCircle, Menu } from "lucide-react";
+import { ReactNode, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface PublicLayoutProps {
   children: ReactNode;
@@ -10,6 +16,7 @@ interface PublicLayoutProps {
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const { locale, toggleLocale, t } = useLanguage();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navLinks = [
     { to: "/home", label: t.nav.home },
@@ -56,19 +63,55 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               <Link to="/login">{t.nav.login}</Link>
             </Button>
           </nav>
+
+          {/* Mobile controls */}
           <div className="flex items-center gap-2 md:hidden">
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleLocale}
-              aria-label="Toggle language"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
             >
-              <Globe className="h-4 w-4" />
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/login">{t.nav.login}</Link>
+              <Menu className="h-5 w-5" />
             </Button>
           </div>
+
+          {/* Mobile sheet */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetContent side="right" className="w-72">
+              <SheetHeader>
+                <SheetTitle className="text-left">AgendixPro</SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-1 mt-6">
+                {[...navLinks, { to: "/cancellation-policy", label: t.footer.cancellation }].map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-md px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+              <div className="mt-6 flex flex-col gap-3 border-t pt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { toggleLocale(); }}
+                  className="gap-1.5 justify-start"
+                >
+                  <Globe className="h-4 w-4" />
+                  {locale === "es" ? "English" : "Español"}
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    {t.nav.login}
+                  </Link>
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
