@@ -53,6 +53,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Problem ── */}
+      <section className="container py-12 md:py-16">
+        <div className="mx-auto max-w-xl text-center">
+          <h2 className="mb-8 text-3xl font-bold">{t.home.problem.heading}</h2>
+          <ul className="space-y-3 text-left">
+            {t.home.problem.items.map((item, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <span className="text-muted-foreground">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <Separator />
 
       {/* ── Product Preview ── */}
