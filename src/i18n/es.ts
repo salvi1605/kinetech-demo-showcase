@@ -246,7 +246,7 @@ export const es = {
     s3body: "La información se almacena en servidores seguros con conexiones cifradas (HTTPS). Implementamos medidas técnicas razonables para proteger los datos, incluyendo cifrado en tránsito, control de acceso basado en roles y políticas de seguridad a nivel de base de datos.",
     s3note: "Si bien tomamos precauciones razonables, ningún sistema es completamente inmune a riesgos de seguridad.",
     s4title: "4. Proveedores externos",
-    s4body: "AgendixPro puede utilizar servicios de terceros para infraestructura, procesamiento de pagos o funcionalidades específicas. Estos proveedores están sujetos a sus propias políticas de privacidad. Seleccionamos proveedores que ofrezcan niveles razonables de seguridad y protección de datos.",
+    s4body: "AgendixPro puede utilizar servicios de terceros para infraestructura, procesamiento de pagos o funcionalidades específicas. Estos proveedores están sujetos a sus propias políticas de privacidad. En particular, los pagos recurrentes de suscripción son procesados por un proveedor externo especializado que cumple con los estándares de seguridad de la industria de pagos (PCI-DSS). AgendixPro no almacena números de tarjeta de crédito ni datos financieros sensibles en sus propios servidores. Seleccionamos proveedores que ofrezcan niveles razonables de seguridad y protección de datos.",
     s5title: "5. Retención de datos",
     s5body: "Los datos se conservan mientras la cuenta del usuario esté activa y el servicio esté contratado. Tras la cancelación del servicio, los datos se conservarán durante un plazo razonable para facilitar reactivación o exportación, y luego podrán ser eliminados permanentemente.",
     s6title: "6. Responsabilidad del usuario",
