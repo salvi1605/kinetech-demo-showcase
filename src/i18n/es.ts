@@ -142,6 +142,7 @@ export const es = {
     subtitle: "Si quieres conocer AgendixPro, validar disponibilidad o consultar condiciones del servicio, escríbenos.",
     directContact: "Contacto directo",
     whatsapp: "WhatsApp",
+    whatsappAction: "Escríbenos por WhatsApp",
     email: "Correo",
     emailAction: "Mándanos un Correo",
     responseTime: "Tiempo de respuesta",

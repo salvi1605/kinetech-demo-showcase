@@ -144,6 +144,7 @@ export const en: Translations = {
     subtitle: "Want to learn about AgendixPro, check availability, or ask about service conditions? Write to us.",
     directContact: "Direct contact",
     whatsapp: "WhatsApp",
+    whatsappAction: "Message us on WhatsApp",
     email: "Email",
     emailAction: "Send us an Email",
     responseTime: "Response time",
