@@ -202,7 +202,7 @@ export default function Home() {
                 {t.common.emailButton}
               </Button>
             </a>
-            <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <MessageCircle className="mr-2 h-4 w-4" />
                 {t.footer.whatsappButton}

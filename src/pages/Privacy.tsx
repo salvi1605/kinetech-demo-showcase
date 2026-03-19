@@ -85,7 +85,7 @@ export function Privacy() {
             <h2 className="mb-3 text-xl font-semibold">{t.privacy.s8title}</h2>
             <p>
               {t.privacy.s8body}
-              <a href="mailto:agendixpro2026@gmail.com" className="font-medium text-primary hover:underline">{t.privacy.s8emailButton}</a>.
+              <a href={getMailtoHref()} className="font-medium text-primary hover:underline">{t.privacy.s8emailButton}</a>.
             </p>
           </section>
         </div>

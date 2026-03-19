@@ -138,7 +138,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                   {t.footer.emailButton}
                 </Button>
               </a>
-              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
+              <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
                   <MessageCircle className="h-3.5 w-3.5" />
                   {t.footer.whatsappButton}

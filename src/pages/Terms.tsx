@@ -99,10 +99,10 @@ export function Terms() {
           <section>
             <h2 className="mb-3 text-xl font-semibold">{t.terms.s9title}</h2>
             <p>
-              {t.terms.s9body1}
-              <a href="mailto:agendixpro2026@gmail.com" className="font-medium text-primary hover:underline">{t.terms.s9emailButton}</a>
+               {t.terms.s9body1}
+              <a href={getMailtoHref()} className="font-medium text-primary hover:underline">{t.terms.s9emailButton}</a>
               {t.terms.s9body2}
-              <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{t.terms.s9whatsapp}</a>.
+              <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{t.terms.s9whatsapp}</a>.
             </p>
           </section>
         </div>

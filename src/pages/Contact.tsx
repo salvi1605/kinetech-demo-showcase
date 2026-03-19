@@ -69,7 +69,7 @@ export default function Contact() {
                    <p className="text-sm text-muted-foreground">{t.contact.whatsappAction}</p>
                 </div>
               </a>
-              <a href="mailto:agendixpro2026@gmail.com" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+              <a href={getMailtoHref()} className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <Mail className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">{t.contact.email}</p>
