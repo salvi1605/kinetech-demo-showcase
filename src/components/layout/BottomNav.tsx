@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatedMenuItems } from '@/components/shared/AnimatedMenuItems';
 import { Calendar, Users, UserCheck, MoreHorizontal, Clock, Settings, Stethoscope, Calendar1, Copy, Shield, Building2, BarChart3 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';

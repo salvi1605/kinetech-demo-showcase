@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Globe, Mail, MessageCircle, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
+import { AnimatedMenuItems } from "@/components/shared/AnimatedMenuItems";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Sheet,
