@@ -129,6 +129,7 @@ export const es = {
     },
     founder: {
       name: "Programa Fundador",
+      limited: "Cupos limitados para clínicas en etapa inicial",
       badge: "Early Clinics",
       price: "USD 120",
       desc: "Para clínicas que participaron en la etapa inicial del sistema.",

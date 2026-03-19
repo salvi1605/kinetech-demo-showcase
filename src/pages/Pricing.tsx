@@ -60,9 +60,12 @@ export default function Pricing() {
           <Card className="relative flex flex-col border-2 border-primary/40 shadow-lg">
             <CardContent className="flex flex-1 flex-col p-8">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-                  {t.pricing.founder.name}
-                </p>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                    {t.pricing.founder.name}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.pricing.founder.limited}</p>
+                </div>
                 <Badge className="gap-1 bg-primary/10 text-primary hover:bg-primary/15 border-primary/20">
                   <Sparkles className="h-3 w-3" />
                   {t.pricing.founder.badge}

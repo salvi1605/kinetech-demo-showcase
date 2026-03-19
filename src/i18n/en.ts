@@ -131,6 +131,7 @@ export const en: Translations = {
     },
     founder: {
       name: "Founder Program",
+      limited: "Limited spots for clinics in the early stage",
       badge: "Early Clinics",
       price: "USD 120",
       desc: "For clinics that participated in the initial stage of the system.",
