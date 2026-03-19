@@ -45,7 +45,7 @@ export default function Home() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="mr-2 h-4 w-4" />
               {t.home.hero.ctaAlt}
             </a>
