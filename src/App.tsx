@@ -52,70 +52,72 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public Routes - redirect to app if authenticated */}
-              <Route path="/" element={<PublicRouteGuard><LanguageProvider><Home /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/home" element={<PublicRouteGuard><LanguageProvider><Home /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/pricing" element={<PublicRouteGuard><LanguageProvider><Pricing /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/cancellation-policy" element={<PublicRouteGuard><LanguageProvider><CancellationPolicy /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/contact" element={<PublicRouteGuard><LanguageProvider><Contact /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/terms" element={<PublicRouteGuard><LanguageProvider><Terms /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/privacy" element={<PublicRouteGuard><LanguageProvider><Privacy /></LanguageProvider></PublicRouteGuard>} />
-              <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              
-              {/* Auth Required - No Clinic Setup */}
-              <Route path="/create-clinic" element={
-                <AuthRouteGuard requireClinic={false}>
-                  <CreateClinicPage />
-                </AuthRouteGuard>
-              } />
-              
-              <Route path="/select-clinic" element={
-                <AuthRouteGuard requireClinic={false}>
-                  <SelectClinic />
-                </AuthRouteGuard>
-              } />
-              
-              <Route path="/super-admin" element={
-                <AuthRouteGuard requireClinic={false}>
-                  <SuperAdminDashboard />
-                </AuthRouteGuard>
-              } />
-              
-              <Route path="/no-access" element={
-                <AuthRouteGuard requireClinic={false}>
-                  <NoAccess />
-                </AuthRouteGuard>
-              } />
-              
-              {/* Protected Routes - Clinic Required */}
-              <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="patients" element={<Patients />} />
-                <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
-                <Route path="practitioners" element={<Practitioners />} />
-                <Route path="treatments" element={<Treatments />} />
-                <Route path="availability" element={<Availability />} />
-                <Route path="exceptions" element={<Exceptions />} />
-                <Route path="copy-schedule" element={<CopySchedule />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="clinics" element={<ClinicSettings />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="architecture" element={<Architecture />} />
-              </Route>
-              
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <LanguageProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public Routes - redirect to app if authenticated */}
+                <Route path="/" element={<PublicRouteGuard><Home /></PublicRouteGuard>} />
+                <Route path="/home" element={<PublicRouteGuard><Home /></PublicRouteGuard>} />
+                <Route path="/pricing" element={<PublicRouteGuard><Pricing /></PublicRouteGuard>} />
+                <Route path="/cancellation-policy" element={<PublicRouteGuard><CancellationPolicy /></PublicRouteGuard>} />
+                <Route path="/contact" element={<PublicRouteGuard><Contact /></PublicRouteGuard>} />
+                <Route path="/terms" element={<PublicRouteGuard><Terms /></PublicRouteGuard>} />
+                <Route path="/privacy" element={<PublicRouteGuard><Privacy /></PublicRouteGuard>} />
+                <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                
+                {/* Auth Required - No Clinic Setup */}
+                <Route path="/create-clinic" element={
+                  <AuthRouteGuard requireClinic={false}>
+                    <CreateClinicPage />
+                  </AuthRouteGuard>
+                } />
+                
+                <Route path="/select-clinic" element={
+                  <AuthRouteGuard requireClinic={false}>
+                    <SelectClinic />
+                  </AuthRouteGuard>
+                } />
+                
+                <Route path="/super-admin" element={
+                  <AuthRouteGuard requireClinic={false}>
+                    <SuperAdminDashboard />
+                  </AuthRouteGuard>
+                } />
+                
+                <Route path="/no-access" element={
+                  <AuthRouteGuard requireClinic={false}>
+                    <NoAccess />
+                  </AuthRouteGuard>
+                } />
+                
+                {/* Protected Routes - Clinic Required */}
+                <Route path="/" element={<AuthRouteGuard><AppLayout /></AuthRouteGuard>}>
+                  <Route path="calendar" element={<Calendar />} />
+                  <Route path="calendar" element={<Calendar />} />
+                  <Route path="patients" element={<Patients />} />
+                  <Route path="patients/:id" element={<PatientRouteGuard><PatientDetail /></PatientRouteGuard>} />
+                  <Route path="practitioners" element={<Practitioners />} />
+                  <Route path="treatments" element={<Treatments />} />
+                  <Route path="availability" element={<Availability />} />
+                  <Route path="exceptions" element={<Exceptions />} />
+                  <Route path="copy-schedule" element={<CopySchedule />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="clinics" element={<ClinicSettings />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="architecture" element={<Architecture />} />
+                </Route>
+                
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </LanguageProvider>
       </AppProvider>
     </QueryClientProvider>
   </ErrorBoundary>
