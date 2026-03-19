@@ -1,41 +1,51 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Actualizar páginas legales para compatibilidad con Stripe
 
-## Causa raíz
+## Contexto
+Las páginas de Términos, Privacidad y Cancelación necesitan mencionar precios, facturación y procesamiento de pagos externo para cumplir con los requisitos de Stripe. El usuario NO quiere pagos directos en la plataforma ni cancelación self-service — todo se gestiona manualmente vía soporte.
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+## Cambios
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+### 1. Términos del Servicio — Nueva sección "Precios y Facturación" (sección 3, renumerando las siguientes)
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+Contenido nuevo entre sección 2 y la actual sección 3:
+- **Plan Inicial**: USD 500/mes + cargo único de setup
+- **Programa Fundador**: USD 120/mes (oferta limitada)
+- Moneda: USD. Facturación mensual recurrente
+- Los pagos se procesan a través de un proveedor externo de pagos (Stripe), sujeto a sus propios términos
+- AgendixPro no almacena datos de tarjetas de crédito
+- La contratación se coordina con el equipo de soporte (no hay pago directo en la web)
+- Renovación automática salvo cancelación previa
 
-## Plan de corrección (2 partes)
+Las secciones actuales 3-8 pasan a ser 4-9.
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+### 2. Privacidad — Ampliar sección 4 (Proveedores externos)
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
-```
+Agregar mención explícita:
+- Los pagos son procesados por un proveedor externo especializado (sin nombrar Stripe directamente, solo "procesador de pagos")
+- AgendixPro no almacena números de tarjeta ni datos financieros sensibles
+- El procesador de pagos opera bajo sus propias políticas de privacidad y estándares de seguridad (PCI-DSS)
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+### 3. Cancelación — Reforzar que es solo vía soporte
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+- Aclarar que la cancelación se solicita exclusivamente por correo o WhatsApp al equipo de soporte
+- No existe opción de cancelación automática en la plataforma
+- Mantener el aviso de 15 días y los 30 días de retención de datos
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### 4. Archivos a modificar
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/i18n/es.ts` | Agregar sección de precios en `terms`, ampliar `privacy.s4body`, reforzar `cancellation.s1body` |
+| `src/i18n/en.ts` | Mismos cambios en inglés |
+| `src/pages/Terms.tsx` | Renderizar la nueva sección de precios y facturación |
+
+### 5. Detalles técnicos
+
+- En `es.ts` y `en.ts`, se agrega un bloque `s3` nuevo (precios/facturación) con `s3title`, `s3body`, `s3items` (lista de puntos sobre facturación) y `s3note`
+- Las claves actuales `s3`-`s8` se renumeran a `s4`-`s9`
+- En `Terms.tsx`, se agrega una `<section>` con `<ul>` para los items de facturación entre la sección 2 y la actual sección 3
+- `privacy.s4body` se extiende con texto adicional sobre el procesador de pagos y PCI-DSS
+- `cancellation.s1body` se ajusta para enfatizar "exclusivamente contactando al equipo de soporte por correo o WhatsApp"
 
