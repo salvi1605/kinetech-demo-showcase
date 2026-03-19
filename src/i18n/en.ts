@@ -26,10 +26,27 @@ export const en: Translations = {
   // ── Home ──
   home: {
     hero: {
-      title: "Complete appointment, patient, and daily operations management for health clinics",
-      subtitle: "Organize your practitioners' schedules, manage patients, and control your clinic's operations from a single platform.",
+      title: "Organize your clinic's schedule, patients, and daily operations in one system",
+      subtitle: "Manage appointments, practitioners, and patients from a simple platform built for health clinics.",
       cta: "Request a demo",
       ctaAlt: "Chat on WhatsApp",
+    },
+    problem: {
+      heading: "What problem do we solve?",
+      items: [
+        "Disorganized appointments",
+        "Scattered information",
+        "Double work (paper + system)",
+        "Lack of control over the schedule",
+      ],
+    },
+    comingSoon: {
+      heading: "Coming soon",
+      items: [
+        "Automatic patient reminders",
+        "Appointment confirmations",
+        "Tools to reduce no-shows",
+      ],
     },
     productPreview: {
       heading: "What AgendixPro looks like",
@@ -114,6 +131,7 @@ export const en: Translations = {
     },
     founder: {
       name: "Founder Program",
+      limited: "Limited spots for clinics in the early stage",
       badge: "Early Clinics",
       price: "USD 120",
       desc: "For clinics that participated in the initial stage of the system.",

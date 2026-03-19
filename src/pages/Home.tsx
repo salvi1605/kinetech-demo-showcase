@@ -53,6 +53,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Problem ── */}
+      <section className="container py-12 md:py-16">
+        <div className="mx-auto max-w-xl text-center">
+          <h2 className="mb-8 text-3xl font-bold">{t.home.problem.heading}</h2>
+          <ul className="space-y-3 text-left">
+            {t.home.problem.items.map((item, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <span className="text-muted-foreground">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <Separator />
 
       {/* ── Product Preview ── */}
@@ -185,6 +200,21 @@ export default function Home() {
           <h2 className="mb-6 text-3xl font-bold">{t.home.maintenance.heading}</h2>
           <p className="text-muted-foreground">{t.home.maintenance.desc}</p>
           <p className="mt-4 text-sm text-muted-foreground/80">{t.home.maintenance.note}</p>
+        </div>
+      </section>
+
+      {/* ── Coming Soon ── */}
+      <section className="container py-10 md:py-14">
+        <div className="mx-auto max-w-md text-center">
+          <h3 className="mb-4 text-lg font-semibold text-muted-foreground">{t.home.comingSoon.heading}</h3>
+          <ul className="space-y-2 text-left">
+            {t.home.comingSoon.items.map((item, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/60" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
