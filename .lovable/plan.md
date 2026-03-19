@@ -1,41 +1,36 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Ajustes de contenido en Home y Pricing
 
-## Causa raíz
+## Cambios en 3 archivos
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+### 1. `src/i18n/es.ts`
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+**Hero** — Reemplazar `home.hero.title` por el texto exacto solicitado. Ajustar `subtitle` para mayor claridad sin cambiar el sentido.
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+**Nuevas keys:**
+- `home.problem.heading`: "¿Qué problema resolvemos?"
+- `home.problem.items`: array con los 4 bullets solicitados
+- `home.comingSoon.heading`: "Próximamente"
+- `home.comingSoon.items`: array con los 3 bullets solicitados
+- `pricing.founder.limited`: "Cupos limitados para clínicas en etapa inicial"
 
-## Plan de corrección (2 partes)
+### 2. `src/i18n/en.ts`
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+Agregar las mismas keys con traducciones al inglés equivalentes (sin optimización especial, solo coherencia estructural para que TypeScript no rompa).
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
-```
+### 3. `src/pages/Home.tsx`
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+**Sección "¿Qué problema resolvemos?"** — Insertar inmediatamente después del hero y antes del `<Separator />`. Usa el mismo patrón que la sección "Acompañamiento continuo" (lista con `CheckCircle2`, `container`, `max-w-xl`, `text-center` heading + `text-left` lista). Sin tarjetas, sin componentes nuevos.
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+**Sección "Próximamente"** — Insertar como bloque discreto antes de la sección de Contacto final. Mismo patrón de lista simple, pero con un contenedor más compacto y texto `text-sm` para mantenerlo sobrio.
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### 4. `src/pages/Pricing.tsx`
+
+Agregar `t.pricing.founder.limited` como un `<p>` con clase `text-sm text-muted-foreground` debajo del nombre del plan fundador, antes del precio.
+
+---
+
+**Archivos modificados:** `es.ts`, `en.ts`, `Home.tsx`, `Pricing.tsx`
+**No se tocan:** layout, backend, auth, navegación, componentes UI, otras páginas.
 
