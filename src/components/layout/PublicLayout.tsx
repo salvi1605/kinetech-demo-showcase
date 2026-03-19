@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Globe, Mail, MessageCircle, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
+import { AnimatedMenuItems } from "@/components/shared/AnimatedMenuItems";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Sheet,
@@ -82,7 +83,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               <SheetHeader>
                 <SheetTitle className="text-left">AgendixPro</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-1 mt-6">
+              <AnimatedMenuItems variant="fadeInRight" className="flex flex-col gap-1">
                 {[...navLinks, { to: "/cancellation-policy", label: t.footer.cancellation }].map((link) => (
                   <Link
                     key={link.to}
@@ -93,7 +94,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                     {link.label}
                   </Link>
                 ))}
-              </nav>
+              </AnimatedMenuItems>
               <div className="mt-6 flex flex-col gap-3 border-t pt-6">
                 <Button
                   variant="outline"
