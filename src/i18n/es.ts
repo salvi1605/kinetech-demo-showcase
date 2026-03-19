@@ -263,7 +263,7 @@ export const es = {
     heading: "Política de Cancelación y Reembolsos",
     lastUpdated: "Última actualización: marzo 2026",
     s1title: "1. Cancelación del servicio",
-    s1body: "El cliente puede cancelar su suscripción a AgendixPro en cualquier momento notificando por escrito al equipo de soporte con al menos 15 días de anticipación al próximo período de facturación.",
+    s1body: "El cliente puede cancelar su suscripción a AgendixPro en cualquier momento notificando al equipo de soporte con al menos 15 días de anticipación al próximo período de facturación. La cancelación se solicita exclusivamente contactando al equipo de soporte por correo electrónico (agendixpro2026@gmail.com) o por WhatsApp. No existe una opción de cancelación automática dentro de la plataforma.",
     s2title: "2. Efecto de la cancelación",
     s2body: "Una vez procesada la cancelación, el acceso al sistema se mantendrá activo hasta el final del período ya facturado. No se realizarán cobros adicionales a partir de la fecha efectiva de cancelación.",
     s3title: "3. Reembolsos",
