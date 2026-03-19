@@ -132,7 +132,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <span className="text-sm text-muted-foreground">{t.footer.tagline}</span>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-sm text-muted-foreground">{t.footer.contactLabel}</span>
-              <a href="mailto:agendixpro2026@gmail.com">
+              <a href={getMailtoHref()}>
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
                   <Mail className="h-3.5 w-3.5" />
                   {t.footer.emailButton}
