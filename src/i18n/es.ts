@@ -24,10 +24,27 @@ export const es = {
   // ── Home ──
   home: {
     hero: {
-      title: "Gestión completa de turnos, pacientes y operación diaria para clínicas de salud",
-      subtitle: "Organiza la agenda de tus profesionales, gestiona pacientes y controla la operación de tu clínica desde una sola plataforma.",
+      title: "Organiza la agenda, pacientes y operación diaria de tu clínica en un solo sistema",
+      subtitle: "Gestiona turnos, profesionales y pacientes desde una plataforma simple y pensada para clínicas de salud.",
       cta: "Solicitar demo",
       ctaAlt: "Hablar por WhatsApp",
+    },
+    problem: {
+      heading: "¿Qué problema resolvemos?",
+      items: [
+        "Turnos desordenados",
+        "Información dispersa",
+        "Doble trabajo (papel + sistema)",
+        "Falta de control sobre la agenda",
+      ],
+    },
+    comingSoon: {
+      heading: "Próximamente",
+      items: [
+        "Recordatorios automáticos a pacientes",
+        "Confirmación de turnos",
+        "Herramientas para reducir ausencias",
+      ],
     },
     productPreview: {
       heading: "Cómo se ve AgendixPro",
