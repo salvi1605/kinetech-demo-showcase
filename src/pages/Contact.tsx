@@ -64,8 +64,8 @@ export default function Contact() {
               <a href="https://wa.me/12262244099" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
                 <MessageCircle className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-medium">{t.contact.whatsapp}</p>
-                  <p className="text-sm text-muted-foreground">+1 (226) 224-4099</p>
+                   <p className="font-medium">{t.contact.whatsapp}</p>
+                   <p className="text-sm text-muted-foreground">{t.contact.whatsappAction}</p>
                 </div>
               </a>
               <a href="mailto:agendixpro2026@gmail.com" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors">
