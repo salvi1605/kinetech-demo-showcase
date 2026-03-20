@@ -111,7 +111,7 @@ export const es = {
     subtitle: "Un sistema simple para organizar la operación diaria de tu clínica.",
     perMonth: "/ mes",
     early: {
-      name: "Plan Early",
+      name: "PLAN PRIMEROS CLIENTES",
       badge: "Plan activo",
       price: "USD 250",
       desc: "Plan para clínicas que buscan organizar su operación diaria con un sistema simple y confiable.",

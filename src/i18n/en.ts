@@ -113,7 +113,7 @@ export const en: Translations = {
     subtitle: "A simple system to organize your clinic's daily operations.",
     perMonth: "/ month",
     early: {
-      name: "Early Plan",
+      name: "EARLY CUSTOMERS PLAN",
       badge: "Active plan",
       price: "USD 250",
       desc: "A plan for clinics looking to organize their daily operations with a simple and reliable system.",
