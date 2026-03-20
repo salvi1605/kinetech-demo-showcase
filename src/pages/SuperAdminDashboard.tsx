@@ -261,7 +261,10 @@ export default function SuperAdminDashboard() {
       toast({ title: 'Error', description: 'Completa todos los campos obligatorios', variant: 'destructive' });
       return;
     }
-    // Clinic is optional — user may not have a clinic created yet
+    if (newUser.roleId !== 'super_admin' && !newUser.clinicId) {
+      toast({ title: 'Error', description: 'Selecciona una clínica para este rol', variant: 'destructive' });
+      return;
+    }
     if (newUser.password.length < 8) {
       toast({ title: 'Error', description: 'La contraseña debe tener al menos 8 caracteres', variant: 'destructive' });
       return;
@@ -276,7 +279,7 @@ export default function SuperAdminDashboard() {
           password: newUser.password,
           fullName: newUser.fullName,
           roleId: newUser.roleId,
-          clinicId: newUser.clinicId || null,
+          clinicId: newUser.roleId === 'super_admin' ? null : newUser.clinicId,
         },
       });
 
@@ -670,9 +673,9 @@ export default function SuperAdminDashboard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {newUser.roleId && (
+                    {newUser.roleId && newUser.roleId !== 'super_admin' && (
                       <div className="space-y-2 sm:col-span-2">
-                        <Label>Clínica {newUser.roleId !== 'super_admin' ? '(opcional — puede asignarse después)' : '(opcional)'}</Label>
+                        <Label>Clínica *</Label>
                         <Select value={newUser.clinicId} onValueChange={v => setNewUser(p => ({ ...p, clinicId: v }))}>
                           <SelectTrigger><SelectValue placeholder="Seleccionar clínica" /></SelectTrigger>
                           <SelectContent>
