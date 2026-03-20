@@ -670,9 +670,9 @@ export default function SuperAdminDashboard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {newUser.roleId && newUser.roleId !== 'super_admin' && (
+                    {newUser.roleId && (
                       <div className="space-y-2 sm:col-span-2">
-                        <Label>Clínica *</Label>
+                        <Label>Clínica {newUser.roleId !== 'super_admin' ? '(opcional — puede asignarse después)' : '(opcional)'}</Label>
                         <Select value={newUser.clinicId} onValueChange={v => setNewUser(p => ({ ...p, clinicId: v }))}>
                           <SelectTrigger><SelectValue placeholder="Seleccionar clínica" /></SelectTrigger>
                           <SelectContent>
