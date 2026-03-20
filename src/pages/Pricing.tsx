@@ -77,7 +77,7 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Programa Fundador — bloque informativo */}
+      {/* PLAN FUNDADOR — bloque informativo */}
       <section className="container pb-16">
         <div className="mx-auto max-w-lg">
           <Card className="border-border/60 bg-muted/30">

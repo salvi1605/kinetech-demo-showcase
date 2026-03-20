@@ -111,7 +111,7 @@ export const es = {
     subtitle: "Un sistema simple para organizar la operación diaria de tu clínica.",
     perMonth: "/ mes",
     early: {
-      name: "Plan Early",
+      name: "PLAN PRIMEROS CLIENTES",
       badge: "Plan activo",
       price: "USD 250",
       desc: "Plan para clínicas que buscan organizar su operación diaria con un sistema simple y confiable.",
@@ -131,7 +131,7 @@ export const es = {
       cta: "Solicitar información",
     },
     founder: {
-      name: "Programa Fundador",
+      name: "PLAN FUNDADOR",
       price: "USD 120",
       desc: "Disponible únicamente para clínicas que participaron en la etapa inicial del sistema.",
       notice: "Cupos limitados y asignados directamente por el equipo de AgendixPro",
@@ -201,7 +201,7 @@ export const es = {
     s3body: "AgendixPro ofrece planes de suscripción mensual. Los precios vigentes al momento de la contratación son:",
     s3items: [
       "Plan Inicial: USD 500 por mes, más un cargo único de implementación inicial (setup).",
-      "Programa Fundador: USD 120 por mes (oferta limitada para clínicas en etapa de adopción temprana).",
+      "PLAN FUNDADOR: USD 120 por mes (oferta limitada para clínicas en etapa de adopción temprana).",
       "Todos los precios están expresados en dólares estadounidenses (USD).",
       "La facturación es mensual y recurrente. La suscripción se renueva automáticamente salvo cancelación previa.",
       "Los pagos se procesan a través de un proveedor externo de pagos especializado, sujeto a sus propios términos y condiciones.",
