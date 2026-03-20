@@ -276,7 +276,7 @@ export default function SuperAdminDashboard() {
           password: newUser.password,
           fullName: newUser.fullName,
           roleId: newUser.roleId,
-          clinicId: newUser.roleId === 'super_admin' ? null : newUser.clinicId,
+          clinicId: newUser.clinicId || null,
         },
       });
 
