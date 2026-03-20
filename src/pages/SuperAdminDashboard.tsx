@@ -261,10 +261,7 @@ export default function SuperAdminDashboard() {
       toast({ title: 'Error', description: 'Completa todos los campos obligatorios', variant: 'destructive' });
       return;
     }
-    if (newUser.roleId !== 'super_admin' && !newUser.clinicId) {
-      toast({ title: 'Error', description: 'Selecciona una clínica para este rol', variant: 'destructive' });
-      return;
-    }
+    // Clinic is optional — user may not have a clinic created yet
     if (newUser.password.length < 8) {
       toast({ title: 'Error', description: 'La contraseña debe tener al menos 8 caracteres', variant: 'destructive' });
       return;
