@@ -53,14 +53,22 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              {/* Notas adicionales */}
-              <div className="mt-6 border-t pt-4 space-y-2">
-                {t.pricing.early.notes.map((note, i) => (
-                  <p key={i} className="flex items-start gap-2.5 text-sm font-medium text-muted-foreground">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{note}</span>
-                  </p>
-                ))}
+              {/* Setup / Onboarding — costo aparte */}
+              <div className="mt-6 border-t pt-4 space-y-1.5">
+                <p className="text-sm font-semibold">{t.pricing.early.setupTitle}</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold">{t.pricing.early.setupPrice}</span>
+                  <span className="text-xs text-muted-foreground">{t.pricing.early.setupOneTime}</span>
+                </div>
+                <ul className="space-y-1">
+                  {t.pricing.early.setupItems.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground/80 italic">{t.pricing.early.setupNote}</p>
               </div>
 
               <Button className="mt-8 w-full" size="lg" asChild>
