@@ -131,7 +131,7 @@ export const es = {
       cta: "Solicitar información",
     },
     founder: {
-      name: "Programa Fundador",
+      name: "PLAN FUNDADOR",
       price: "USD 120",
       desc: "Disponible únicamente para clínicas que participaron en la etapa inicial del sistema.",
       notice: "Cupos limitados y asignados directamente por el equipo de AgendixPro",

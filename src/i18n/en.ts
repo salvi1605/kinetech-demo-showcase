@@ -133,7 +133,7 @@ export const en: Translations = {
       cta: "Request information",
     },
     founder: {
-      name: "Founder Program",
+      name: "FOUNDER PLAN",
       price: "USD 120",
       desc: "Available only for clinics that participated in the initial stage of the system.",
       notice: "Limited spots assigned directly by the AgendixPro team",
