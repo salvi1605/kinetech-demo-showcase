@@ -226,7 +226,8 @@ serve(async (req) => {
         console.error('Error assigning super_admin role')
         throw roleError
       }
-    } else {
+    } else if (clinicId) {
+      // Only assign clinic role if clinicId is provided
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .insert({
@@ -241,6 +242,7 @@ serve(async (req) => {
         throw roleError
       }
     }
+    // If no clinicId and not super_admin, user is created without a role assignment
 
     return new Response(
       JSON.stringify({ 
