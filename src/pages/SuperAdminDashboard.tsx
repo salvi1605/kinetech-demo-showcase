@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, UserCheck, CalendarDays, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowRight, Shield, Activity, Clock, CalendarIcon } from 'lucide-react';
+import { Building2, Users, UserCheck, CalendarDays, TrendingUp, AlertTriangle, Plus, ArrowRight, Shield, CalendarIcon, Trash2, UserPlus, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +10,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
-import { format, subDays, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
+import { format, subDays, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+const ROOT_USER_ID = 'f6157dc0-677c-4fd7-8441-bc424c4e5056';
 
 type DatePreset = '7d' | '30d' | '90d' | 'custom';
 
@@ -61,6 +69,26 @@ interface GlobalStats {
   globalNoShowRate: number;
 }
 
+interface SuperAdminUser {
+  roleId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+}
+
+interface ClinicOption {
+  id: string;
+  name: string;
+}
+
+const ALL_ROLES = [
+  { id: 'super_admin', label: 'Super Admin' },
+  { id: 'tenant_owner', label: 'Dueño de clínica' },
+  { id: 'admin_clinic', label: 'Admin de clínica' },
+  { id: 'receptionist', label: 'Recepcionista' },
+  { id: 'health_pro', label: 'Profesional de salud' },
+];
+
 export default function SuperAdminDashboard() {
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
@@ -75,6 +103,18 @@ export default function SuperAdminDashboard() {
     preset: '30d',
   });
 
+  // User management state
+  const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);
+  const [clinicOptions, setClinicOptions] = useState<ClinicOption[]>([]);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', password: '', fullName: '', roleId: '', clinicId: '' });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isRevokingId, setIsRevokingId] = useState<string | null>(null);
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoteUserId, setPromoteUserId] = useState('');
+  const [allUsers, setAllUsers] = useState<{ id: string; fullName: string; email: string }[]>([]);
+  const [isPromoting, setIsPromoting] = useState(false);
+
   useEffect(() => {
     if (!state.isSuperAdmin) {
       navigate('/login', { replace: true });
@@ -83,21 +123,49 @@ export default function SuperAdminDashboard() {
     loadDashboardData();
   }, [state.isSuperAdmin, dateRange.from, dateRange.to]);
 
+  useEffect(() => {
+    if (state.isSuperAdmin) {
+      loadSuperAdmins();
+    }
+  }, [state.isSuperAdmin]);
+
+  const loadSuperAdmins = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('id, user_id, users!user_roles_user_id_fkey(full_name, email)')
+      .eq('role_id', 'super_admin')
+      .eq('active', true);
+
+    if (data) {
+      setSuperAdmins(data.map((r: any) => ({
+        roleId: r.id,
+        userId: r.user_id,
+        fullName: r.users?.full_name || '',
+        email: r.users?.email || '',
+      })));
+    }
+
+    // Load all users for promote dialog
+    const { data: users } = await supabase.from('users').select('id, full_name, email').eq('is_active', true).order('full_name');
+    if (users) {
+      setAllUsers(users.map(u => ({ id: u.id, fullName: u.full_name, email: u.email })));
+    }
+  };
+
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Fetch all clinics
       const { data: clinics, error: clinicsError } = await supabase
         .from('clinics')
         .select('id, name, timezone, country_code, is_active')
         .order('name');
       if (clinicsError) throw clinicsError;
 
-      // Fetch counts per clinic in parallel
+      setClinicOptions((clinics || []).map(c => ({ id: c.id, name: c.name })));
+
       const today = format(new Date(), 'yyyy-MM-dd');
       const dateFrom = format(dateRange.from, 'yyyy-MM-dd');
       const dateTo = format(dateRange.to, 'yyyy-MM-dd');
-      const days = differenceInDays(dateRange.to, dateRange.from) + 1;
 
       const [
         { data: patients },
@@ -113,7 +181,6 @@ export default function SuperAdminDashboard() {
         supabase.from('audit_log').select('id, clinic_id, action, entity_type, created_at, payload').order('created_at', { ascending: false }).limit(20),
       ]);
 
-      // Build clinic stats
       const stats: ClinicStats[] = (clinics || []).map(clinic => {
         const clinicPatients = (patients || []).filter(p => p.clinic_id === clinic.id);
         const clinicPractitioners = (practitioners || []).filter(p => p.clinic_id === clinic.id && p.is_active);
@@ -127,23 +194,15 @@ export default function SuperAdminDashboard() {
         const occupancy = nonCancelled > 0 ? Math.round((completed / nonCancelled) * 100) : 0;
 
         return {
-          id: clinic.id,
-          name: clinic.name,
-          timezone: clinic.timezone,
-          country_code: clinic.country_code,
-          is_active: clinic.is_active,
-          totalPatients: clinicPatients.length,
-          totalPractitioners: clinicPractitioners.length,
-          totalAppointments: total,
-          completedAppointments: completed,
-          noShowAppointments: noShow,
-          cancelledAppointments: cancelled,
-          scheduledAppointments: scheduled,
-          occupancyRate: occupancy,
+          id: clinic.id, name: clinic.name, timezone: clinic.timezone,
+          country_code: clinic.country_code, is_active: clinic.is_active,
+          totalPatients: clinicPatients.length, totalPractitioners: clinicPractitioners.length,
+          totalAppointments: total, completedAppointments: completed,
+          noShowAppointments: noShow, cancelledAppointments: cancelled,
+          scheduledAppointments: scheduled, occupancyRate: occupancy,
         };
       });
 
-      // Global stats
       const todayAppointments = (appointments || []).filter(a => a.date === today);
       const allNonCancelled = (appointments || []).filter(a => a.status !== 'cancelled');
       const allCompleted = (appointments || []).filter(a => a.status === 'completed');
@@ -159,7 +218,6 @@ export default function SuperAdminDashboard() {
         globalNoShowRate: allNonCancelled.length > 0 ? Math.round((allNoShow.length / allNonCancelled.length) * 100) : 0,
       });
 
-      // Recent activity from audit log
       const clinicMap = new Map((clinics || []).map(c => [c.id, c.name]));
       const activities: RecentActivity[] = (auditLogs || []).map(log => ({
         id: log.id,
@@ -170,7 +228,6 @@ export default function SuperAdminDashboard() {
         timestamp: log.created_at || '',
       }));
       setRecentActivity(activities);
-
       setClinicStats(stats);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -181,19 +238,8 @@ export default function SuperAdminDashboard() {
   };
 
   const formatActivityDetail = (entityType: string, action: string): string => {
-    const entityMap: Record<string, string> = {
-      appointment: 'Cita',
-      patient: 'Paciente',
-      user: 'Usuario',
-      clinic: 'Clínica',
-    };
-    const actionMap: Record<string, string> = {
-      create: 'creado/a',
-      update: 'actualizado/a',
-      delete: 'eliminado/a',
-      cancel: 'cancelado/a',
-      reschedule: 'reprogramado/a',
-    };
+    const entityMap: Record<string, string> = { appointment: 'Cita', patient: 'Paciente', user: 'Usuario', clinic: 'Clínica' };
+    const actionMap: Record<string, string> = { create: 'creado/a', update: 'actualizado/a', delete: 'eliminado/a', cancel: 'cancelado/a', reschedule: 'reprogramado/a' };
     return `${entityMap[entityType] || entityType} ${actionMap[action] || action}`;
   };
 
@@ -205,8 +251,96 @@ export default function SuperAdminDashboard() {
 
   const handleCreateDialogClose = (open: boolean) => {
     setCreateDialogOpen(open);
-    if (!open) {
+    if (!open) loadDashboardData();
+  };
+
+  // ─── User Management Handlers ───
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password || !newUser.fullName || !newUser.roleId) {
+      toast({ title: 'Error', description: 'Completa todos los campos obligatorios', variant: 'destructive' });
+      return;
+    }
+    if (newUser.roleId !== 'super_admin' && !newUser.clinicId) {
+      toast({ title: 'Error', description: 'Selecciona una clínica para este rol', variant: 'destructive' });
+      return;
+    }
+    if (newUser.password.length < 8) {
+      toast({ title: 'Error', description: 'La contraseña debe tener al menos 8 caracteres', variant: 'destructive' });
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('create-user', {
+        body: {
+          email: newUser.email,
+          password: newUser.password,
+          fullName: newUser.fullName,
+          roleId: newUser.roleId,
+          clinicId: newUser.roleId === 'super_admin' ? null : newUser.clinicId,
+        },
+      });
+
+      if (res.error || res.data?.error) {
+        throw new Error(res.data?.error || res.error?.message || 'Error desconocido');
+      }
+
+      toast({ title: 'Usuario creado', description: `${newUser.fullName} (${newUser.email})` });
+      setCreateUserOpen(false);
+      setNewUser({ email: '', password: '', fullName: '', roleId: '', clinicId: '' });
+      loadSuperAdmins();
       loadDashboardData();
+    } catch (err: any) {
+      toast({ title: 'Error al crear usuario', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const handleRevokeSuperAdmin = async (roleId: string, userId: string, name: string) => {
+    if (userId === ROOT_USER_ID) {
+      toast({ title: 'Protegido', description: 'No se puede revocar el super admin raíz', variant: 'destructive' });
+      return;
+    }
+    setIsRevokingId(roleId);
+    try {
+      const { error } = await supabase.from('user_roles').delete().eq('id', roleId);
+      if (error) throw error;
+      toast({ title: 'Rol revocado', description: `Se revocó super_admin de ${name}` });
+      loadSuperAdmins();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsRevokingId(null);
+    }
+  };
+
+  const handlePromoteToSuperAdmin = async () => {
+    if (!promoteUserId) return;
+    const alreadySA = superAdmins.some(sa => sa.userId === promoteUserId);
+    if (alreadySA) {
+      toast({ title: 'Ya es super admin', variant: 'destructive' });
+      return;
+    }
+    setIsPromoting(true);
+    try {
+      const { error } = await supabase.from('user_roles').insert({
+        user_id: promoteUserId,
+        role_id: 'super_admin',
+        clinic_id: null,
+        active: true,
+      });
+      if (error) throw error;
+      toast({ title: 'Promovido', description: 'Usuario promovido a super admin' });
+      setPromoteOpen(false);
+      setPromoteUserId('');
+      loadSuperAdmins();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsPromoting(false);
     }
   };
 
@@ -245,7 +379,6 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              {/* Date presets */}
               <div className="flex rounded-lg border border-border overflow-hidden">
                 {([
                   { key: '7d' as DatePreset, label: '7 días' },
@@ -266,7 +399,6 @@ export default function SuperAdminDashboard() {
                   </button>
                 ))}
               </div>
-              {/* Custom date range */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant={dateRange.preset === 'custom' ? 'default' : 'outline'} size="sm" className="h-8">
@@ -358,7 +490,6 @@ export default function SuperAdminDashboard() {
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Citas ({dateRange.preset === '7d' ? '7d' : dateRange.preset === '30d' ? '30d' : dateRange.preset === '90d' ? '90d' : `${differenceInDays(dateRange.to, dateRange.from) + 1}d`})</p>
                       </div>
                     </div>
-
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Asistencia</span>
@@ -366,7 +497,6 @@ export default function SuperAdminDashboard() {
                       </div>
                       <Progress value={clinic.occupancyRate} className="h-1.5" />
                     </div>
-
                     <div className="flex gap-2 text-xs">
                       <span className="text-accent">✓ {clinic.completedAppointments}</span>
                       <span className="text-destructive">✗ {clinic.noShowAppointments}</span>
@@ -379,7 +509,7 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          {/* Recent Activity */}
+          {/* Right column: Activity + Quick Actions */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Actividad reciente</h2>
             <Card className="border-border/60">
@@ -429,11 +559,176 @@ export default function SuperAdminDashboard() {
                   <Building2 className="h-4 w-4 mr-2 text-primary" />
                   Gestionar clínica específica
                 </Button>
+                <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => setCreateUserOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2 text-primary" />
+                  Crear usuario
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* ─── User Management Section ─── */}
+        <Separator />
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Gestión de Usuarios</h2>
+          </div>
+
+          <Tabs defaultValue="super_admins" className="w-full">
+            <TabsList>
+              <TabsTrigger value="super_admins">Super Admins</TabsTrigger>
+              <TabsTrigger value="create_user">Crear Usuario</TabsTrigger>
+            </TabsList>
+
+            {/* ── Super Admins Tab ── */}
+            <TabsContent value="super_admins" className="space-y-4">
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <CardTitle className="text-base">Super Admins activos</CardTitle>
+                      <CardDescription className="text-xs">Usuarios con acceso global a todas las clínicas</CardDescription>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => { setPromoteOpen(true); setPromoteUserId(''); }}>
+                      <ShieldCheck className="h-4 w-4 mr-1.5" />
+                      Promover usuario
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="w-[100px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {superAdmins.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">Sin super admins</TableCell></TableRow>
+                      ) : superAdmins.map(sa => (
+                        <TableRow key={sa.roleId}>
+                          <TableCell className="font-medium">
+                            {sa.fullName}
+                            {sa.userId === ROOT_USER_ID && (
+                              <Badge variant="secondary" className="ml-2 text-[10px]">raíz</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{sa.email}</TableCell>
+                          <TableCell>
+                            {sa.userId !== ROOT_USER_ID && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                disabled={isRevokingId === sa.roleId}
+                                onClick={() => handleRevokeSuperAdmin(sa.roleId, sa.userId, sa.fullName)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ── Create User Tab ── */}
+            <TabsContent value="create_user" className="space-y-4">
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Crear nuevo usuario</CardTitle>
+                  <CardDescription className="text-xs">Crea un usuario y asígnalo a una clínica con un rol específico</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-name">Nombre completo *</Label>
+                      <Input id="cu-name" placeholder="Nombre del usuario" value={newUser.fullName} onChange={e => setNewUser(p => ({ ...p, fullName: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-email">Email *</Label>
+                      <Input id="cu-email" type="email" placeholder="correo@ejemplo.com" value={newUser.email} onChange={e => setNewUser(p => ({ ...p, email: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-pass">Contraseña * (mín. 8 caracteres)</Label>
+                      <Input id="cu-pass" type="password" placeholder="••••••••" value={newUser.password} onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Rol *</Label>
+                      <Select value={newUser.roleId} onValueChange={v => setNewUser(p => ({ ...p, roleId: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar rol" /></SelectTrigger>
+                        <SelectContent>
+                          {ALL_ROLES.map(r => (
+                            <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {newUser.roleId && newUser.roleId !== 'super_admin' && (
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label>Clínica *</Label>
+                        <Select value={newUser.clinicId} onValueChange={v => setNewUser(p => ({ ...p, clinicId: v }))}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar clínica" /></SelectTrigger>
+                          <SelectContent>
+                            {clinicOptions.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="sm:col-span-2 pt-2">
+                      <Button onClick={handleCreateUser} disabled={isCreatingUser}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {isCreatingUser ? 'Creando...' : 'Crear usuario'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
+
+      {/* ─── Promote to Super Admin Dialog ─── */}
+      <Dialog open={promoteOpen} onOpenChange={setPromoteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Promover a Super Admin</DialogTitle>
+            <DialogDescription>Selecciona un usuario existente para otorgarle acceso global</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Select value={promoteUserId} onValueChange={setPromoteUserId}>
+              <SelectTrigger><SelectValue placeholder="Buscar usuario..." /></SelectTrigger>
+              <SelectContent>
+                {allUsers
+                  .filter(u => !superAdmins.some(sa => sa.userId === u.id))
+                  .map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.fullName} ({u.email})
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoteOpen(false)}>Cancelar</Button>
+            <Button onClick={handlePromoteToSuperAdmin} disabled={!promoteUserId || isPromoting}>
+              {isPromoting ? 'Promoviendo...' : 'Promover'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <CreateClinicDialog open={createDialogOpen} onOpenChange={handleCreateDialogClose} onSuccess={loadDashboardData} />
     </div>
