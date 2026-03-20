@@ -201,7 +201,7 @@ export const es = {
     s3body: "AgendixPro ofrece planes de suscripción mensual. Los precios vigentes al momento de la contratación son:",
     s3items: [
       "Plan Inicial: USD 500 por mes, más un cargo único de implementación inicial (setup).",
-      "Programa Fundador: USD 120 por mes (oferta limitada para clínicas en etapa de adopción temprana).",
+      "PLAN FUNDADOR: USD 120 por mes (oferta limitada para clínicas en etapa de adopción temprana).",
       "Todos los precios están expresados en dólares estadounidenses (USD).",
       "La facturación es mensual y recurrente. La suscripción se renueva automáticamente salvo cancelación previa.",
       "Los pagos se procesan a través de un proveedor externo de pagos especializado, sujeto a sus propios términos y condiciones.",
