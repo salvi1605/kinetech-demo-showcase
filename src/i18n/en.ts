@@ -126,10 +126,14 @@ export const en: Translations = {
         "Support & maintenance",
         "Continuous updates",
       ],
-      notes: [
-        "Implementation included (no upfront cost)",
-        "Guided onboarding included",
+      setupTitle: "Implementation & onboarding",
+      setupPrice: "USD 250 – 500",
+      setupOneTime: "(one-time payment)",
+      setupItems: [
+        "Custom implementation",
+        "Guided onboarding for your team",
       ],
+      setupNote: "Not included in the monthly plan. One-time fee at setup.",
       cta: "Request information",
     },
     founder: {

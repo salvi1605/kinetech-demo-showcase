@@ -124,10 +124,14 @@ export const es = {
         "Soporte y mantenimiento",
         "Actualizaciones continuas",
       ],
-      notes: [
-        "Implementación incluida (sin costo inicial)",
-        "Onboarding guiado incluido",
+      setupTitle: "Implementación y onboarding",
+      setupPrice: "USD 250 – 500",
+      setupOneTime: "(pago único)",
+      setupItems: [
+        "Implementación personalizada",
+        "Onboarding guiado para tu equipo",
       ],
+      setupNote: "No incluido en el plan mensual. Se cobra por única vez al inicio.",
       cta: "Solicitar información",
     },
     founder: {
