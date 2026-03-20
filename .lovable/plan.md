@@ -1,41 +1,41 @@
 
 
-# Diagnóstico: Mirian no puede editar el historial de Torti
+# Gestión de usuarios y super admins en el Panel Super Admin
 
-## Causa raíz
+## Resumen
+Agregar una sección de gestión de usuarios dentro del Panel Super Admin (`SuperAdminDashboard.tsx`) con dos capacidades:
 
-La cita de Torti del **06/03/2026 a las 08:00** (id: `0972cc06-...`) **no tiene un registro de evolución (`patient_clinical_notes`) asociado**. Esto se debe a que esta cita fue creada antes de que se implementara la auto-creación de stubs en la función RPC `validate_and_create_appointment`, o fue creada mediante la creación masiva que no pasa por esa RPC.
+1. **Gestión de Super Admins** — Listar super admins actuales, promover usuarios existentes a super_admin, revocar rol super_admin.
+2. **Crear usuarios y asignarlos a clínicas** — Formulario para crear cualquier usuario con cualquier rol y asignarlo a una clínica específica (reutilizando la edge function `create-user` que ya soporta todos los roles incluyendo super_admin).
 
-El componente `ClinicalHistoryBlock` solo renderiza textareas para notas que ya existen en la base de datos. Sin nota = sin textarea = no hay nada que editar para hoy.
+## Implementación
 
-Hay **9 citas en total** en la clinica (hasta hoy) que carecen de sus stubs de evolución.
+### Archivo: `src/pages/SuperAdminDashboard.tsx`
 
-## Plan de corrección (2 partes)
+**Nuevo estado y lógica:**
+- Estado para lista de super admins (query: `user_roles` con `role_id = 'super_admin'` + join `users`)
+- Estado para lista de todos los usuarios del sistema
+- Estado para lista de clínicas (ya se carga)
+- Dialog para crear usuario (reutiliza la misma lógica que `UserManagement.tsx` pero con selector de clínica visible y todos los roles disponibles incluyendo `super_admin`)
+- Dialog para promover usuario existente a super_admin
+- Función para revocar super_admin (delete de `user_roles` donde `role_id = 'super_admin'`)
 
-### 1. Backfill de stubs faltantes (migración SQL)
-Crear una migración que inserte stubs de evolución vacíos para todas las citas que no tienen su nota clínica asociada:
+**Nueva sección visual** insertada debajo de las clínicas y actividad reciente:
+- Card "Gestión de Usuarios" con dos tabs/subsecciones:
+  - **Super Admins**: tabla con nombre, email y botón para revocar (protegido: no se puede revocar el root user `f6157dc0...`)
+  - **Crear Usuario**: botón que abre dialog con formulario (email, contraseña, nombre, rol, clínica). Para `super_admin`, clínica es opcional/null.
+- Botón "Promover a Super Admin" que muestra un select con usuarios existentes
 
-```sql
-INSERT INTO patient_clinical_notes (
-  patient_id, clinic_id, practitioner_id, appointment_id,
-  note_date, start_time, note_type, body, treatment_type, status
-)
-SELECT 
-  a.patient_id, a.clinic_id, a.practitioner_id, a.id,
-  a.date, a.start_time, 'evolution', '', 
-  COALESCE(tt.name, 'FKT'), 'active'
-FROM appointments a
-LEFT JOIN patient_clinical_notes n ON n.appointment_id = a.id
-LEFT JOIN treatment_types tt ON a.treatment_type_id = tt.id
-WHERE n.id IS NULL AND a.status != 'cancelled';
-```
+**Acciones rápidas**: agregar botón "Gestionar usuarios" en la card de acciones rápidas existente.
 
-Esto crea inmediatamente el stub para la cita de hoy de Torti y las 8 restantes.
+### Edge function `create-user`
+Ya soporta la creación de super_admin con `clinic_id: null`. No requiere cambios.
 
-### 2. Fallback en el frontend (protección futura)
-Modificar `usePatientClinicalNotes` o `ClinicalHistoryBlock` para que, al detectar citas sin nota asociada, cree el stub automáticamente via `upsertEvolutionNote`. Esto protege contra futuros casos donde las citas se creen por vías que no pasen por la RPC (importación, edición manual, etc.).
+### Seguridad
+- Solo visible si `state.isSuperAdmin` (ya verificado en el dashboard)
+- La edge function ya valida que solo un super_admin pueda asignar `super_admin`
+- El trigger `protect_root_super_admin` ya protege al usuario raíz contra revocación
 
-### Detalle técnico adicional
-- Las notas existentes tienen `created_by: NULL`, lo cual no causa problemas de lectura pero podria afectar la política UPDATE de RLS para `health_pro`. La política tiene un OR que cubre el caso via la existencia de cita, así que funciona.
-- La función `canEdit()` en el frontend verifica `entry.doctorId === currentPractitionerId`, lo cual coincide correctamente para Mirian.
+### Archivos modificados
+- `src/pages/SuperAdminDashboard.tsx` — agregar sección de gestión de usuarios con toda la lógica inline (sin crear componentes nuevos, usando Dialog, Table, Select, Input, Button existentes)
 
