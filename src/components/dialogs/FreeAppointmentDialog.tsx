@@ -142,6 +142,7 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
   const handleDeleteAll = async () => {
     setIsLoading(true);
     const ids = selectedAppointments.map(apt => apt.id);
+    const idsSet = new Set(ids);
 
     try {
       const result = await deleteAppointmentsBatchRpc(ids);
@@ -162,7 +163,15 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
 
       toast({ title: "Turnos liberados", description: message });
       window.dispatchEvent(new Event('appointmentUpdated'));
-      onOpenChange(false);
+
+      // Update local list, close if no remaining
+      const remaining = futureAppointments.filter(a => !idsSet.has(a.id));
+      setFutureAppointments(remaining);
+      setSelectedIds(new Set(remaining.map(a => a.id)));
+
+      if (remaining.length === 0) {
+        onOpenChange(false);
+      }
     } catch (error) {
       console.error('Error batch deleting appointments:', error);
       toast({ title: "Error", description: "No se pudieron eliminar los turnos", variant: "destructive" });
