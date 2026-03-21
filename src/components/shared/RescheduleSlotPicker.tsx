@@ -15,10 +15,26 @@ interface RescheduleSlotPickerProps {
   onSelectSlot: (time: string, subSlot: number) => void;
 }
 
+interface SubSlotInfo {
+  subSlot: number;
+  appointmentId: string | null;
+  isCurrent: boolean;
+  isBlocked: boolean;
+}
+
 interface SlotInfo {
   time: string;
-  subSlots: { subSlot: number; appointmentId: string | null; isCurrent: boolean }[];
+  subSlots: SubSlotInfo[];
 }
+
+interface PartialBlock {
+  from: string;
+  to: string;
+}
+
+const isTimeInBlock = (time: string, block: PartialBlock): boolean => {
+  return time >= block.from && time < block.to;
+};
 
 export const RescheduleSlotPicker = ({
   clinicId,
@@ -46,8 +62,7 @@ export const RescheduleSlotPicker = ({
       setIsDayBlocked(false);
       setNoAvailability(false);
 
-      // Parallel queries: appointments, exceptions, practitioner availability
-      const weekday = new Date(date + 'T12:00:00').getDay(); // 0=Sun..6=Sat
+      const weekday = new Date(date + 'T12:00:00').getDay();
 
       const [aptsRes, excRes, availRes] = await Promise.all([
         supabase
@@ -59,7 +74,7 @@ export const RescheduleSlotPicker = ({
           .neq('status', 'cancelled'),
         supabase
           .from('schedule_exceptions')
-          .select('type, reason, practitioner_id')
+          .select('type, reason, practitioner_id, from_time, to_time')
           .eq('clinic_id', clinicId)
           .eq('date', date)
           .or(`practitioner_id.is.null,practitioner_id.eq.${practitionerId}`),
@@ -73,13 +88,33 @@ export const RescheduleSlotPicker = ({
 
       if (cancelled) return;
 
-      // Check blocked day
-      const closedExc = excRes.data?.find(
-        (e) => e.type === 'clinic_closed' || (e.type === 'practitioner_block' && (e.practitioner_id === practitionerId || !e.practitioner_id))
-      );
-      if (closedExc) {
+      // Separate full-day blocks from partial blocks
+      const exceptions = excRes.data || [];
+      const partialBlocks: PartialBlock[] = [];
+
+      const fullDayBlock = exceptions.find((e) => {
+        if (e.type === 'clinic_closed') return true;
+        if (
+          e.type === 'practitioner_block' &&
+          (e.practitioner_id === practitionerId || !e.practitioner_id)
+        ) {
+          // If it has from_time AND to_time, it's a partial block
+          if (e.from_time && e.to_time) {
+            partialBlocks.push({
+              from: e.from_time.slice(0, 5),
+              to: e.to_time.slice(0, 5),
+            });
+            return false;
+          }
+          // No times = full day block
+          return true;
+        }
+        return false;
+      });
+
+      if (fullDayBlock) {
         setIsDayBlocked(true);
-        setBlockReason(closedExc.reason || 'Día bloqueado');
+        setBlockReason(fullDayBlock.reason || 'Día bloqueado');
         setIsLoading(false);
         return;
       }
@@ -104,16 +139,19 @@ export const RescheduleSlotPicker = ({
         occupiedMap.get(t)!.set(apt.sub_slot, apt.id);
       });
 
-      // Build slot info (exclude last time since it's end boundary)
+      // Build slot info
       const slotInfos: SlotInfo[] = timeList.slice(0, -1).map((time) => {
         const occupied = occupiedMap.get(time) || new Map<number, string>();
-        const subSlots = Array.from({ length: maxSubSlots }, (_, i) => {
+        const isBlockedTime = partialBlocks.some((b) => isTimeInBlock(time, b));
+
+        const subSlots: SubSlotInfo[] = Array.from({ length: maxSubSlots }, (_, i) => {
           const subSlot = i + 1;
           const aptId = occupied.get(subSlot) || null;
           return {
             subSlot,
             appointmentId: aptId,
             isCurrent: aptId === currentAppointmentId,
+            isBlocked: isBlockedTime,
           };
         });
         return { time, subSlots };
@@ -142,10 +180,15 @@ export const RescheduleSlotPicker = ({
 
   if (isDayBlocked) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-center gap-2">
-        <Ban className="h-4 w-4 text-destructive shrink-0" />
-        <p className="text-sm text-destructive">
-          Día bloqueado: {blockReason}
+      <div className="space-y-2">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-center gap-2">
+          <Ban className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-destructive">
+            Día bloqueado: {blockReason}
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Podés seleccionar otro profesional arriba para ver su disponibilidad.
         </p>
       </div>
     );
@@ -166,7 +209,6 @@ export const RescheduleSlotPicker = ({
 
       <div className="max-h-48 overflow-y-auto rounded-lg border bg-muted/20 p-2 space-y-1">
         {slots.map((slot) => {
-          const hasAnyFree = slot.subSlots.some((s) => !s.appointmentId);
           const isSelectedTime = slot.time === selectedTime;
 
           return (
@@ -192,6 +234,16 @@ export const RescheduleSlotPicker = ({
                       >
                         Actual
                       </button>
+                    );
+                  }
+                  if (sub.isBlocked) {
+                    return (
+                      <div
+                        key={sub.subSlot}
+                        className="h-6 min-w-[3.5rem] px-1 rounded text-xs flex items-center justify-center bg-destructive/10 text-destructive border border-destructive/30"
+                      >
+                        Bloqueado
+                      </div>
                     );
                   }
                   if (sub.appointmentId) {
