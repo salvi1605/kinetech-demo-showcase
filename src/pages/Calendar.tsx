@@ -1549,7 +1549,7 @@ export const Calendar = () => {
           onClick={() => {
             setSelectedSlot({
               day: selectedDay,
-              time: TIME_SLOTS[0] || '08:00',
+              time: TIME_SLOTS[0] || (clinicSettings ? formatTimeShort(clinicSettings.workday_start) : '08:00'),
               date: weekDates[selectedDay],
             });
             setShowNewAppointmentModal(true);
