@@ -219,13 +219,17 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
                   const displayText = formatAppointmentDisplay(apt);
                   const isSelected = selectedIds.has(apt.id);
 
-                  return (
+                    return (
                     <div
                       key={apt.id}
                       className={`flex items-center gap-3 p-2.5 text-sm cursor-pointer hover:bg-muted/50 ${
                         !isSelected ? 'text-muted-foreground' : 'bg-background'
                       }`}
-                      onClick={() => toggleOne(apt.id)}
+                      onClick={(e) => {
+                        // Prevent double-toggle when clicking the checkbox itself
+                        if ((e.target as HTMLElement).closest('button[role="checkbox"]')) return;
+                        toggleOne(apt.id);
+                      }}
                     >
                       <Checkbox
                         checked={isSelected}
