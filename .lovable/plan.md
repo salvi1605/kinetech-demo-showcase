@@ -1,41 +1,31 @@
 
 
-# Gestión de usuarios y super admins en el Panel Super Admin
+# Fix: RescheduleSlotPicker trata bloqueos parciales como bloqueo total del día
 
-## Resumen
-Agregar una sección de gestión de usuarios dentro del Panel Super Admin (`SuperAdminDashboard.tsx`) con dos capacidades:
+## Problema
+Línea 62: la query a `schedule_exceptions` no pide `from_time` ni `to_time`.
+Líneas 77-84: cualquier `practitioner_block` dispara `setIsDayBlocked(true)` y corta el render completo, sin distinguir si es bloqueo parcial (con horario) o total (sin horario).
 
-1. **Gestión de Super Admins** — Listar super admins actuales, promover usuarios existentes a super_admin, revocar rol super_admin.
-2. **Crear usuarios y asignarlos a clínicas** — Formulario para crear cualquier usuario con cualquier rol y asignarlo a una clínica específica (reutilizando la edge function `create-user` que ya soporta todos los roles incluyendo super_admin).
+## Cambios — archivo único: `src/components/shared/RescheduleSlotPicker.tsx`
 
-## Implementación
+### 1. Agregar `from_time, to_time` al select de excepciones
+Línea 62: cambiar `.select('type, reason, practitioner_id')` → `.select('type, reason, practitioner_id, from_time, to_time')`
 
-### Archivo: `src/pages/SuperAdminDashboard.tsx`
+### 2. Separar bloqueos totales de parciales
+Reemplazar la lógica de líneas 77-85:
+- **Bloqueo total del día**: `clinic_closed` O `practitioner_block` SIN `from_time`/`to_time` → mantener `setIsDayBlocked(true)` + return (comportamiento actual).
+- **Bloqueos parciales**: `practitioner_block` CON `from_time` y `to_time` → recolectar en un array `partialBlocks` (ej: `[{from: "08:00", to: "12:00"}]`).
 
-**Nuevo estado y lógica:**
-- Estado para lista de super admins (query: `user_roles` con `role_id = 'super_admin'` + join `users`)
-- Estado para lista de todos los usuarios del sistema
-- Estado para lista de clínicas (ya se carga)
-- Dialog para crear usuario (reutiliza la misma lógica que `UserManagement.tsx` pero con selector de clínica visible y todos los roles disponibles incluyendo `super_admin`)
-- Dialog para promover usuario existente a super_admin
-- Función para revocar super_admin (delete de `user_roles` donde `role_id = 'super_admin'`)
+### 3. Marcar slots bloqueados parcialmente
+Después de construir `slotInfos` (línea ~108), recorrer cada slot y verificar si su hora cae dentro de algún `partialBlock`. Si cae, marcar todos los sub-slots de ese bloque como "bloqueados" (nuevo campo `isBlocked: true` en la interfaz de sub-slot).
 
-**Nueva sección visual** insertada debajo de las clínicas y actividad reciente:
-- Card "Gestión de Usuarios" con dos tabs/subsecciones:
-  - **Super Admins**: tabla con nombre, email y botón para revocar (protegido: no se puede revocar el root user `f6157dc0...`)
-  - **Crear Usuario**: botón que abre dialog con formulario (email, contraseña, nombre, rol, clínica). Para `super_admin`, clínica es opcional/null.
-- Botón "Promover a Super Admin" que muestra un select con usuarios existentes
+### 4. Render de slots bloqueados parcialmente
+En el JSX, los sub-slots con `isBlocked && !isCurrent` se renderizan como un `<div>` no clickeable con texto "Bloqueado" (mismo estilo que "Ocupado" pero con color diferente, ej. `bg-red-100 text-red-600`).
 
-**Acciones rápidas**: agregar botón "Gestionar usuarios" en la card de acciones rápidas existente.
+### 5. Mensaje de orientación
+Cuando `isDayBlocked` es true (bloqueo total), agregar debajo del mensaje actual: "Podés seleccionar otro profesional para ver su disponibilidad".
 
-### Edge function `create-user`
-Ya soporta la creación de super_admin con `clinic_id: null`. No requiere cambios.
+---
 
-### Seguridad
-- Solo visible si `state.isSuperAdmin` (ya verificado en el dashboard)
-- La edge function ya valida que solo un super_admin pueda asignar `super_admin`
-- El trigger `protect_root_super_admin` ya protege al usuario raíz contra revocación
-
-### Archivos modificados
-- `src/pages/SuperAdminDashboard.tsx` — agregar sección de gestión de usuarios con toda la lógica inline (sin crear componentes nuevos, usando Dialog, Table, Select, Input, Button existentes)
+**Resultado**: bloqueos parciales solo ocultan los slots afectados; el resto del día queda disponible para reprogramar. Bloqueos totales mantienen el comportamiento actual con mejor guía al usuario.
 
