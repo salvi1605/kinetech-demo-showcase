@@ -22,6 +22,7 @@ import type { TreatmentType } from '@/types/appointments';
 import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointmentService';
 import { usePractitionerTreatments } from '@/hooks/useTreatments';
 import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
+import { useClinicSettings, generateTimeSlots as generateClinicTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
