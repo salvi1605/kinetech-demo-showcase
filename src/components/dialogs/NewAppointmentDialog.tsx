@@ -74,20 +74,29 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   const selectedPractitionerId = form.watch('practitionerId');
   const { filteredTreatments, hasAssignments } = usePractitionerTreatments(selectedPractitionerId);
 
-  // Generar slots de tiempo
-  const generateTimeSlots = () => {
+  // Cargar configuración de la clínica para horarios dinámicos
+  const { settings: clinicSettings } = useClinicSettings();
+
+  // Generar slots de tiempo desde configuración de clínica
+  const timeSlots = useMemo(() => {
+    if (clinicSettings) {
+      return generateClinicTimeSlots(
+        clinicSettings.workday_start,
+        clinicSettings.workday_end,
+        clinicSettings.min_slot_minutes
+      );
+    }
+    // Fallback mientras carga
     const slots = [];
     for (let hour = 8; hour <= 19; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(time);
-        if (hour === 19 && minute === 0) break; // Incluir solo 19:00, no 19:30
+        if (hour === 19 && minute === 0) break;
       }
     }
     return slots;
-  };
-
-  const timeSlots = generateTimeSlots();
+  }, [clinicSettings]);
 
   // Actualizar formulario cuando cambia selectedSlot
   useEffect(() => {
