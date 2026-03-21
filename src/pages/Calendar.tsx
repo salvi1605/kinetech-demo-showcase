@@ -515,7 +515,7 @@ export const Calendar = () => {
   };
 
   // Verificar si multi-selección está habilitada
-  const isMultiSelectEnabled = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || state.userRole === 'receptionist';
+  const isMultiSelectEnabled = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || state.userRole === 'receptionist' || state.userRole === 'super_admin';
 
   // Función para alternar selección de slot
   const toggleSelect = (key: string) => {
@@ -1549,7 +1549,7 @@ export const Calendar = () => {
           onClick={() => {
             setSelectedSlot({
               day: selectedDay,
-              time: TIME_SLOTS[0] || '08:00',
+              time: TIME_SLOTS[0] || (clinicSettings ? formatTimeShort(clinicSettings.workday_start) : '08:00'),
               date: weekDates[selectedDay],
             });
             setShowNewAppointmentModal(true);
