@@ -164,7 +164,7 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trash2 className="h-5 w-5 text-red-600" />
@@ -172,12 +172,13 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto space-y-4 min-h-0">
           {/* Información del turno */}
-          <div className="bg-muted/30 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="bg-muted/30 p-3 rounded-lg">
+            <div className="flex items-center gap-2 mb-1">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Turno actual</span>
+              <span className="font-medium text-sm">Turno actual</span>
             </div>
             <p className="text-sm text-muted-foreground">
               {patient?.name} • {format(appointment.date.length === 10 ? parseLocalDate(appointment.date) : parseISO(appointment.date), 'EEE dd/MM/yyyy', { locale: es })} • {appointment.startTime}
@@ -194,23 +195,17 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
 
           {/* Lista de turnos futuros */}
           {!isFetching && futureAppointments.length > 0 && (
-            <div className="space-y-3">
-              <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
+            <div className="space-y-2">
+              <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
                   <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <span className="font-medium text-orange-900">
-                    Turnos futuros encontrados ({futureAppointments.length} total, {selectedCount} seleccionados)
+                  <span className="font-medium text-sm text-orange-900">
+                    {futureAppointments.length} turnos futuros · {selectedCount} seleccionados
                   </span>
                 </div>
-                <p className="text-sm text-orange-700">
-                  {selectedCount === 0
-                    ? "No hay turnos seleccionados para eliminar"
-                    : `${selectedCount} turno${selectedCount !== 1 ? 's' : ''} seleccionado${selectedCount !== 1 ? 's' : ''} para eliminación`
-                  }
-                </p>
               </div>
 
-              <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
                 <Checkbox
                   ref={selectAllCheckboxRef}
                   checked={selectedIds.size === futureAppointments.length}
@@ -219,7 +214,7 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
                 <span className="text-sm font-medium">Seleccionar todo</span>
               </div>
 
-              <div className="max-h-80 overflow-auto divide-y border rounded-lg">
+              <div className="max-h-48 sm:max-h-64 overflow-auto divide-y border rounded-lg">
                 {futureAppointments.map((apt) => {
                   const displayText = formatAppointmentDisplay(apt);
                   const isSelected = selectedIds.has(apt.id);
@@ -227,7 +222,7 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
                   return (
                     <div
                       key={apt.id}
-                      className={`flex items-center gap-3 p-3 text-sm cursor-pointer hover:bg-muted/50 ${
+                      className={`flex items-center gap-3 p-2.5 text-sm cursor-pointer hover:bg-muted/50 ${
                         !isSelected ? 'text-muted-foreground' : 'bg-background'
                       }`}
                       onClick={() => toggleOne(apt.id)}
@@ -236,89 +231,84 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
                         checked={isSelected}
                         onCheckedChange={() => toggleOne(apt.id)}
                       />
-                      <span className="flex-1">{displayText}</span>
+                      <span className="flex-1 text-xs sm:text-sm">{displayText}</span>
                     </div>
                   );
                 })}
               </div>
             </div>
           )}
+        </div>
 
-          {/* Acciones */}
-          <div className="space-y-3">
+        {/* Sticky action footer — always visible */}
+        <DialogFooter className="flex-shrink-0 flex flex-col gap-2 pt-3 border-t sm:flex-col">
+          {/* Bulk delete first when items selected */}
+          {futureAppointments.length > 0 && selectedCount > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full justify-start" disabled={isLoading}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar turno actual
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Eliminar {selectedCount} turnos
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-lg max-h-[80vh] flex flex-col">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Eliminar este turno?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Se eliminará únicamente el turno seleccionado. Esta acción no se puede deshacer.
+                  <AlertDialogTitle>¿Eliminar turnos seleccionados?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <p>Se eliminarán estos {selectedCount} turnos:</p>
+                      <div className="max-h-48 overflow-auto divide-y border rounded-lg bg-muted/30">
+                        {selectedAppointments.map((apt) => (
+                          <div key={apt.id} className="p-2 text-sm">
+                            {formatAppointmentDisplay(apt)}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer.</p>
+                    </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteCurrent} className="bg-red-600 hover:bg-red-700">
-                    Eliminar turno
+                  <AlertDialogAction
+                    onClick={handleDeleteAll}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Eliminar {selectedCount} turnos
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          )}
 
-            {futureAppointments.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
-                    disabled={isLoading || selectedCount === 0}
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Eliminación Múltiple ({selectedCount} turnos)
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-lg">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Eliminar turnos seleccionados?</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="space-y-3">
-                        <p>Se eliminarán estos {selectedCount} turnos:</p>
-                        <div className="max-h-60 overflow-auto divide-y border rounded-lg bg-muted/30">
-                          {selectedAppointments.map((apt) => {
-                            const displayText = formatAppointmentDisplay(apt);
-                            return (
-                              <div key={apt.id} className="p-2 text-sm">
-                                {displayText}
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer.</p>
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteAll}
-                      className="bg-red-600 hover:bg-red-700"
-                      disabled={selectedCount === 0}
-                    >
-                      Eliminar {selectedCount} turnos
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
-        </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full" disabled={isLoading}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar solo turno actual
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar este turno?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se eliminará únicamente el turno seleccionado. Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteCurrent} className="bg-red-600 hover:bg-red-700">
+                  Eliminar turno
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isLoading} className="w-full">
             Cancelar
           </Button>
         </DialogFooter>
