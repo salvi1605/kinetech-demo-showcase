@@ -1,31 +1,23 @@
 
 
-# Fix: RescheduleSlotPicker trata bloqueos parciales como bloqueo total del día
+# Fix: Visibilidad del botón de eliminación múltiple en móvil
 
-## Problema
-Línea 62: la query a `schedule_exceptions` no pide `from_time` ni `to_time`.
-Líneas 77-84: cualquier `practitioner_block` dispara `setIsDayBlocked(true)` y corta el render completo, sin distinguir si es bloqueo parcial (con horario) o total (sin horario).
+## Problema probable
+En pantallas pequeñas (376px), el contenido del dialog "Liberar Cita" (info del turno + lista de checkboxes + botones de acción) excede el viewport. El botón "Eliminación Múltiple" queda fuera del área visible, y la usuaria solo vio "Eliminar turno actual", forzándola a eliminar uno por uno.
 
-## Cambios — archivo único: `src/components/shared/RescheduleSlotPicker.tsx`
+## Cambios — archivo único: `src/components/dialogs/FreeAppointmentDialog.tsx`
 
-### 1. Agregar `from_time, to_time` al select de excepciones
-Línea 62: cambiar `.select('type, reason, practitioner_id')` → `.select('type, reason, practitioner_id, from_time, to_time')`
+### 1. Reorganizar layout del dialog para móvil
+- Envolver el contenido scrollable (`lista de turnos`) en un contenedor con `max-h` limitado, pero mantener los **botones de acción siempre visibles** fuera del área scrollable (sticky en la parte inferior del dialog).
+- Mover los botones "Eliminar turno actual" y "Eliminación Múltiple" al `DialogFooter`, reemplazando el botón "Cancelar" suelto actual.
 
-### 2. Separar bloqueos totales de parciales
-Reemplazar la lógica de líneas 77-85:
-- **Bloqueo total del día**: `clinic_closed` O `practitioner_block` SIN `from_time`/`to_time` → mantener `setIsDayBlocked(true)` + return (comportamiento actual).
-- **Bloqueos parciales**: `practitioner_block` CON `from_time` y `to_time` → recolectar en un array `partialBlocks` (ej: `[{from: "08:00", to: "12:00"}]`).
+### 2. Priorizar visualmente la eliminación múltiple
+- Cuando hay turnos seleccionados (>0), mostrar el botón "Eliminación Múltiple" **antes** del botón "Eliminar turno actual" para que sea lo primero que se vea.
+- El botón de eliminar turno actual pasa a ser secundario/outline.
 
-### 3. Marcar slots bloqueados parcialmente
-Después de construir `slotInfos` (línea ~108), recorrer cada slot y verificar si su hora cae dentro de algún `partialBlock`. Si cae, marcar todos los sub-slots de ese bloque como "bloqueados" (nuevo campo `isBlocked: true` en la interfaz de sub-slot).
+### 3. Reducir altura de la lista en móvil
+- Cambiar `max-h-80` (320px) a `max-h-48` (~192px) en móvil para dejar espacio visible a los botones de acción.
 
-### 4. Render de slots bloqueados parcialmente
-En el JSX, los sub-slots con `isBlocked && !isCurrent` se renderizan como un `<div>` no clickeable con texto "Bloqueado" (mismo estilo que "Ocupado" pero con color diferente, ej. `bg-red-100 text-red-600`).
-
-### 5. Mensaje de orientación
-Cuando `isDayBlocked` es true (bloqueo total), agregar debajo del mensaje actual: "Podés seleccionar otro profesional para ver su disponibilidad".
-
----
-
-**Resultado**: bloqueos parciales solo ocultan los slots afectados; el resto del día queda disponible para reprogramar. Bloqueos totales mantienen el comportamiento actual con mejor guía al usuario.
+### Resultado
+Los botones de acción siempre son visibles sin scroll, independientemente de cuántos turnos futuros tenga el paciente.
 
