@@ -121,6 +121,15 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
       }
       toast({ title: "Turno liberado", description: "1 turno eliminado" });
       window.dispatchEvent(new Event('appointmentUpdated'));
+
+      // Update local list and close if empty
+      const remaining = futureAppointments.filter(a => a.id !== appointment.id);
+      setFutureAppointments(remaining);
+      setSelectedIds(prev => {
+        const n = new Set(prev);
+        n.delete(appointment.id);
+        return n;
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Error deleting appointment:', error);
