@@ -44,7 +44,7 @@ export function Welcome() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Agendix</span>
+            <span className="text-xl font-bold">AgendixPro</span>
           </div>
           <nav className="flex items-center gap-4">
             <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground">
