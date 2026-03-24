@@ -1,23 +1,30 @@
 
 
-# Fix: Visibilidad del botón de eliminación múltiple en móvil
+# Fix: Marianela no ve el horario completo — falta política RLS en clinic_settings
 
-## Problema probable
-En pantallas pequeñas (376px), el contenido del dialog "Liberar Cita" (info del turno + lista de checkboxes + botones de acción) excede el viewport. El botón "Eliminación Múltiple" queda fuera del área visible, y la usuaria solo vio "Eliminar turno actual", forzándola a eliminar uno por uno.
+## Problema
+La tabla `clinic_settings` solo tiene una política RLS para `admin_clinic` / `tenant_owner` / `super_admin` (vía `is_admin_clinic`). No hay política SELECT para roles `receptionist` ni `health_pro`.
 
-## Cambios — archivo único: `src/components/dialogs/FreeAppointmentDialog.tsx`
+Cuando Marianela (recepcionista) carga el calendario, la query a `clinic_settings` falla silenciosamente por RLS. El hook `useClinicSettings` cae al fallback hardcodeado con `workday_start: 08:00:00` en vez de leer el `07:00:00` configurado en la base de datos.
 
-### 1. Reorganizar layout del dialog para móvil
-- Envolver el contenido scrollable (`lista de turnos`) en un contenedor con `max-h` limitado, pero mantener los **botones de acción siempre visibles** fuera del área scrollable (sticky en la parte inferior del dialog).
-- Mover los botones "Eliminar turno actual" y "Eliminación Múltiple" al `DialogFooter`, reemplazando el botón "Cancelar" suelto actual.
+## Solución
+Agregar una política RLS de SELECT en `clinic_settings` para que recepcionistas y profesionales de salud puedan leer la configuración de su clínica.
 
-### 2. Priorizar visualmente la eliminación múltiple
-- Cuando hay turnos seleccionados (>0), mostrar el botón "Eliminación Múltiple" **antes** del botón "Eliminar turno actual" para que sea lo primero que se vea.
-- El botón de eliminar turno actual pasa a ser secundario/outline.
+## Cambio — migración SQL única
 
-### 3. Reducir altura de la lista en móvil
-- Cambiar `max-h-80` (320px) a `max-h-48` (~192px) en móvil para dejar espacio visible a los botones de acción.
+```sql
+CREATE POLICY "clinic_settings_staff_read"
+ON public.clinic_settings
+FOR SELECT
+TO authenticated
+USING (
+  is_receptionist(clinic_id) OR is_health_pro(clinic_id)
+);
+```
 
-### Resultado
-Los botones de acción siempre son visibles sin scroll, independientemente de cuántos turnos futuros tenga el paciente.
+## Archivos modificados
+- Solo una migración SQL (no se toca código frontend)
+
+## Resultado
+Todos los roles (admin, receptionist, health_pro) podrán leer `clinic_settings`, y el calendario mostrará desde las 7:00 como está configurado.
 
