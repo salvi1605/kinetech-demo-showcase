@@ -220,7 +220,7 @@ export function AppSidebar() {
                 <span className="text-white font-bold text-sm">A</span>
               </div>
               <div>
-                <h2 className="font-bold text-white">Agendix</h2>
+                <h2 className="font-bold text-white">AgendixPro</h2>
                 <p className="text-xs text-white/70">Sistema de Gestión</p>
               </div>
             </div>
