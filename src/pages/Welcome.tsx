@@ -122,7 +122,7 @@ export function Welcome() {
         <div className="container flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>© 2026 Agendix. Todos los derechos reservados.</span>
+            <span>© 2026 AgendixPro. Todos los derechos reservados.</span>
           </div>
           <nav className="flex gap-6 text-sm text-muted-foreground">
             <Link to="/terms" className="hover:text-foreground">Términos</Link>

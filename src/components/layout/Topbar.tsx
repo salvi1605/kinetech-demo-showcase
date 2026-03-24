@@ -181,7 +181,7 @@ export const Topbar = () => {
         <SidebarTrigger className="lg:hidden" />
         
         <div className="hidden lg:flex items-center gap-4">
-          <h1 className="text-xl font-bold text-primary">Agendix</h1>
+          <h1 className="text-xl font-bold text-primary">AgendixPro</h1>
         </div>
       </div>
 
