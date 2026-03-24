@@ -822,6 +822,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           });
           if (retryError) {
             console.error('[Bootstrap] ensure-public-user retry failed:', retryError.message);
+            // Session is likely expired — sign out and stop bootstrap
+            await supabase.auth.signOut();
+            dispatch({ type: 'LOGOUT' });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            return;
           }
         }
 
