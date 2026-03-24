@@ -1,30 +1,30 @@
 
 
-# Fix: Marianela no ve el horario completo — falta política RLS en clinic_settings
+# Reemplazar "Agendix" por "AgendixPro" en todo el proyecto
 
-## Problema
-La tabla `clinic_settings` solo tiene una política RLS para `admin_clinic` / `tenant_owner` / `super_admin` (vía `is_admin_clinic`). No hay política SELECT para roles `receptionist` ni `health_pro`.
+## Archivos a modificar
 
-Cuando Marianela (recepcionista) carga el calendario, la query a `clinic_settings` falla silenciosamente por RLS. El hook `useClinicSettings` cae al fallback hardcodeado con `workday_start: 08:00:00` en vez de leer el `07:00:00` configurado en la base de datos.
+### 1. `index.html` (3 cambios)
+- Línea 6: `<title>Agendix -` → `<title>AgendixPro -`
+- Línea 8: `content="Agendix"` → `content="AgendixPro"`
+- Línea 10: `content="Agendix -` → `content="AgendixPro -`
 
-## Solución
-Agregar una política RLS de SELECT en `clinic_settings` para que recepcionistas y profesionales de salud puedan leer la configuración de su clínica.
+### 2. `src/pages/Welcome.tsx` (2 cambios)
+- Línea 47: `>Agendix<` → `>AgendixPro<`
+- Línea 125: `© 2026 Agendix.` → `© 2026 AgendixPro.`
 
-## Cambio — migración SQL única
+### 3. `src/components/layout/Topbar.tsx` (1 cambio)
+- Línea 184: `>Agendix<` → `>AgendixPro<`
 
-```sql
-CREATE POLICY "clinic_settings_staff_read"
-ON public.clinic_settings
-FOR SELECT
-TO authenticated
-USING (
-  is_receptionist(clinic_id) OR is_health_pro(clinic_id)
-);
-```
+### 4. `src/components/layout/AppSidebar.tsx` (1 cambio)
+- Línea 223: `>Agendix<` → `>AgendixPro<`
 
-## Archivos modificados
-- Solo una migración SQL (no se toca código frontend)
+### 5. `src/index.css` (1 cambio)
+- Línea 5: comentario CSS `Agendix Design System` → `AgendixPro Design System`
 
-## Resultado
-Todos los roles (admin, receptionist, health_pro) podrán leer `clinic_settings`, y el calendario mostrará desde las 7:00 como está configurado.
+### Sin cambiar
+- `src/utils/obfuscateContact.ts` — No se toca. Los fragmentos `["agendix", "pro2026"]` ya se ensamblan correctamente como `agendixpro2026@gmail.com`.
+- Todos los archivos que ya dicen "AgendixPro" (PublicLayout, i18n/es.ts, etc.) permanecen igual.
+
+**Total: 8 reemplazos en 5 archivos.**
 
