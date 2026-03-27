@@ -43,7 +43,7 @@ export function Welcome() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="AgendixPro" className="h-8 w-8 object-contain" />
+            <img src="/logo.png" alt="AgendixPro" className="h-10 w-10 object-contain" />
             <span className="text-xl font-bold">AgendixPro</span>
           </div>
           <nav className="flex items-center gap-4">
@@ -121,7 +121,7 @@ export function Welcome() {
       <footer className="border-t bg-muted/50 py-8">
         <div className="container flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <img src="/logo.png" alt="AgendixPro" className="h-4 w-4 object-contain" />
+            <img src="/logo.png" alt="AgendixPro" className="h-8 w-8 object-contain" />
             <span>© 2026 AgendixPro. Todos los derechos reservados.</span>
           </div>
           <nav className="flex gap-6 text-sm text-muted-foreground">
