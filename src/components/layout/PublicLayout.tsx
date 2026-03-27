@@ -38,7 +38,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       {/* Header — fixed */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/home" className="text-xl font-bold tracking-tight">
+          <Link to="/home" className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <img src="/logo.png" alt="AgendixPro" className="h-8 w-8 object-contain" />
             AgendixPro
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
@@ -128,7 +129,10 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         <div className="container space-y-6">
           {/* Identity row */}
           <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
-            <span className="text-lg font-bold">AgendixPro</span>
+            <span className="flex items-center gap-2 text-lg font-bold">
+              <img src="/logo.png" alt="AgendixPro" className="h-5 w-5 object-contain" />
+              AgendixPro
+            </span>
             <span className="text-sm text-muted-foreground">{t.footer.tagline}</span>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-sm text-muted-foreground">{t.footer.contactLabel}</span>

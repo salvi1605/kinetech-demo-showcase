@@ -222,10 +222,8 @@ export const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-lg mx-auto mb-4 flex items-center justify-center">
-            <span className="text-white font-bold text-2xl">A</span>
-          </div>
+         <div className="text-center">
+          <img src="/logo.png" alt="AgendixPro" className="w-16 h-16 mx-auto mb-4 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">AgendixPro</h1>
           <p className="text-muted-foreground">Software de agenda y gestión para clínicas</p>
         </div>

@@ -749,10 +749,10 @@ export const Calendar = () => {
         case 'cancelled':
           return { label: 'Cancelado', className: 'bg-gray-100 text-gray-800' };
         case 'confirmed':
-          return { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' };
+          return { label: 'Confirmado', className: 'bg-primary/10 text-primary' };
         case 'scheduled':
         default:
-          return { label: 'Reservado', className: 'bg-blue-500 text-white' };
+          return { label: 'Reservado', className: 'bg-primary text-primary-foreground' };
       }
     };
 
@@ -813,7 +813,7 @@ export const Calendar = () => {
                       <span className="font-medium text-xs truncate">
                         {patient ? formatPatientShortName(patient) : 'Paciente'}
                         {appointment.patientId && firstVisitPatients.get(appointment.patientId) === appointment.date && (
-                          <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight align-middle" title="Primera visita">N</span>
+                          <span className="ml-1 inline-flex items-center justify-center bg-primary text-primary-foreground text-[9px] font-bold rounded px-1 leading-tight align-middle" title="Primera visita">N</span>
                         )}
                       </span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
@@ -902,14 +902,14 @@ export const Calendar = () => {
                   key={`${dayIndex}-${time}-${subIndex}`}
                   className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                     isSelected 
-                      ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                      ? 'border-primary bg-primary/5 hover:bg-primary/10' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                   }`}
                   onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                   aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
-                  <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
+                  <span className={isSelected ? 'text-primary' : 'text-green-600'}>
                     {isSelected ? '✓' : <Plus className="h-3 w-3" />}
                   </span>
                 </button>
@@ -1007,14 +1007,14 @@ export const Calendar = () => {
                  key={`${dayIndex}-${time}-${subIndex}`}
                  className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                    isSelected 
-                     ? 'border-2 border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                     ? 'border-2 border-primary bg-primary/5 hover:bg-primary/10' 
                      : 'border border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                  }`}
                 onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                 aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                tabIndex={0}
              >
-               <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
+               <span className={isSelected ? 'text-primary' : 'text-green-600'}>
                  {isSelected ? '✓' : <Plus className="h-3 w-3" />}
                </span>
              </button>
@@ -1122,10 +1122,10 @@ export const Calendar = () => {
 
         {/* Clear selection button */}
         {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <span className="text-sm text-blue-900 shrink-0">
+                <span className="text-sm text-primary shrink-0">
                   {state.selectedSlots.size} horario{state.selectedSlots.size !== 1 ? 's' : ''} seleccionado{state.selectedSlots.size !== 1 ? 's' : ''}
                 </span>
                 {state.selectedSlots.size > 0 && isMultiSelectEnabled && (
@@ -1150,7 +1150,7 @@ export const Calendar = () => {
                 variant="outline"
                 size="sm"
                 onClick={clearSelection}
-                className="text-blue-700 hover:text-blue-900 h-6 w-6 p-0 self-end sm:self-auto shrink-0"
+                className="text-primary hover:text-primary/80 h-6 w-6 p-0 self-end sm:self-auto shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1170,14 +1170,14 @@ export const Calendar = () => {
                   
                   return (
                     <div key={key} className="flex items-center justify-between text-sm bg-white rounded p-2">
-                      <span className="text-blue-900">
+                      <span className="text-primary">
                         {displayText}
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleSelect(key)}
-                        className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                        className="h-4 w-4 p-0 text-primary hover:text-primary/80"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -1399,11 +1399,11 @@ export const Calendar = () => {
                                               <div className="font-medium text-sm truncate">
                                                  {patient ? formatPatientShortName(patient) : 'Paciente'}
                                                  {appointment.patientId && firstVisitPatients.get(appointment.patientId) === appointment.date && (
-                                                   <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight" title="Primera visita">N</span>
+                                                   <span className="ml-1 inline-flex items-center justify-center bg-primary text-primary-foreground text-[9px] font-bold rounded px-1 leading-tight" title="Primera visita">N</span>
                                                  )}
                                                </div>
                                                <span className={`inline-block px-2 py-1 text-xs rounded ${
-                                                 appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                                                 appointment.status === 'scheduled' ? 'bg-primary/10 text-primary' :
                                                  appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
                                                  appointment.status === 'no_show' ? 'bg-red-100 text-red-800' :
                                                  'bg-gray-100 text-gray-800'
