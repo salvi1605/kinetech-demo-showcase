@@ -29,25 +29,52 @@ export function useInactivityLogout(isAuthenticated: boolean, dispatch: Dispatch
 
   const startTimers = useCallback(() => {
     clearTimers();
-    warningTimer.current = setTimeout(() => {
-      toast({
-        title: 'Aviso de inactividad',
-        description: 'Tu sesión se cerrará en 5 minutos por inactividad.',
-      });
-    }, INACTIVITY_TIMEOUT - WARNING_BEFORE);
+    const elapsed = Date.now() - lastActivity.current;
+    const remaining = INACTIVITY_TIMEOUT - elapsed;
+
+    if (remaining <= 0) {
+      performLogout();
+      return;
+    }
+
+    const warningAt = remaining - WARNING_BEFORE;
+    if (warningAt > 0) {
+      warningTimer.current = setTimeout(() => {
+        toast({
+          title: 'Aviso de inactividad',
+          description: 'Tu sesión se cerrará en 5 minutos por inactividad.',
+        });
+      }, warningAt);
+    }
 
     logoutTimer.current = setTimeout(() => {
       performLogout();
-    }, INACTIVITY_TIMEOUT);
+    }, remaining);
   }, [clearTimers, performLogout]);
 
   const handleActivity = useCallback(() => {
     const now = Date.now();
-    // Throttle: only reset if enough time passed since last reset
     if (now - lastActivity.current < THROTTLE_MS) return;
     lastActivity.current = now;
     startTimers();
   }, [startTimers]);
+
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState !== 'visible') return;
+    const elapsed = Date.now() - lastActivity.current;
+
+    if (elapsed >= INACTIVITY_TIMEOUT) {
+      performLogout();
+    } else if (elapsed >= INACTIVITY_TIMEOUT - WARNING_BEFORE) {
+      toast({
+        title: 'Aviso de inactividad',
+        description: 'Tu sesión se cerrará pronto por inactividad.',
+      });
+      startTimers();
+    } else {
+      startTimers();
+    }
+  }, [performLogout, startTimers]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,16 +85,16 @@ export function useInactivityLogout(isAuthenticated: boolean, dispatch: Dispatch
     const events: Array<keyof WindowEventMap> = [
       'mousedown', 'keydown', 'scroll', 'touchstart',
     ];
-
-    // mousemove is handled with built-in throttle via handleActivity
     const allEvents = [...events, 'mousemove'] as Array<keyof WindowEventMap>;
 
     allEvents.forEach(evt => window.addEventListener(evt, handleActivity, { passive: true }));
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     startTimers();
 
     return () => {
       allEvents.forEach(evt => window.removeEventListener(evt, handleActivity));
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearTimers();
     };
-  }, [isAuthenticated, handleActivity, startTimers, clearTimers]);
+  }, [isAuthenticated, handleActivity, handleVisibilityChange, startTimers, clearTimers]);
 }
