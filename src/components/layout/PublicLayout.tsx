@@ -130,7 +130,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           {/* Identity row */}
           <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
             <span className="flex items-center gap-2 text-lg font-bold">
-              <img src="/logo.png" alt="AgendixPro" className="h-8 w-8 object-contain" />
+              <img src="/logo.png" alt="AgendixPro" className="h-10 w-10 object-contain" />
               AgendixPro
             </span>
             <span className="text-sm text-muted-foreground">{t.footer.tagline}</span>
