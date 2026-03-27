@@ -1170,7 +1170,7 @@ export const Calendar = () => {
                   
                   return (
                     <div key={key} className="flex items-center justify-between text-sm bg-white rounded p-2">
-                      <span className="text-blue-900">
+                      <span className="text-primary">
                         {displayText}
                       </span>
                       <Button
