@@ -1177,7 +1177,7 @@ export const Calendar = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleSelect(key)}
-                        className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                        className="h-4 w-4 p-0 text-primary hover:text-primary/80"
                       >
                         <X className="h-3 w-3" />
                       </Button>
