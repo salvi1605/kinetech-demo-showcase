@@ -902,14 +902,14 @@ export const Calendar = () => {
                   key={`${dayIndex}-${time}-${subIndex}`}
                   className={`text-xs p-1 rounded border cursor-pointer transition-colors flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-ring relative z-[2] min-h-[56px] ${
                     isSelected 
-                      ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                      ? 'border-primary bg-primary/5 hover:bg-primary/10' 
                       : 'border-dashed border-green-300 bg-green-50 hover:bg-green-100'
                   }`}
                   onClick={() => onSubSlotClick({ dayIndex, time, subSlot: subIndex + 1 })}
                   aria-label={`${isSelected ? 'Deseleccionar' : 'Seleccionar'} turno ${time} sub-slot ${subIndex + 1}`}
                   tabIndex={0}
                 >
-                  <span className={isSelected ? 'text-blue-600' : 'text-green-600'}>
+                  <span className={isSelected ? 'text-primary' : 'text-green-600'}>
                     {isSelected ? '✓' : <Plus className="h-3 w-3" />}
                   </span>
                 </button>
