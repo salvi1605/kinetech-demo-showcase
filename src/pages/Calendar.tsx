@@ -813,7 +813,7 @@ export const Calendar = () => {
                       <span className="font-medium text-xs truncate">
                         {patient ? formatPatientShortName(patient) : 'Paciente'}
                         {appointment.patientId && firstVisitPatients.get(appointment.patientId) === appointment.date && (
-                          <span className="ml-1 inline-flex items-center justify-center bg-blue-600 text-white text-[9px] font-bold rounded px-1 leading-tight align-middle" title="Primera visita">N</span>
+                          <span className="ml-1 inline-flex items-center justify-center bg-primary text-primary-foreground text-[9px] font-bold rounded px-1 leading-tight align-middle" title="Primera visita">N</span>
                         )}
                       </span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
