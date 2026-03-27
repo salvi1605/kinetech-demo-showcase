@@ -43,7 +43,7 @@ export function Welcome() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="AgendixPro" className="h-10 w-10 object-contain" />
+            <img src="/logo.png" alt="AgendixPro" className="h-12 w-12 object-contain" />
             <span className="text-xl font-bold">AgendixPro</span>
           </div>
           <nav className="flex items-center gap-4">
