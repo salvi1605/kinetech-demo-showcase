@@ -216,7 +216,7 @@ export function AppSidebar() {
               <img
                 src="/logo.png"
                 alt="AgendixPro"
-                className="w-8 h-8 rounded-md object-contain"
+                className="w-9 h-9 rounded-md object-contain"
               />
               <div>
                 <h2 className="font-bold text-primary-foreground">AgendixPro</h2>
