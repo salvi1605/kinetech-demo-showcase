@@ -749,10 +749,10 @@ export const Calendar = () => {
         case 'cancelled':
           return { label: 'Cancelado', className: 'bg-gray-100 text-gray-800' };
         case 'confirmed':
-          return { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' };
+          return { label: 'Confirmado', className: 'bg-primary/10 text-primary' };
         case 'scheduled':
         default:
-          return { label: 'Reservado', className: 'bg-blue-500 text-white' };
+          return { label: 'Reservado', className: 'bg-primary text-primary-foreground' };
       }
     };
 
