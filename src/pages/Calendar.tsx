@@ -1150,7 +1150,7 @@ export const Calendar = () => {
                 variant="outline"
                 size="sm"
                 onClick={clearSelection}
-                className="text-blue-700 hover:text-blue-900 h-6 w-6 p-0 self-end sm:self-auto shrink-0"
+                className="text-primary hover:text-primary/80 h-6 w-6 p-0 self-end sm:self-auto shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
