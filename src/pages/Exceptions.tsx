@@ -25,9 +25,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_BADGES: Record<string, string> = {
-  clinic_closed: 'bg-red-100 text-red-800',
-  practitioner_block: 'bg-amber-100 text-amber-800',
-  extended_hours: 'bg-blue-100 text-blue-800',
+  clinic_closed: 'bg-destructive/10 text-destructive',
+  practitioner_block: 'bg-warning/10 text-warning-foreground',
+  extended_hours: 'bg-primary/10 text-primary',
 };
 
 export const Exceptions = () => {

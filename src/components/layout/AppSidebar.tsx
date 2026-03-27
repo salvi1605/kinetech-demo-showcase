@@ -133,14 +133,13 @@ export function AppSidebar() {
     }
   };
 
-  // Classes de nav en esquema oscuro-azul
   const getNavClasses = ({ isActive }: { isActive: boolean }) =>
     [
       "flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200",
       "border-0 ring-0 outline-none focus:border-0 focus:ring-0 focus-visible:outline-none",
       isActive
-        ? "bg-blue-900 text-white font-medium" // ★ activo: contraste alto
-        : "text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black",
+        ? "bg-primary/90 text-primary-foreground font-medium"
+        : "text-primary-foreground hover:bg-primary-foreground hover:text-primary focus-visible:bg-primary-foreground focus-visible:text-primary",
     ].join(" ");
 
   const filterItemsByRole = (items: typeof navigationItems) =>
@@ -162,8 +161,8 @@ export function AppSidebar() {
               "size-10 min-w-10 min-h-10 grid place-items-center rounded-md transition-colors duration-200",
               "border-0 ring-0 outline-none focus:border-0 focus:ring-0 focus-visible:outline-none",
               active
-                ? "bg-blue-900 text-white font-medium"
-                : "text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black",
+                ? "bg-primary/90 text-primary-foreground font-medium"
+                : "text-primary-foreground hover:bg-primary-foreground hover:text-primary focus-visible:bg-primary-foreground focus-visible:text-primary",
             ].join(" ")
           : getNavClasses
         }
@@ -185,7 +184,6 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </TooltipTrigger>
-            {/* tooltip por defecto está bien; si quieres oscuro: className="bg-slate-900 text-white" */}
             <TooltipContent side="right" className="font-medium">
               {item.title}
             </TooltipContent>
@@ -207,21 +205,22 @@ export function AppSidebar() {
     <Sidebar
       className={[
         collapsed ? "w-16" : "w-64",
-        "bg-blue-700 text-white border-0 outline-none ring-0", // ★ fondo azul + texto blanco, sin bordes
+        "bg-primary text-primary-foreground border-0 outline-none ring-0",
       ].join(" ")}
     >
-      {/* ★ A veces el content hereda bg; forzamos aquí también */}
-      <SidebarContent className="p-2 bg-blue-700 text-white"> {/* ★ */}
+      <SidebarContent className="p-2 bg-primary text-primary-foreground">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-4 border-b border-blue-600 mb-2"> {/* ★ bordes en tonos azules */}
+        <div className="flex items-center justify-between px-3 py-4 border-b border-primary-foreground/20 mb-2">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="AgendixPro"
+                className="w-8 h-8 rounded-md object-contain"
+              />
               <div>
-                <h2 className="font-bold text-white">AgendixPro</h2>
-                <p className="text-xs text-white/70">Sistema de Gestión</p>
+                <h2 className="font-bold text-primary-foreground">AgendixPro</h2>
+                <p className="text-xs text-primary-foreground/70">Sistema de Gestión</p>
               </div>
             </div>
           )}
@@ -232,7 +231,7 @@ export function AppSidebar() {
             onClick={toggleSidebar}
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
-            className="h-8 w-8 p-0 shrink-0 text-white hover:bg-white/10" // ★ que se vea
+            className="h-8 w-8 p-0 shrink-0 text-primary-foreground hover:bg-primary-foreground/10"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -245,7 +244,7 @@ export function AppSidebar() {
         {/* Demo Mode Indicator */}
         {state.isDemoMode && !collapsed && (
           <div className="mx-3 mb-4">
-            <Badge className="w-full justify-center bg-white/10 text-white border-white/20"> {/* ★ legible sobre azul */}
+            <Badge className="w-full justify-center bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
               Modo Demostración
             </Badge>
           </div>
@@ -253,7 +252,7 @@ export function AppSidebar() {
 
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : "text-white/70"}> {/* ★ */}
+          <SidebarGroupLabel className={collapsed ? "sr-only" : "text-primary-foreground/70"}>
             Navegación Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -275,7 +274,7 @@ export function AppSidebar() {
         {/* Auth & Settings */}
         {visibleAuthItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className={collapsed ? "sr-only" : "text-white/70"}> {/* ★ */}
+            <SidebarGroupLabel className={collapsed ? "sr-only" : "text-primary-foreground/70"}>
               Sistema
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -319,7 +318,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <div className="px-3 py-2 space-y-2">
                 {!collapsed && (
-                  <div className="text-xs text-white/70 truncate">
+                  <div className="text-xs text-primary-foreground/70 truncate">
                     {state.currentUser.email}
                   </div>
                 )}
@@ -331,7 +330,7 @@ export function AppSidebar() {
                           variant="ghost"
                           size="sm"
                           onClick={handleLogout}
-                          className="w-full h-10 p-0 text-white hover:bg-white hover:text-black"
+                          className="w-full h-10 p-0 text-primary-foreground hover:bg-primary-foreground hover:text-primary"
                         >
                           <LogOut className="h-5 w-5" />
                         </Button>
@@ -345,7 +344,7 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     onClick={handleLogout}
-                    className="w-full justify-start gap-2 text-white hover:bg-white hover:text-black"
+                    className="w-full justify-start gap-2 text-primary-foreground hover:bg-primary-foreground hover:text-primary"
                   >
                     <LogOut className="h-5 w-5" />
                     <span>Cerrar sesión</span>
@@ -359,7 +358,7 @@ export function AppSidebar() {
         {/* Role chip colapsado */}
         {collapsed && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-            <div className="w-8 h-8 bg-white/20 text-white rounded-md flex items-center justify-center"> {/* ★ */}
+            <div className="w-8 h-8 bg-primary-foreground/20 text-primary-foreground rounded-md flex items-center justify-center">
               <span className="text-xs font-medium">
                 {state.userRole === 'super_admin' ? 'S' : state.userRole === 'tenant_owner' ? 'T' : state.userRole === 'admin_clinic' ? 'A' : state.userRole === 'receptionist' ? 'R' : 'K'}
               </span>
