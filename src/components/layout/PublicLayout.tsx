@@ -39,7 +39,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/home" className="flex items-center gap-2 text-xl font-bold tracking-tight">
-            <img src="/logo.png" alt="AgendixPro" className="h-11 w-11 object-contain" />
+            <img src="/logo.png" alt="AgendixPro" className="h-12 w-12 object-contain" />
             AgendixPro
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
