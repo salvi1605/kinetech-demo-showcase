@@ -1122,7 +1122,7 @@ export const Calendar = () => {
 
         {/* Clear selection button */}
         {isMultiSelectEnabled && state.selectedSlots.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <span className="text-sm text-blue-900 shrink-0">
