@@ -78,7 +78,7 @@ export const WeekNavigatorCompact = ({ onDateSelect }: WeekNavigatorCompactProps
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => navigateToDate(new Date())}
+              onClick={() => navigateToDate(new Date(), true)}
             >
               Hoy
             </Button>

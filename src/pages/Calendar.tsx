@@ -1323,7 +1323,11 @@ export const Calendar = () => {
               {/* Sticky header: week nav + day tabs */}
               <div className="sticky top-0 z-10 bg-background pb-2 border-b">
                 <div className="flex justify-end mb-2">
-                  <WeekNavigatorCompact />
+                  <WeekNavigatorCompact onDateSelect={(date) => {
+                    const dow = date.getDay(); // 0=Sun, 1=Mon...6=Sat
+                    const dayIndex = (dow === 0 || dow === 6) ? 0 : dow - 1;
+                    changeMobileDay(dayIndex);
+                  }} />
                 </div>
                 <TabsList className="grid w-full grid-cols-5">
                   {MOBILE_WEEKDAYS.map((day, index) => (
