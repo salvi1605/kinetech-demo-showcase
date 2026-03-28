@@ -9,7 +9,11 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/contexts/AppContext';
 import { parseLocalDate } from '@/utils/dateUtils';
 
-export const WeekNavigatorCompact = () => {
+interface WeekNavigatorCompactProps {
+  onDateSelect?: (date: Date) => void;
+}
+
+export const WeekNavigatorCompact = ({ onDateSelect }: WeekNavigatorCompactProps) => {
   const { state, dispatch } = useApp();
   const [open, setOpen] = useState(false);
 
@@ -20,10 +24,13 @@ export const WeekNavigatorCompact = () => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
 
-  const navigateToDate = (date: Date) => {
+  const navigateToDate = (date: Date, fromPicker = false) => {
     const weekStartISO = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     dispatch({ type: 'SET_CALENDAR_WEEK', payload: weekStartISO });
     setOpen(false);
+    if (fromPicker && onDateSelect) {
+      onDateSelect(date);
+    }
   };
 
   const handlePrevWeek = () => navigateToDate(subWeeks(currentWeek, 1));
