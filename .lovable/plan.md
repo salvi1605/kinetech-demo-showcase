@@ -1,33 +1,31 @@
 
 
-# Fix: Logo más grande y favicon profesional
+## DatePicker en el navegador de semanas
 
-## Problema
-1. **Logo demasiado pequeño** — El archivo `logo.png` actual tiene padding interno excesivo, y las clases CSS usan tamaños conservadores (`h-11`, `h-8`, `w-8`).
-2. **Favicon genérico** — El `favicon.png` actual no se distingue bien en la pestaña del navegador comparado con otros sitios.
+### Resumen
+Agregar un DatePicker (calendario desplegable) al `WeekNavigatorCompact` que permita seleccionar cualquier fecha para navegar directamente a la semana que la contiene. Incluir un botón "Hoy" dentro del popover para saltar a la semana actual.
 
-## Solución
+### Cambios
 
-### 1. Regenerar assets visuales
-- **`public/logo.png`** — Regenerar con el isotipo (calendario + símbolo médico) SIN texto, SIN padding extra, que ocupe el 90%+ del canvas. Resolución 512x512px.
-- **`public/favicon.png`** — Regenerar a 64x64px con el mismo isotipo simplificado, colores sólidos y sin detalles finos que se pierdan a 16px.
+**Archivo: `src/components/navigation/WeekNavigatorCompact.tsx`**
+- Envolver el label de semana actual en un `Popover` + `PopoverTrigger`
+- Dentro del `PopoverContent`, renderizar el componente `Calendar` (shadcn) en modo `single`
+- Al seleccionar una fecha (`onSelect`): calcular el lunes de esa semana con `startOfWeek(date, {weekStartsOn:1})`, formatear a ISO, y hacer `dispatch({ type: 'SET_CALENDAR_WEEK', payload })`. Cerrar el popover.
+- Agregar un botón "Hoy" debajo del calendario que haga lo mismo pero con `new Date()`
+- Resaltar visualmente la semana actual en el calendario usando la prop `selected` con el rango weekStart–weekEnd
+- Agregar `pointer-events-auto` al className del Calendar (requerido para funcionar dentro de popovers)
+- Agregar un ícono pequeño de calendario (`CalendarIcon` de lucide) junto al label para indicar que es clickeable
 
-### 2. Aumentar tamaños en código
+**Archivo: `src/components/navigation/WeekNavigator.tsx`**
+- Aplicar los mismos cambios por consistencia (aunque actualmente no se usa, mantenerlo sincronizado)
 
-| Ubicación | Actual | Nuevo |
-|---|---|---|
-| `PublicLayout` header | `h-11 w-11` | `h-12 w-12` |
-| `PublicLayout` footer | `h-8 w-8` | `h-10 w-10` |
-| `Welcome` header | `h-10 w-10` | `h-12 w-12` |
-| `Welcome` footer | `h-8 w-8` | `h-10 w-10` |
-| `Login` | `w-16 h-16` | `w-20 h-20` |
-| `AppSidebar` | `w-8 h-8` | `w-9 h-9` |
+### Lo que NO se toca
+- `AppContext.tsx` — la acción `SET_CALENDAR_WEEK` ya existe y funciona
+- `Calendar.tsx` (página) — no se modifica, consume `WeekNavigatorCompact` sin cambios de interfaz
+- Ningún otro componente, hook, o utilidad
 
-### Archivos modificados (6)
-1. `public/logo.png` — regenerado
-2. `public/favicon.png` — regenerado
-3. `src/components/layout/PublicLayout.tsx` — tamaños
-4. `src/pages/Welcome.tsx` — tamaños
-5. `src/pages/Login.tsx` — tamaños
-6. `src/components/layout/AppSidebar.tsx` — tamaños
+### Detalle técnico
+- Imports nuevos en WeekNavigatorCompact: `Popover`, `PopoverTrigger`, `PopoverContent`, `Calendar`, `CalendarIcon`, `useState`
+- Estado local `open` para controlar el popover
+- El botón "Hoy" usa `variant="outline"` tamaño `sm`, texto "Hoy", cierra el popover al hacer click
 
