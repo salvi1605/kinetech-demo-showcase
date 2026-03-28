@@ -66,7 +66,7 @@ export const WeekNavigatorCompact = ({ onDateSelect }: WeekNavigatorCompactProps
           <Calendar
             mode="single"
             selected={weekStart}
-            onSelect={(date) => date && navigateToDate(date)}
+            onSelect={(date) => date && navigateToDate(date, true)}
             defaultMonth={weekStart}
             locale={es}
             weekStartsOn={1}
