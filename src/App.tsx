@@ -69,7 +69,7 @@ const App = () => (
                 <Route path="/privacy" element={<PublicRouteGuard><Privacy /></PublicRouteGuard>} />
                 <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                
+                <Route path="/session-expired" element={<SessionExpired />} />
                 {/* Auth Required - No Clinic Setup */}
                 <Route path="/create-clinic" element={
                   <AuthRouteGuard requireClinic={false}>
