@@ -19,12 +19,9 @@ export function useInactivityLogout(isAuthenticated: boolean, dispatch: Dispatch
   }, []);
 
   const performLogout = useCallback(async () => {
-    toast({
-      title: 'Sesión cerrada por inactividad',
-      description: 'No se detectó actividad durante 60 minutos.',
-    });
     await supabase.auth.signOut();
     dispatch({ type: 'LOGOUT' });
+    window.location.replace('/session-expired?reason=inactivity');
   }, [dispatch]);
 
   const startTimers = useCallback(() => {

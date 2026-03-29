@@ -45,6 +45,7 @@ import Home from "@/pages/Home";
 import Pricing from "@/pages/Pricing";
 import CancellationPolicy from "@/pages/CancellationPolicy";
 import Contact from "@/pages/Contact";
+import SessionExpired from "@/pages/SessionExpired";
 
 const queryClient = new QueryClient();
 
