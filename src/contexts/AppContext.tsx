@@ -826,6 +826,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             await supabase.auth.signOut();
             dispatch({ type: 'LOGOUT' });
             dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            window.location.replace('/session-expired?reason=expired');
             return;
           }
         }
