@@ -826,6 +826,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             await supabase.auth.signOut();
             dispatch({ type: 'LOGOUT' });
             dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            window.location.replace('/session-expired?reason=expired');
             return;
           }
         }
@@ -836,6 +837,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           await supabase.auth.signOut();
           dispatch({ type: 'LOGOUT' });
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          window.location.replace('/session-expired?reason=expired');
           return;
         }
 
@@ -978,6 +980,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         await supabase.auth.signOut();
         dispatch({ type: 'LOGOUT' });
         dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+        window.location.replace('/session-expired?reason=expired');
       }
     };
 
@@ -990,6 +993,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           supabase.auth.signOut().then(() => {
             dispatch({ type: 'LOGOUT' });
             dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            window.location.replace('/session-expired?reason=expired');
           });
           return;
         }
@@ -1023,6 +1027,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           supabase.auth.signOut().then(() => {
             dispatch({ type: 'LOGOUT' });
             dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            window.location.replace('/session-expired?reason=expired');
           });
           return;
         }

@@ -45,6 +45,7 @@ import Home from "@/pages/Home";
 import Pricing from "@/pages/Pricing";
 import CancellationPolicy from "@/pages/CancellationPolicy";
 import Contact from "@/pages/Contact";
+import SessionExpired from "@/pages/SessionExpired";
 
 const queryClient = new QueryClient();
 
@@ -68,7 +69,7 @@ const App = () => (
                 <Route path="/privacy" element={<PublicRouteGuard><Privacy /></PublicRouteGuard>} />
                 <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                
+                <Route path="/session-expired" element={<SessionExpired />} />
                 {/* Auth Required - No Clinic Setup */}
                 <Route path="/create-clinic" element={
                   <AuthRouteGuard requireClinic={false}>
