@@ -55,6 +55,8 @@ import { updateAppointmentStatus } from '@/lib/appointmentService';
 import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 import { useTreatments } from '@/hooks/useTreatments';
 import { useFirstVisitPatients } from '@/hooks/useFirstVisitPatients';
+import { PendingNotesHealthProBanner } from '@/components/calendar/PendingNotesHealthProBanner';
+import { PendingNotesAdminBanner } from '@/components/calendar/PendingNotesAdminBanner';
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
