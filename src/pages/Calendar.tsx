@@ -146,6 +146,18 @@ export const Calendar = () => {
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
   const [preselectedPatientId, setPreselectedPatientId] = useState<string | null>(null);
+  const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
+
+  // Resolve current user's practitioner ID for health_pro banner
+  useEffect(() => {
+    if (state.userRole !== 'health_pro') {
+      setCurrentPractitionerId(undefined);
+      return;
+    }
+    supabase.rpc('current_practitioner_id').then(({ data, error }) => {
+      if (!error && data) setCurrentPractitionerId(data);
+    });
+  }, [state.userRole]);
 
   // Scroll preservation refs
   const scrollContainerRef = useRef<HTMLDivElement>(null);
