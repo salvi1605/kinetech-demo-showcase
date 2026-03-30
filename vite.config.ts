@@ -8,9 +8,11 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  plugins: [
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  plugins: [mode === "development" && componentTagger()].filter(Boolean),
+  optimizeDeps: {
+    force: mode === "development",
+    include: ["react", "react-dom", "react-dom/client"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
