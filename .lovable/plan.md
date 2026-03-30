@@ -1,64 +1,26 @@
 
 
-## Plan: Banner de historias clínicas pendientes en el Calendario
+## Plan: Agregar header con menú hamburguesa al Panel Super Admin
 
-### Resumen
+### Problema
+La ruta `/super-admin` renderiza `SuperAdminDashboard` fuera de `AppLayout`, por lo que no tiene Topbar ni menú hamburguesa. El usuario no puede cerrar sesión ni navegar desde esa pantalla en móvil.
 
-Crear dos componentes banner en la vista del calendario:
+### Solución
+Agregar un header compacto dentro de `SuperAdminDashboard` con:
+- Logo/título "AgendixPro"
+- En **mobile**: botón hamburguesa que abre un `Sheet` con opciones: "Cambiar Clínica", "Cerrar sesión"
+- En **desktop**: mostrar email del usuario, botón "Cambiar Clínica" y "Cerrar sesión" inline
 
-1. **Banner para `health_pro`**: muestra cuántas evoluciones del día le faltan por completar, con botón para ir directo al paciente.
-2. **Banner para admins** (`admin_clinic`, `tenant_owner`, `super_admin`): muestra el total de evoluciones pendientes del día (todos los profesionales), y al hacer clic abre un detalle desglosado por profesional.
+### Archivo a modificar
 
----
-
-### Componentes nuevos
-
-**1. `src/components/calendar/PendingNotesHealthProBanner.tsx`**
-- Hook interno que consulta `patient_clinical_notes` filtrado por `practitioner_id = current user's practitioner`, `note_date = fecha seleccionada`, `note_type = 'evolution'`, `is_completed = false`, `status = 'active'`.
-- Muestra: "Te quedan **X** historias por completar hoy"
-- Lista compacta (colapsable) con nombre del paciente, hora, y botón para navegar a `/patients/{id}` (tab clínico).
-- Si todo está completo: badge verde "✓ Historias al día".
-
-**2. `src/components/calendar/PendingNotesAdminBanner.tsx`**
-- Consulta `patient_clinical_notes` + join con `practitioners` para la fecha seleccionada, agrupando por profesional.
-- Muestra: "**X** historias pendientes hoy (todos los profesionales)" con ícono clickeable.
-- Al hacer clic, abre un `Sheet` o `Dialog` con tabla:
-  - Columnas: Profesional | Pacientes atendidos | Historias completadas | Pendientes
-  - Cada fila con barra de progreso visual.
-
-**3. `src/hooks/usePendingClinicalNotes.ts`**
-- Hook reutilizable que recibe `clinicId`, `date`, y opcionalmente `practitionerId`.
-- Retorna: `{ total, completed, pending, byPractitioner: Array<{ practitionerId, name, total, completed, pending }> }`.
-- Consulta directa a `patient_clinical_notes` con filtros de fecha y tipo.
-
----
-
-### Integración en Calendar.tsx
-
-- Importar ambos banners.
-- Renderizar `PendingNotesHealthProBanner` dentro de `RoleGuard` con `allowedRoles={['health_pro']}`.
-- Renderizar `PendingNotesAdminBanner` dentro de `RoleGuard` con `allowedRoles={['admin_clinic', 'tenant_owner']}`.
-- Ubicación: justo encima del grid del calendario, debajo del navegador de semana.
-- En mobile: banners compactos (una línea con badge numérico, expandible con tap).
-
----
-
-### Diseño visual
-
-- **Health Pro**: fondo `amber-50`, borde `amber-200`, ícono `ClipboardList`. Colapsa en mobile a una sola línea.
-- **Admin**: fondo `blue-50`, borde `blue-200`, ícono `BarChart3`. Click abre Sheet lateral con la tabla de desglose.
-- Badge verde cuando todo está completo (0 pendientes).
-
----
-
-### Archivos a crear/modificar
-
-| Archivo | Acción |
+| Archivo | Cambio |
 |---|---|
-| `src/hooks/usePendingClinicalNotes.ts` | Crear |
-| `src/components/calendar/PendingNotesHealthProBanner.tsx` | Crear |
-| `src/components/calendar/PendingNotesAdminBanner.tsx` | Crear |
-| `src/pages/Calendar.tsx` | Modificar (agregar banners) |
+| `src/pages/SuperAdminDashboard.tsx` | Agregar un header fijo al inicio del componente con navegación y logout, usando `Sheet` para móvil y botones inline para desktop. Reutiliza el patrón del `Topbar.tsx` existente. |
 
-No requiere cambios en la base de datos — usa tablas y datos existentes (`patient_clinical_notes`, `practitioners`, `appointments`).
+### Detalle técnico
+- Importar `Sheet`, `SheetContent`, `SheetTrigger`, `Menu`, `LogOut`, `Building` de los componentes existentes
+- Usar `useIsMobile()` para condicionar la vista
+- Incluir `supabase.auth.signOut()` + `dispatch({ type: 'LOGOUT' })` para cerrar sesión
+- Botón "Cambiar Clínica" navega a `/select-clinic`
+- El header será un `<header>` sticky con la misma estética que el Topbar principal (`h-14 border-b bg-card shadow-sm`)
 
