@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
