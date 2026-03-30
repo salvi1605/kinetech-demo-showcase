@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, ChevronDown, ChevronUp, CheckCircle2, ExternalLink } from 'lucide-react';
+import { ClipboardList, ChevronDown, ChevronUp, CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -26,7 +26,16 @@ export const PendingNotesHealthProBanner = ({
     practitionerId
   );
 
-  if (isLoading || total === 0 || !practitionerId) return null;
+  if (!practitionerId || isLoading) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-muted bg-muted/30 px-3 py-2 text-sm text-muted-foreground animate-pulse">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span>Cargando historias pendientes…</span>
+      </div>
+    );
+  }
+
+  if (total === 0) return null;
 
   const allDone = pending === 0;
 
