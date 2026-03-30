@@ -1,37 +1,64 @@
 
 
-## Pantalla de sesión expirada amigable
+## Plan: Banner de historias clínicas pendientes en el Calendario
 
-### Problema actual
-Cuando la sesión expira (por inactividad, token inválido, etc.), el sistema hace `signOut` + `dispatch({ type: 'LOGOUT' })` directamente, lo que muestra brevemente el skeleton de carga y redirige a `/login` sin explicación clara. El usuario no entiende por qué fue desconectado.
+### Resumen
 
-### Solución
+Crear dos componentes banner en la vista del calendario:
 
-Crear una página intermedia `/session-expired` que muestre un mensaje amigable antes de ir al login.
+1. **Banner para `health_pro`**: muestra cuántas evoluciones del día le faltan por completar, con botón para ir directo al paciente.
+2. **Banner para admins** (`admin_clinic`, `tenant_owner`, `super_admin`): muestra el total de evoluciones pendientes del día (todos los profesionales), y al hacer clic abre un detalle desglosado por profesional.
 
-### Cambios
+---
 
-**1. Nueva página `src/pages/SessionExpired.tsx`**
-- Card centrada con icono de reloj/candado
-- Título: "Tu sesión ha expirado"
-- Descripción: "Por tu seguridad, cerramos la sesión automáticamente. Esto puede ocurrir por inactividad o porque tu sesión dejó de ser válida."
-- Botón "Iniciar sesión" que navega a `/login`
-- Acepta un query param `?reason=inactivity|expired` para personalizar el mensaje (inactividad vs expiración general)
+### Componentes nuevos
 
-**2. Registrar ruta en `src/App.tsx`**
-- Agregar ruta pública `/session-expired` → `<SessionExpired />`
+**1. `src/components/calendar/PendingNotesHealthProBanner.tsx`**
+- Hook interno que consulta `patient_clinical_notes` filtrado por `practitioner_id = current user's practitioner`, `note_date = fecha seleccionada`, `note_type = 'evolution'`, `is_completed = false`, `status = 'active'`.
+- Muestra: "Te quedan **X** historias por completar hoy"
+- Lista compacta (colapsable) con nombre del paciente, hora, y botón para navegar a `/patients/{id}` (tab clínico).
+- Si todo está completo: badge verde "✓ Historias al día".
 
-**3. Actualizar `src/hooks/useInactivityLogout.ts`**
-- Después de `signOut` + `dispatch LOGOUT`, usar `window.location.replace('/session-expired?reason=inactivity')` en lugar de dejar que el guard redirija a `/login`
+**2. `src/components/calendar/PendingNotesAdminBanner.tsx`**
+- Consulta `patient_clinical_notes` + join con `practitioners` para la fecha seleccionada, agrupando por profesional.
+- Muestra: "**X** historias pendientes hoy (todos los profesionales)" con ícono clickeable.
+- Al hacer clic, abre un `Sheet` o `Dialog` con tabla:
+  - Columnas: Profesional | Pacientes atendidos | Historias completadas | Pendientes
+  - Cada fila con barra de progreso visual.
 
-**4. Actualizar `src/contexts/AppContext.tsx`**
-- En los puntos donde se detecta token expirado/inválido (refresh_token_not_found, bootstrap retry failed), después del signOut+LOGOUT, agregar `window.location.replace('/session-expired?reason=expired')`
-- Afecta ~4 bloques: retry de ensure-public-user, clinicsResult null, catch general del bootstrap, y TOKEN_REFRESHED sin session
+**3. `src/hooks/usePendingClinicalNotes.ts`**
+- Hook reutilizable que recibe `clinicId`, `date`, y opcionalmente `practitionerId`.
+- Retorna: `{ total, completed, pending, byPractitioner: Array<{ practitionerId, name, total, completed, pending }> }`.
+- Consulta directa a `patient_clinical_notes` con filtros de fecha y tipo.
 
-**5. Actualizar `src/components/shared/AuthRouteGuard.tsx`**
-- Permitir que `/session-expired` no redirija a `/login` (ya es ruta pública, no pasa por AuthRouteGuard)
+---
 
-### Sin impacto
-- Login manual y logout voluntario siguen yendo a `/login` como siempre
-- Solo las expiraciones automáticas pasan por `/session-expired`
+### Integración en Calendar.tsx
+
+- Importar ambos banners.
+- Renderizar `PendingNotesHealthProBanner` dentro de `RoleGuard` con `allowedRoles={['health_pro']}`.
+- Renderizar `PendingNotesAdminBanner` dentro de `RoleGuard` con `allowedRoles={['admin_clinic', 'tenant_owner']}`.
+- Ubicación: justo encima del grid del calendario, debajo del navegador de semana.
+- En mobile: banners compactos (una línea con badge numérico, expandible con tap).
+
+---
+
+### Diseño visual
+
+- **Health Pro**: fondo `amber-50`, borde `amber-200`, ícono `ClipboardList`. Colapsa en mobile a una sola línea.
+- **Admin**: fondo `blue-50`, borde `blue-200`, ícono `BarChart3`. Click abre Sheet lateral con la tabla de desglose.
+- Badge verde cuando todo está completo (0 pendientes).
+
+---
+
+### Archivos a crear/modificar
+
+| Archivo | Acción |
+|---|---|
+| `src/hooks/usePendingClinicalNotes.ts` | Crear |
+| `src/components/calendar/PendingNotesHealthProBanner.tsx` | Crear |
+| `src/components/calendar/PendingNotesAdminBanner.tsx` | Crear |
+| `src/pages/Calendar.tsx` | Modificar (agregar banners) |
+
+No requiere cambios en la base de datos — usa tablas y datos existentes (`patient_clinical_notes`, `practitioners`, `appointments`).
 
