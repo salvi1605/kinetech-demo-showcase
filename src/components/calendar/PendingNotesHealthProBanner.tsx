@@ -21,12 +21,12 @@ export const PendingNotesHealthProBanner = ({
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { pending, total, pendingItems, isLoading } = usePendingClinicalNotes(
-    clinicId,
+    practitionerId ? clinicId : undefined,
     date,
     practitionerId
   );
 
-  if (isLoading || total === 0) return null;
+  if (isLoading || total === 0 || !practitionerId) return null;
 
   const allDone = pending === 0;
 
