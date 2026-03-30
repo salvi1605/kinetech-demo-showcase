@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { formatPatientShortName, matchesPatientSearch } from '@/utils/formatters';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -55,6 +56,8 @@ import { updateAppointmentStatus } from '@/lib/appointmentService';
 import { useClinicSettings, generateTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 import { useTreatments } from '@/hooks/useTreatments';
 import { useFirstVisitPatients } from '@/hooks/useFirstVisitPatients';
+import { PendingNotesHealthProBanner } from '@/components/calendar/PendingNotesHealthProBanner';
+import { PendingNotesAdminBanner } from '@/components/calendar/PendingNotesAdminBanner';
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const MOBILE_WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
@@ -144,6 +147,18 @@ export const Calendar = () => {
   const [showMassCreateModal, setShowMassCreateModal] = useState(false);
   const [agendaBanner, setAgendaBanner] = useState<{ type: 'error'; text: string } | null>(null);
   const [preselectedPatientId, setPreselectedPatientId] = useState<string | null>(null);
+  const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
+
+  // Resolve current user's practitioner ID for health_pro banner
+  useEffect(() => {
+    if (state.userRole !== 'health_pro') {
+      setCurrentPractitionerId(undefined);
+      return;
+    }
+    supabase.rpc('current_practitioner_id').then(({ data, error }) => {
+      if (!error && data) setCurrentPractitionerId(data);
+    });
+  }, [state.userRole]);
 
   // Scroll preservation refs
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1115,6 +1130,23 @@ export const Calendar = () => {
         <p className="text-muted-foreground">
           Gestiona turnos y horarios de kinesiología
         </p>
+      </div>
+
+      {/* Pending clinical notes banners */}
+      <div className="space-y-2">
+        <RoleGuard allowedRoles={['health_pro']}>
+          <PendingNotesHealthProBanner
+            clinicId={state.currentClinicId}
+            date={format(weekDates[selectedDay] || new Date(), 'yyyy-MM-dd')}
+            practitionerId={currentPractitionerId}
+          />
+        </RoleGuard>
+        <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
+          <PendingNotesAdminBanner
+            clinicId={state.currentClinicId}
+            date={format(weekDates[selectedDay] || new Date(), 'yyyy-MM-dd')}
+          />
+        </RoleGuard>
       </div>
 
       {/* Rest of component remains the same */}
