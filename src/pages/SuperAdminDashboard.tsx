@@ -345,6 +345,18 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      dispatch({ type: 'LOGOUT' });
+      toast({ title: 'Sesión cerrada', description: 'Volvé a iniciar sesión cuando quieras.' });
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast({ title: 'Error', description: 'No se pudo cerrar la sesión', variant: 'destructive' });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 space-y-6">
@@ -364,6 +376,68 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 h-14 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+        <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-3 md:px-8">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Shield className="h-5 w-5 text-primary" />
+            </div>
+            <span className="text-sm font-semibold text-foreground sm:text-base">AgendixPro</span>
+          </div>
+
+          <div className="hidden items-center gap-2 md:flex">
+            {state.currentUser?.email && (
+              <span className="max-w-[240px] truncate px-2 text-sm text-muted-foreground">
+                {state.currentUser.email}
+              </span>
+            )}
+            <Button variant="outline" size="sm" onClick={() => navigate('/select-clinic')}>
+              <Building2 className="mr-2 h-4 w-4" />
+              Cambiar clínica
+            </Button>
+            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar sesión
+            </Button>
+          </div>
+
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Abrir menú">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px]">
+                <SheetHeader>
+                  <SheetTitle>Menú</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-3 py-4">
+                  {state.currentUser?.email && (
+                    <div className="rounded-md bg-muted px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Sesión activa</p>
+                      <p className="truncate text-sm font-medium text-foreground">{state.currentUser.email}</p>
+                    </div>
+                  )}
+                  <SheetClose asChild>
+                    <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/select-clinic')}>
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Cambiar clínica
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Cerrar sesión
+                    </Button>
+                  </SheetClose>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </header>
+
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
