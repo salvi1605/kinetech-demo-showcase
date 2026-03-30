@@ -1132,6 +1132,23 @@ export const Calendar = () => {
         </p>
       </div>
 
+      {/* Pending clinical notes banners */}
+      <div className="space-y-2">
+        <RoleGuard allowedRoles={['health_pro']}>
+          <PendingNotesHealthProBanner
+            clinicId={state.currentClinicId}
+            date={format(weekDates[selectedDay] || new Date(), 'yyyy-MM-dd')}
+            practitionerId={currentPractitionerId}
+          />
+        </RoleGuard>
+        <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
+          <PendingNotesAdminBanner
+            clinicId={state.currentClinicId}
+            date={format(weekDates[selectedDay] || new Date(), 'yyyy-MM-dd')}
+          />
+        </RoleGuard>
+      </div>
+
       {/* Rest of component remains the same */}
       <div className="space-y-4">
 
