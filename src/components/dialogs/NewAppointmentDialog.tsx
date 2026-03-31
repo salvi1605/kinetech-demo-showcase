@@ -393,6 +393,18 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                 />
 
               </div>
+
+              {/* Sub-slot picker */}
+              {state.currentClinicId && form.watch('practitionerId') && form.watch('startTime') && selectedSlot && (
+                <SubSlotPicker
+                  clinicId={state.currentClinicId}
+                  practitionerId={form.watch('practitionerId')}
+                  date={format(selectedSlot.date, 'yyyy-MM-dd')}
+                  startTime={form.watch('startTime')}
+                  selectedSubSlot={selectedSubSlot}
+                  onSelect={setSelectedSubSlot}
+                />
+              )}
             </div>
 
             {/* Selección de kinesiólogo */}
