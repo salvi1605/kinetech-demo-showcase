@@ -56,6 +56,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedSubSlot, setSelectedSubSlot] = useState<number | null>(null);
   
   const practitionerSelectRef = useRef<HTMLButtonElement>(null);
   const patientSearchRef = useRef<HTMLInputElement>(null);
