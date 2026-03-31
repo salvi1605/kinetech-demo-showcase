@@ -217,7 +217,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
     }
 
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
-    const subSlot = selectedSlot.subSlot ?? 1;
+    const subSlot = (selectedSlot.subSlot ?? 0) + 1;
 
     try {
       const result: RpcAppointmentResult = await createAppointmentRpc({
