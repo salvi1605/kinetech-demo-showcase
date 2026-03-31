@@ -23,6 +23,7 @@ import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointme
 import { usePractitionerTreatments } from '@/hooks/useTreatments';
 import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { useClinicSettings, generateTimeSlots as generateClinicTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
+import { SubSlotPicker } from '@/components/shared/SubSlotPicker';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -55,6 +56,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedSubSlot, setSelectedSubSlot] = useState<number | null>(null);
   
   const practitionerSelectRef = useRef<HTMLButtonElement>(null);
   const patientSearchRef = useRef<HTMLInputElement>(null);
@@ -217,7 +219,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
     }
 
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
-    const subSlot = (selectedSlot.subSlot ?? 0) + 1;
+    const subSlot = selectedSubSlot ?? 1;
 
     try {
       const result: RpcAppointmentResult = await createAppointmentRpc({
@@ -392,6 +394,18 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                 />
 
               </div>
+
+              {/* Sub-slot picker */}
+              {state.currentClinicId && form.watch('practitionerId') && form.watch('startTime') && selectedSlot && (
+                <SubSlotPicker
+                  clinicId={state.currentClinicId}
+                  practitionerId={form.watch('practitionerId')}
+                  date={format(selectedSlot.date, 'yyyy-MM-dd')}
+                  startTime={form.watch('startTime')}
+                  selectedSubSlot={selectedSubSlot}
+                  onSelect={setSelectedSubSlot}
+                />
+              )}
             </div>
 
             {/* Selección de kinesiólogo */}
@@ -611,7 +625,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !selectedSubSlot}>
                 {isSubmitting ? 'Guardando…' : 'Confirmar turno'}
               </Button>
             </DialogFooter>
