@@ -624,7 +624,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !selectedSubSlot}>
                 {isSubmitting ? 'Guardando…' : 'Confirmar turno'}
               </Button>
             </DialogFooter>
