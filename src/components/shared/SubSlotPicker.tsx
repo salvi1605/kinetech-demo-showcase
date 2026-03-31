@@ -44,7 +44,6 @@ export const SubSlotPicker = ({
           .from('appointments')
           .select('sub_slot')
           .eq('clinic_id', clinicId)
-          .eq('practitioner_id', practitionerId)
           .eq('date', date)
           .eq('start_time', startTime)
           .neq('status', 'cancelled');
