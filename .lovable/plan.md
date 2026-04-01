@@ -1,31 +1,69 @@
 
+Objetivo: eliminar el “cargando infinito” en historias pendientes para perfiles administrativos (admin_clinic, tenant_owner, super_admin) y mostrar correctamente los pacientes con historia faltante.
 
-## Fix: SubSlotPicker debe mostrar ocupación global del bloque
+## Hallazgo (causa raíz)
+El problema principal no está en permisos de backend, sino en UI/roles:
 
-### Problema
-El `SubSlotPicker` filtra por `practitioner_id` al consultar slots ocupados, pero el constraint único `uq_appointments_active_slot` es sobre `(clinic_id, date, start_time, sub_slot)` — los sub-slots se comparten entre TODOS los profesionales. Resultado: muestra 1 ocupado cuando hay 3.
+1) `Calendar.tsx` renderiza `PendingNotesHealthProBanner` dentro de `RoleGuard allowedRoles={['health_pro']}`.  
+2) `RoleGuard` da acceso total a `super_admin`, por lo que super_admin también entra a ese banner.  
+3) `currentPractitionerId` solo se resuelve cuando `state.userRole === 'health_pro'`; para super_admin queda `undefined`.  
+4) `PendingNotesHealthProBanner.tsx` interpreta `!practitionerId` como estado de carga y muestra spinner permanente (`if (!practitionerId || isLoading) ...`), quedando “cargando para siempre”.
 
-### Cambio
+Adicionalmente, en admin hoy se muestra progreso por profesional, pero no una lista clara de pacientes pendientes.
 
-**Archivo:** `src/components/shared/SubSlotPicker.tsx`
+## Plan de implementación
 
-Eliminar `.eq('practitioner_id', practitionerId)` de la query de ocupación. La consulta queda:
+### 1) Corregir gating por rol en Calendar (evitar banner de kinesio en admins)
+- Archivo: `src/pages/Calendar.tsx`
+- Cambiar el render del banner de kinesio para que sea **estricto para `health_pro`** (sin herencia implícita de super_admin en este bloque).
+- Mantener el banner admin para `admin_clinic`, `tenant_owner` y `super_admin`.
 
-```typescript
-supabase
-  .from('appointments')
-  .select('sub_slot')
-  .eq('clinic_id', clinicId)
-  .eq('date', date)
-  .eq('start_time', startTime)
-  .neq('status', 'cancelled');
-```
+Resultado: perfiles administrativos solo ven el bloque administrativo (no el spinner de kinesio).
 
-Esto coincide con la granularidad del constraint único y muestra correctamente todos los sub-slots ocupados por cualquier profesional.
+### 2) Corregir estado visual en `PendingNotesHealthProBanner`
+- Archivo: `src/components/calendar/PendingNotesHealthProBanner.tsx`
+- Separar condiciones:
+  - `if (!practitionerId) return null` (o estado neutro no-loading).
+  - `if (isLoading) mostrar skeleton/spinner`.
+- Evitar que la ausencia de practitioner id se trate como “loading”.
 
-El `practitionerId` sigue siendo necesario como prop (para validaciones de disponibilidad del profesional y para el render condicional del picker), pero no debe usarse para filtrar la ocupación de sub-slots.
+Resultado: desaparece el “cargando infinito” por falta de practitioner id.
 
-### Resultado
-- En el ejemplo de las 08:00: se muestran 3 slots ocupados (Fallotico, Ramirez, Belloso) y 2 libres
-- Consistente con el constraint de DB que impide duplicados a nivel clínica/fecha/hora/subslot
+### 3) Endurecer `usePendingClinicalNotes` para estados limpios
+- Archivo: `src/hooks/usePendingClinicalNotes.ts`
+- En guard clause inicial (`!clinicId || !date`), resetear data y asegurar `isLoading = false` explícitamente.
+- Mantener `finally` como cierre único de loading en fetch real.
 
+Resultado: el hook no queda en estados ambiguos al cambiar clínica/rol/ruta.
+
+### 4) Mejorar visibilidad para admins: lista de pacientes pendientes
+- Archivo: `src/components/calendar/PendingNotesAdminBanner.tsx` (y tipado en hook si hace falta)
+- Reutilizar `pendingItems` (ya existe en hook) para agregar en el Sheet una sección “Pacientes pendientes” con:
+  - Hora
+  - Paciente
+  - Profesional
+  - Tratamiento
+- Si hace falta, extender `PendingNoteItem` con `practitionerName`.
+
+Resultado: admin/owner/superadmin puede ver explícitamente qué pacientes faltan completar.
+
+### 5) Validación funcional por rol (QA)
+- `health_pro`: ve su banner, carga termina, lista sus pendientes.
+- `admin_clinic` / `tenant_owner`: no ven spinner de kinesio; ven panel admin con progreso y pacientes pendientes.
+- `super_admin`: mismo comportamiento administrativo (sin carga infinita).
+- Verificar actualización al cambiar día/profesional/semana y al completar una historia.
+
+## Detalles técnicos (resumen)
+- No requiere migraciones ni cambios de RLS.
+- El fix central es de composición de UI + condiciones de carga.
+- Ajustes puntuales:
+  - `Calendar.tsx`: render condicional por rol estricto para banner health_pro.
+  - `PendingNotesHealthProBanner.tsx`: `!practitionerId` deja de significar “loading”.
+  - `usePendingClinicalNotes.ts`: guard clause con reset defensivo.
+  - `PendingNotesAdminBanner.tsx`: tabla/lista de pacientes pendientes para trazabilidad operativa.
+
+## Archivos a tocar
+- `src/pages/Calendar.tsx`
+- `src/components/calendar/PendingNotesHealthProBanner.tsx`
+- `src/hooks/usePendingClinicalNotes.ts`
+- `src/components/calendar/PendingNotesAdminBanner.tsx`
