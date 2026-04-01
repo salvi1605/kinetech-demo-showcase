@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { BarChart3, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BarChart3, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePendingClinicalNotes } from '@/hooks/usePendingClinicalNotes';
@@ -17,7 +19,8 @@ export const PendingNotesAdminBanner = ({
   date,
 }: PendingNotesAdminBannerProps) => {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const { pending, total, completed, byPractitioner, isLoading } = usePendingClinicalNotes(
+  const navigate = useNavigate();
+  const { pending, total, completed, byPractitioner, pendingItems, isLoading } = usePendingClinicalNotes(
     clinicId,
     date
   );
@@ -136,6 +139,45 @@ export const PendingNotesAdminBanner = ({
                   })}
               </TableBody>
             </Table>
+
+            {/* Pending patients detail list */}
+            {pendingItems.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">Pacientes pendientes</h4>
+                <div className="rounded-lg border divide-y">
+                  {pendingItems.map((item) => (
+                    <div
+                      key={item.noteId}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-muted-foreground text-xs w-12 shrink-0">
+                          {item.startTime?.substring(0, 5) || '--:--'}
+                        </span>
+                        <span className="truncate font-medium">{item.patientName}</span>
+                        <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                          · {item.practitionerName}
+                        </span>
+                        {item.treatmentType && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {item.treatmentType}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => navigate(`/patients/${item.patientId}`)}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Ver
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

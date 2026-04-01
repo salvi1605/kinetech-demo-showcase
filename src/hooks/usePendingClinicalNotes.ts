@@ -13,6 +13,7 @@ export interface PendingNoteItem {
   noteId: string;
   patientId: string;
   patientName: string;
+  practitionerName: string;
   startTime: string | null;
   treatmentType: string | null;
   isCompleted: boolean;
@@ -43,7 +44,11 @@ export function usePendingClinicalNotes(
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!clinicId || !date) return;
+    if (!clinicId || !date) {
+      setData({ total: 0, completed: 0, pending: 0, byPractitioner: [], pendingItems: [] });
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -103,6 +108,7 @@ export function usePendingClinicalNotes(
           noteId: n.id,
           patientId: n.patient_id,
           patientName: n.patients?.full_name || 'Paciente',
+          practitionerName: n.practitioners?.display_name || 'Sin asignar',
           startTime: n.start_time,
           treatmentType: n.treatment_type,
           isCompleted: false,

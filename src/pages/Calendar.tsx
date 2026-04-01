@@ -1134,19 +1134,19 @@ export const Calendar = () => {
 
       {/* Pending clinical notes banners */}
       <div className="space-y-2">
-        <RoleGuard allowedRoles={['health_pro']}>
+        {state.userRole === 'health_pro' && currentPractitionerId && (
           <PendingNotesHealthProBanner
             clinicId={state.currentClinicId}
             date={format(weekDates[selectedDay] || new Date(), 'yyyy-MM-dd')}
             practitionerId={currentPractitionerId}
           />
-        </RoleGuard>
-        <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
+        )}
+        {['admin_clinic', 'tenant_owner', 'super_admin'].includes(state.userRole || '') && (
           <PendingNotesAdminBanner
             clinicId={state.currentClinicId}
             date={format(weekDates[selectedDay] || new Date(), 'yyyy-MM-dd')}
           />
-        </RoleGuard>
+        )}
       </div>
 
       {/* Rest of component remains the same */}
