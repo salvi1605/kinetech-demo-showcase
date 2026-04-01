@@ -43,7 +43,11 @@ export function usePendingClinicalNotes(
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!clinicId || !date) return;
+    if (!clinicId || !date) {
+      setData({ total: 0, completed: 0, pending: 0, byPractitioner: [], pendingItems: [] });
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     try {
