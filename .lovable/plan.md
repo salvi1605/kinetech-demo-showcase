@@ -1,31 +1,31 @@
 
 
-## Banner de historias pendientes estilo health_pro para admins
+## Fix: SubSlotPicker debe mostrar ocupación global del bloque
 
-### Qué se quiere
-Que los roles administrativos (admin_clinic, tenant_owner, super_admin) vean el **mismo estilo de banner expandible** que ven los health_pro — con la lista de pacientes pendientes agrupada por profesional y expandible inline — en lugar del banner azul actual que solo abre un Sheet lateral.
+### Problema
+El `SubSlotPicker` filtra por `practitioner_id` al consultar slots ocupados, pero el constraint único `uq_appointments_active_slot` es sobre `(clinic_id, date, start_time, sub_slot)` — los sub-slots se comparten entre TODOS los profesionales. Resultado: muestra 1 ocupado cuando hay 3.
 
 ### Cambio
 
-**Archivo: `src/components/calendar/PendingNotesAdminBanner.tsx`**
+**Archivo:** `src/components/shared/SubSlotPicker.tsx`
 
-Reemplazar la UI actual (botón azul → Sheet lateral con tabla) por un diseño tipo Collapsible similar al del health_pro, pero agrupado por profesional:
+Eliminar `.eq('practitioner_id', practitionerId)` de la query de ocupación. La consulta queda:
 
-1. **Banner principal**: estilo similar al ámbar del health_pro pero en azul, con el conteo total de pendientes y chevron para expandir/colapsar.
-2. **Contenido expandible**: en lugar de un Sheet, se despliega inline mostrando:
-   - Una sección por cada profesional con pendientes (nombre + badge con conteo)
-   - Debajo de cada profesional, la lista de pacientes pendientes (hora, nombre, tratamiento, botón "Ver")
-   - Profesionales sin pendientes se muestran colapsados o con un check verde
-3. **Mantener** el resumen de progreso (barra + porcentaje) en el banner principal
-4. **Mantener** el estado "todas completadas" (banner verde con check)
+```typescript
+supabase
+  .from('appointments')
+  .select('sub_slot')
+  .eq('clinic_id', clinicId)
+  .eq('date', date)
+  .eq('start_time', startTime)
+  .neq('status', 'cancelled');
+```
 
-Componentes a usar: `Collapsible` de shadcn (ya importado en el proyecto), misma estructura visual que `PendingNotesHealthProBanner`.
+Esto coincide con la granularidad del constraint único y muestra correctamente todos los sub-slots ocupados por cualquier profesional.
 
-**Archivo: `src/pages/Calendar.tsx`**
-Sin cambios — el admin banner ya se renderiza correctamente para los roles administrativos.
+El `practitionerId` sigue siendo necesario como prop (para validaciones de disponibilidad del profesional y para el render condicional del picker), pero no debe usarse para filtrar la ocupación de sub-slots.
 
 ### Resultado
-- Admins ven las historias pendientes agrupadas por profesional, expandibles inline
-- Misma experiencia visual que los health_pro pero con visibilidad de todos los profesionales
-- Sin necesidad de abrir un panel lateral — todo queda en contexto del calendario
+- En el ejemplo de las 08:00: se muestran 3 slots ocupados (Fallotico, Ramirez, Belloso) y 2 libres
+- Consistente con el constraint de DB que impide duplicados a nivel clínica/fecha/hora/subslot
 
