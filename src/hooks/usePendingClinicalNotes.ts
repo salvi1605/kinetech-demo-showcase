@@ -13,6 +13,7 @@ export interface PendingNoteItem {
   noteId: string;
   patientId: string;
   patientName: string;
+  practitionerName: string;
   startTime: string | null;
   treatmentType: string | null;
   isCompleted: boolean;
