@@ -108,6 +108,7 @@ export function usePendingClinicalNotes(
           noteId: n.id,
           patientId: n.patient_id,
           patientName: n.patients?.full_name || 'Paciente',
+          practitionerName: n.practitioners?.display_name || 'Sin asignar',
           startTime: n.start_time,
           treatmentType: n.treatment_type,
           isCompleted: false,
