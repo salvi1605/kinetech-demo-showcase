@@ -1,65 +1,43 @@
 
 
-## Fix: Sincronizar treatment_type en notas clínicas al actualizar cita
+## Selección de rol al iniciar sesión (sin cambio en sesión)
 
-### Problema
-Cuando Marianela cambia el tipo de tratamiento de una cita (ej: FKT → ATM) desde el detalle de la cita, el cambio se guarda correctamente en la tabla `appointments` (por eso en la agenda aparece bien). Pero la tabla `patient_clinical_notes` conserva el valor original que se copió al momento de **crear** la cita — porque el trigger `trg_create_evolution_stub` solo se ejecuta en INSERT, no en UPDATE.
+### Problema actual
+1. `getUserRoleFromDB` usa `.single()` — falla si Thelma tiene 2 roles (`tenant_owner` + `health_pro`) en la misma clínica
+2. El bootstrap auto-selecciona cuando hay 1 sola clínica, sin verificar si hay múltiples roles
+3. `SelectClinic` muestra una card por cada entrada de `user_roles` (duplica la clínica si hay 2 roles)
 
-Resultado: Mirian abre la ficha clínica y ve "FKT" cuando debería ver "ATM".
+### Flujo deseado
 
-### Solución
-Crear un trigger AFTER UPDATE en `appointments` que, cuando cambie `treatment_type_id`, sincronice el campo `treatment_type` en `patient_clinical_notes`.
-
-### Cambio técnico
-
-**Nueva migración SQL** — un solo trigger:
-
-```sql
-CREATE OR REPLACE FUNCTION public.fn_sync_evolution_treatment_type()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_treatment_name TEXT;
-BEGIN
-  -- Only act when treatment_type_id actually changed
-  IF NEW.treatment_type_id IS DISTINCT FROM OLD.treatment_type_id THEN
-    -- Resolve new treatment name
-    SELECT name INTO v_treatment_name
-    FROM treatment_types
-    WHERE id = NEW.treatment_type_id;
-
-    v_treatment_name := COALESCE(v_treatment_name, 'FKT');
-
-    -- Update matching evolution note
-    UPDATE patient_clinical_notes
-    SET treatment_type = v_treatment_name,
-        updated_at = now()
-    WHERE appointment_id = NEW.id
-      AND note_type = 'evolution';
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER trg_sync_evolution_treatment
-AFTER UPDATE ON public.appointments
-FOR EACH ROW
-EXECUTE FUNCTION public.fn_sync_evolution_treatment_type();
+```text
+Login → Bootstrap
+  ├─ 1 clínica, 1 rol → auto-selecciona (sin cambios)
+  ├─ 1 clínica, N roles → redirige a /select-clinic (elige rol)
+  ├─ N clínicas → redirige a /select-clinic (elige clínica + rol)
+  └─ Para cambiar de rol → cerrar sesión y volver a entrar
 ```
 
-### Archivos
-| Cambio | Detalle |
-|---|---|
-| Nueva migración SQL | Trigger AFTER UPDATE que sincroniza `treatment_type` en notas clínicas |
+### Cambios
 
-No requiere cambios en frontend — la sincronización es automática a nivel de DB y el realtime ya está suscrito a `patient_clinical_notes`.
+**1. `src/contexts/AppContext.tsx`**
+- En `getUserRoleFromDB`: reemplazar `.single()` por array query. Si hay 1 resultado, auto-asignar. Si hay N, devolver el primero pero sin auto-seleccionar clínica.
+- En bootstrap (`clinicsResult.clinics.length === 1`): contar roles distintos para esa clínica. Si hay más de 1 rol, NO auto-seleccionar — redirigir a `/select-clinic`.
+
+**2. `src/pages/SelectClinic.tsx`**
+- Agrupar entradas por `clinic_id`: una card por clínica
+- Dentro de cada card, mostrar los roles disponibles como botones seleccionables (ej: "Propietario" | "Kinesiólogo")
+- Al hacer click en un rol, se llama `handleSelectClinic(clinicId, clinicName, roleId)` — la lógica existente ya maneja esto correctamente
+- Si la clínica solo tiene 1 rol, el botón se muestra directamente como "Seleccionar" (sin cambio visual respecto a hoy)
+
+### Archivos
+| Archivo | Cambio |
+|---|---|
+| `src/contexts/AppContext.tsx` | Bootstrap: detectar multi-rol, no auto-seleccionar si N roles en 1 clínica; `getUserRoleFromDB` sin `.single()` |
+| `src/pages/SelectClinic.tsx` | Agrupar por clínica, mostrar botones de rol cuando hay más de uno |
 
 ### Resultado
-- Al cambiar tratamiento en la agenda → la ficha clínica refleja el cambio inmediatamente
-- No afecta citas nuevas (el trigger INSERT existente sigue funcionando)
-- Sin riesgo de regresión — solo actúa cuando `treatment_type_id` realmente cambia
+- Thelma inicia sesión → ve su clínica con 2 botones: "Propietario" y "Kinesiólogo"
+- Elige "Kinesiólogo" → entra con permisos de health_pro
+- Para cambiar a "Propietario" → cierra sesión, vuelve a entrar, elige el otro rol
+- Usuarios con 1 solo rol → experiencia idéntica a la actual
 
