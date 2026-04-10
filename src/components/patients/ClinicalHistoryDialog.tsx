@@ -179,7 +179,9 @@ export const ClinicalHistoryDialog = ({
         )}
         
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button onClick={handleSaveAndClose}>Guardar Cambios</Button>
+          <Button onClick={handleSaveAndClose} disabled={isFlushing}>
+            {isFlushing ? 'Guardando…' : 'Guardar Cambios'}
+          </Button>
           <Button variant="outline" onClick={handleClose}>Cerrar</Button>
         </DialogFooter>
       </DialogContent>
