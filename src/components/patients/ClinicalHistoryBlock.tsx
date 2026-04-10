@@ -35,7 +35,11 @@ interface ClinicalHistoryBlockProps {
   clinicId?: string;
 }
 
-export const ClinicalHistoryBlock = ({
+export interface ClinicalHistoryBlockHandle {
+  flushDrafts: () => Promise<void>;
+}
+
+export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, ClinicalHistoryBlockProps>(({
   patient,
   historyByAppointment = [],
   snapshots = [],
@@ -48,7 +52,7 @@ export const ClinicalHistoryBlock = ({
   onPatientChange,
   testCurrentDate,
   clinicId,
-}: ClinicalHistoryBlockProps) => {
+}, ref) => {
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<EvolutionEntry[]>([]);
