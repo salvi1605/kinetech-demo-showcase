@@ -1,43 +1,26 @@
 
 
-## Selección de rol al iniciar sesión (sin cambio en sesión)
+## Asignar roles adicionales a Thelma y Gerardo
 
-### Problema actual
-1. `getUserRoleFromDB` usa `.single()` — falla si Thelma tiene 2 roles (`tenant_owner` + `health_pro`) en la misma clínica
-2. El bootstrap auto-selecciona cuando hay 1 sola clínica, sin verificar si hay múltiples roles
-3. `SelectClinic` muestra una card por cada entrada de `user_roles` (duplica la clínica si hay 2 roles)
+### Datos actuales
+- **Thelma** (id: `39d980cc-...`) → tiene `tenant_owner` en clínica `b95d96b5-...`
+- **Gerardo** (id: `e8903c31-...`) → tiene `admin_clinic` en clínica `b95d96b5-...`
 
-### Flujo deseado
+### Cambios a realizar
 
-```text
-Login → Bootstrap
-  ├─ 1 clínica, 1 rol → auto-selecciona (sin cambios)
-  ├─ 1 clínica, N roles → redirige a /select-clinic (elige rol)
-  ├─ N clínicas → redirige a /select-clinic (elige clínica + rol)
-  └─ Para cambiar de rol → cerrar sesión y volver a entrar
-```
+**Insertar 2 nuevos registros en `user_roles`:**
 
-### Cambios
+1. Thelma + `health_pro` (se mostrará como "Profesional de la salud" / "Kinesiólogo" en el selector)
+2. Gerardo + `receptionist` (se mostrará como "Recepcionista" en el selector)
 
-**1. `src/contexts/AppContext.tsx`**
-- En `getUserRoleFromDB`: reemplazar `.single()` por array query. Si hay 1 resultado, auto-asignar. Si hay N, devolver el primero pero sin auto-seleccionar clínica.
-- En bootstrap (`clinicsResult.clinics.length === 1`): contar roles distintos para esa clínica. Si hay más de 1 rol, NO auto-seleccionar — redirigir a `/select-clinic`.
+Ambos en la misma clínica `b95d96b5-c3fd-47ea-ab1a-7e9d171ca48f`.
 
-**2. `src/pages/SelectClinic.tsx`**
-- Agrupar entradas por `clinic_id`: una card por clínica
-- Dentro de cada card, mostrar los roles disponibles como botones seleccionables (ej: "Propietario" | "Kinesiólogo")
-- Al hacer click en un rol, se llama `handleSelectClinic(clinicId, clinicName, roleId)` — la lógica existente ya maneja esto correctamente
-- Si la clínica solo tiene 1 rol, el botón se muestra directamente como "Seleccionar" (sin cambio visual respecto a hoy)
+### Sobre la etiqueta "Kinesiólogo"
+La tabla `roles` tiene `description = 'Profesional de la salud'` para `health_pro`. Necesito revisar cómo `SelectClinic.tsx` muestra los nombres de rol para decidir si usar la descripción de la tabla o mapear a un label más amigable como "Kinesiólogo".
 
 ### Archivos
-| Archivo | Cambio |
+| Cambio | Detalle |
 |---|---|
-| `src/contexts/AppContext.tsx` | Bootstrap: detectar multi-rol, no auto-seleccionar si N roles en 1 clínica; `getUserRoleFromDB` sin `.single()` |
-| `src/pages/SelectClinic.tsx` | Agrupar por clínica, mostrar botones de rol cuando hay más de uno |
-
-### Resultado
-- Thelma inicia sesión → ve su clínica con 2 botones: "Propietario" y "Kinesiólogo"
-- Elige "Kinesiólogo" → entra con permisos de health_pro
-- Para cambiar a "Propietario" → cierra sesión, vuelve a entrar, elige el otro rol
-- Usuarios con 1 solo rol → experiencia idéntica a la actual
+| INSERT en `user_roles` | 2 registros nuevos (Thelma → health_pro, Gerardo → receptionist) |
+| Posible ajuste en `SelectClinic.tsx` | Mapear `health_pro` → "Kinesiólogo" en los botones de selección de rol |
 
