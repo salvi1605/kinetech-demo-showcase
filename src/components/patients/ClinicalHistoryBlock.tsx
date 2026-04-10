@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,7 +35,11 @@ interface ClinicalHistoryBlockProps {
   clinicId?: string;
 }
 
-export const ClinicalHistoryBlock = ({
+export interface ClinicalHistoryBlockHandle {
+  flushDrafts: () => Promise<void>;
+}
+
+export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, ClinicalHistoryBlockProps>(({
   patient,
   historyByAppointment = [],
   snapshots = [],
@@ -48,7 +52,7 @@ export const ClinicalHistoryBlock = ({
   onPatientChange,
   testCurrentDate,
   clinicId,
-}: ClinicalHistoryBlockProps) => {
+}, ref) => {
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<EvolutionEntry[]>([]);
@@ -170,6 +174,27 @@ export const ClinicalHistoryBlock = ({
       setSavingId(null);
     }
   }, [clinicId, patient.id, toast, testCurrentDate, currentUserRole, currentUserId, historyByAppointment]);
+
+  // Expose flushDrafts to parent via ref — saves all entries with draft text to DB
+  useImperativeHandle(ref, () => ({
+    flushDrafts: async () => {
+      const toSave = entries.filter((e) => {
+        const draftText = drafts[e.appointmentId];
+        return draftText !== undefined;
+      });
+      await Promise.all(
+        toSave.map((e) => {
+          const currentText = drafts[e.appointmentId] ?? e.text;
+          return saveToDb({
+            ...e,
+            text: currentText,
+            completed: currentText.trim() !== '',
+            updatedAt: new Date().toISOString(),
+          });
+        })
+      );
+    },
+  }), [entries, drafts, saveToDb]);
 
   const handleTextChange = (appointmentId: string, value: string) => {
     const limited = value.slice(0, 3000);
@@ -481,4 +506,4 @@ export const ClinicalHistoryBlock = ({
       )}
     </>
   );
-};
+});

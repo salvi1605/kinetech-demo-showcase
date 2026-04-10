@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
+import { ClinicalHistoryBlock, ClinicalHistoryBlockHandle } from './ClinicalHistoryBlock';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientClinicalNotes } from '@/hooks/usePatientClinicalNotes';
@@ -30,7 +30,9 @@ export const ClinicalHistoryDialog = ({
   const { toast } = useToast();
   const [tempPrefill, setTempPrefill] = useState<ClinicalSummaryDay['clinicalData'] | null>(null);
   const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
+  const [isFlushing, setIsFlushing] = useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const historyBlockRef = useRef<ClinicalHistoryBlockHandle>(null);
 
   // Fetch clinical notes from database
   const { evolutions, snapshots, isLoading, refetch } = usePatientClinicalNotes(
@@ -106,12 +108,25 @@ export const ClinicalHistoryDialog = ({
     console.log('[ClinicalHistoryDialog] History changed, entries count:', entries.length);
   }, []);
 
-  const handleSaveAndClose = () => {
-    toast({
-      title: 'Cambios guardados',
-      description: 'El historial clínico ha sido guardado correctamente.',
-    });
-    onOpenChange(false);
+  const handleSaveAndClose = async () => {
+    setIsFlushing(true);
+    try {
+      await historyBlockRef.current?.flushDrafts();
+      toast({
+        title: 'Cambios guardados',
+        description: 'El historial clínico ha sido guardado correctamente.',
+      });
+      onOpenChange(false);
+    } catch (err) {
+      console.error('[ClinicalHistoryDialog] Error flushing drafts:', err);
+      toast({
+        title: 'Error al guardar',
+        description: 'Algunos cambios no pudieron guardarse. Intentá de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFlushing(false);
+    }
   };
 
   const handleClose = () => {
@@ -147,6 +162,7 @@ export const ClinicalHistoryDialog = ({
           </div>
         ) : (
           <ClinicalHistoryBlock
+            ref={historyBlockRef}
             patient={patient}
             historyByAppointment={evolutions}
             snapshots={snapshots}
@@ -163,7 +179,9 @@ export const ClinicalHistoryDialog = ({
         )}
         
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button onClick={handleSaveAndClose}>Guardar Cambios</Button>
+          <Button onClick={handleSaveAndClose} disabled={isFlushing}>
+            {isFlushing ? 'Guardando…' : 'Guardar Cambios'}
+          </Button>
           <Button variant="outline" onClick={handleClose}>Cerrar</Button>
         </DialogFooter>
       </DialogContent>
