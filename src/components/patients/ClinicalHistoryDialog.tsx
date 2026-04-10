@@ -162,6 +162,7 @@ export const ClinicalHistoryDialog = ({
           </div>
         ) : (
           <ClinicalHistoryBlock
+            ref={historyBlockRef}
             patient={patient}
             historyByAppointment={evolutions}
             snapshots={snapshots}
