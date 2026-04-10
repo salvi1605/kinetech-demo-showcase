@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ClinicalHistoryBlock } from './ClinicalHistoryBlock';
+import { ClinicalHistoryBlock, ClinicalHistoryBlockHandle } from './ClinicalHistoryBlock';
 import { useApp, Patient } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientClinicalNotes } from '@/hooks/usePatientClinicalNotes';
