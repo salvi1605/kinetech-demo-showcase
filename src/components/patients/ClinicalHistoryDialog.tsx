@@ -108,12 +108,25 @@ export const ClinicalHistoryDialog = ({
     console.log('[ClinicalHistoryDialog] History changed, entries count:', entries.length);
   }, []);
 
-  const handleSaveAndClose = () => {
-    toast({
-      title: 'Cambios guardados',
-      description: 'El historial clínico ha sido guardado correctamente.',
-    });
-    onOpenChange(false);
+  const handleSaveAndClose = async () => {
+    setIsFlushing(true);
+    try {
+      await historyBlockRef.current?.flushDrafts();
+      toast({
+        title: 'Cambios guardados',
+        description: 'El historial clínico ha sido guardado correctamente.',
+      });
+      onOpenChange(false);
+    } catch (err) {
+      console.error('[ClinicalHistoryDialog] Error flushing drafts:', err);
+      toast({
+        title: 'Error al guardar',
+        description: 'Algunos cambios no pudieron guardarse. Intentá de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFlushing(false);
+    }
   };
 
   const handleClose = () => {
