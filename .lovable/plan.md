@@ -1,31 +1,65 @@
 
 
-## Fix: SubSlotPicker debe mostrar ocupación global del bloque
+## Fix: Sincronizar treatment_type en notas clínicas al actualizar cita
 
 ### Problema
-El `SubSlotPicker` filtra por `practitioner_id` al consultar slots ocupados, pero el constraint único `uq_appointments_active_slot` es sobre `(clinic_id, date, start_time, sub_slot)` — los sub-slots se comparten entre TODOS los profesionales. Resultado: muestra 1 ocupado cuando hay 3.
+Cuando Marianela cambia el tipo de tratamiento de una cita (ej: FKT → ATM) desde el detalle de la cita, el cambio se guarda correctamente en la tabla `appointments` (por eso en la agenda aparece bien). Pero la tabla `patient_clinical_notes` conserva el valor original que se copió al momento de **crear** la cita — porque el trigger `trg_create_evolution_stub` solo se ejecuta en INSERT, no en UPDATE.
 
-### Cambio
+Resultado: Mirian abre la ficha clínica y ve "FKT" cuando debería ver "ATM".
 
-**Archivo:** `src/components/shared/SubSlotPicker.tsx`
+### Solución
+Crear un trigger AFTER UPDATE en `appointments` que, cuando cambie `treatment_type_id`, sincronice el campo `treatment_type` en `patient_clinical_notes`.
 
-Eliminar `.eq('practitioner_id', practitionerId)` de la query de ocupación. La consulta queda:
+### Cambio técnico
 
-```typescript
-supabase
-  .from('appointments')
-  .select('sub_slot')
-  .eq('clinic_id', clinicId)
-  .eq('date', date)
-  .eq('start_time', startTime)
-  .neq('status', 'cancelled');
+**Nueva migración SQL** — un solo trigger:
+
+```sql
+CREATE OR REPLACE FUNCTION public.fn_sync_evolution_treatment_type()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_treatment_name TEXT;
+BEGIN
+  -- Only act when treatment_type_id actually changed
+  IF NEW.treatment_type_id IS DISTINCT FROM OLD.treatment_type_id THEN
+    -- Resolve new treatment name
+    SELECT name INTO v_treatment_name
+    FROM treatment_types
+    WHERE id = NEW.treatment_type_id;
+
+    v_treatment_name := COALESCE(v_treatment_name, 'FKT');
+
+    -- Update matching evolution note
+    UPDATE patient_clinical_notes
+    SET treatment_type = v_treatment_name,
+        updated_at = now()
+    WHERE appointment_id = NEW.id
+      AND note_type = 'evolution';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_sync_evolution_treatment
+AFTER UPDATE ON public.appointments
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_sync_evolution_treatment_type();
 ```
 
-Esto coincide con la granularidad del constraint único y muestra correctamente todos los sub-slots ocupados por cualquier profesional.
+### Archivos
+| Cambio | Detalle |
+|---|---|
+| Nueva migración SQL | Trigger AFTER UPDATE que sincroniza `treatment_type` en notas clínicas |
 
-El `practitionerId` sigue siendo necesario como prop (para validaciones de disponibilidad del profesional y para el render condicional del picker), pero no debe usarse para filtrar la ocupación de sub-slots.
+No requiere cambios en frontend — la sincronización es automática a nivel de DB y el realtime ya está suscrito a `patient_clinical_notes`.
 
 ### Resultado
-- En el ejemplo de las 08:00: se muestran 3 slots ocupados (Fallotico, Ramirez, Belloso) y 2 libres
-- Consistente con el constraint de DB que impide duplicados a nivel clínica/fecha/hora/subslot
+- Al cambiar tratamiento en la agenda → la ficha clínica refleja el cambio inmediatamente
+- No afecta citas nuevas (el trigger INSERT existente sigue funcionando)
+- Sin riesgo de regresión — solo actúa cuando `treatment_type_id` realmente cambia
 
