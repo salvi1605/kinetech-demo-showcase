@@ -485,4 +485,4 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
       )}
     </>
   );
-};
+});
