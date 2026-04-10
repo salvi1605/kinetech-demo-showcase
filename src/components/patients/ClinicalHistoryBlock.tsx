@@ -175,22 +175,15 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
     }
   }, [clinicId, patient.id, toast, testCurrentDate, currentUserRole, currentUserId, historyByAppointment]);
 
-  // Expose flushDrafts to parent via ref
+  // Expose flushDrafts to parent via ref — saves all entries with draft text to DB
   useImperativeHandle(ref, () => ({
     flushDrafts: async () => {
-      const dirtyEntries = entries.filter((e) => {
+      const toSave = entries.filter((e) => {
         const draftText = drafts[e.appointmentId];
-        return draftText !== undefined && draftText !== e.text;
-      });
-      // Also save entries where draft matches text but completed might need updating
-      const allToSave = entries.filter((e) => {
-        const draftText = drafts[e.appointmentId];
-        if (draftText === undefined) return false;
-        const shouldBeCompleted = draftText.trim() !== '';
-        return draftText !== e.text || shouldBeCompleted !== e.completed;
+        return draftText !== undefined;
       });
       await Promise.all(
-        allToSave.map((e) => {
+        toSave.map((e) => {
           const currentText = drafts[e.appointmentId] ?? e.text;
           return saveToDb({
             ...e,
