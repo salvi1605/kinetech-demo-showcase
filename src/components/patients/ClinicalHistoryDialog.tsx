@@ -30,7 +30,9 @@ export const ClinicalHistoryDialog = ({
   const { toast } = useToast();
   const [tempPrefill, setTempPrefill] = useState<ClinicalSummaryDay['clinicalData'] | null>(null);
   const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
+  const [isFlushing, setIsFlushing] = useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const historyBlockRef = useRef<ClinicalHistoryBlockHandle>(null);
 
   // Fetch clinical notes from database
   const { evolutions, snapshots, isLoading, refetch } = usePatientClinicalNotes(
