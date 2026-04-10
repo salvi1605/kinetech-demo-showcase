@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building, MapPin, Clock, Users, ArrowRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,15 @@ type ClinicWithRole = {
   role_description: string | null;
 };
 
+type GroupedClinic = {
+  id: string;
+  name: string;
+  country_code: string | null;
+  timezone: string;
+  is_active: boolean | null;
+  roles: { role_id: string; role_description: string | null }[];
+};
+
 export const SelectClinic = () => {
   const [clinics, setClinics] = useState<ClinicWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +35,28 @@ export const SelectClinic = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
+
+  // Group clinics by clinic_id
+  const groupedClinics = useMemo<GroupedClinic[]>(() => {
+    const map = new Map<string, GroupedClinic>();
+    clinics.forEach((c) => {
+      if (!map.has(c.id)) {
+        map.set(c.id, {
+          id: c.id,
+          name: c.name,
+          country_code: c.country_code,
+          timezone: c.timezone,
+          is_active: c.is_active,
+          roles: [],
+        });
+      }
+      const group = map.get(c.id)!;
+      if (!group.roles.some(r => r.role_id === c.role_id)) {
+        group.roles.push({ role_id: c.role_id, role_description: c.role_description });
+      }
+    });
+    return Array.from(map.values());
+  }, [clinics]);
 
   // Load user's clinics
   React.useEffect(() => {
@@ -46,22 +77,13 @@ export const SelectClinic = () => {
 
           if (clinicsError) {
             console.error('Error loading clinics:', clinicsError);
-            toast({
-              title: "Error",
-              description: "Error al cargar las clínicas",
-              variant: "destructive",
-            });
+            toast({ title: "Error", description: "Error al cargar las clínicas", variant: "destructive" });
             return;
           }
 
           const clinicsWithRoles: ClinicWithRole[] = (allClinics || []).map(c => ({
-            id: c.id,
-            name: c.name,
-            country_code: c.country_code,
-            timezone: c.timezone,
-            is_active: c.is_active,
-            role_id: 'super_admin',
-            role_description: 'Super Admin',
+            id: c.id, name: c.name, country_code: c.country_code, timezone: c.timezone,
+            is_active: c.is_active, role_id: 'super_admin', role_description: 'Super Admin',
           }));
 
           setClinics(clinicsWithRoles);
@@ -77,11 +99,7 @@ export const SelectClinic = () => {
           .single();
 
         if (!userData) {
-          toast({
-            title: "Error",
-            description: "No se encontró el usuario en el sistema",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "No se encontró el usuario en el sistema", variant: "destructive" });
           return;
         }
 
@@ -90,16 +108,8 @@ export const SelectClinic = () => {
           .select(`
             clinic_id,
             role_id,
-            clinics:clinic_id (
-              id,
-              name,
-              country_code,
-              timezone,
-              is_active
-            ),
-            roles:role_id (
-              description
-            )
+            clinics:clinic_id (id, name, country_code, timezone, is_active),
+            roles:role_id (description)
           `)
           .eq('user_id', userData.id)
           .eq('active', true)
@@ -107,32 +117,20 @@ export const SelectClinic = () => {
 
         if (rolesError) {
           console.error('Error loading clinics:', rolesError);
-          toast({
-            title: "Error",
-            description: "Error al cargar las clínicas",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "Error al cargar las clínicas", variant: "destructive" });
           return;
         }
 
         const clinicsWithRoles: ClinicWithRole[] = (userRoles || []).map((ur: any) => ({
-          id: ur.clinics.id,
-          name: ur.clinics.name,
-          country_code: ur.clinics.country_code,
-          timezone: ur.clinics.timezone,
-          is_active: ur.clinics.is_active,
-          role_id: ur.role_id,
-          role_description: ur.roles?.description || ur.role_id,
+          id: ur.clinics.id, name: ur.clinics.name, country_code: ur.clinics.country_code,
+          timezone: ur.clinics.timezone, is_active: ur.clinics.is_active,
+          role_id: ur.role_id, role_description: ur.roles?.description || ur.role_id,
         }));
 
         setClinics(clinicsWithRoles);
       } catch (error) {
         console.error('Error loading clinics:', error);
-        toast({
-          title: "Error",
-          description: "Error al cargar las clínicas",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Error al cargar las clínicas", variant: "destructive" });
       } finally {
         setIsLoading(false);
       }
@@ -144,7 +142,6 @@ export const SelectClinic = () => {
   const handleSelectClinic = (clinicId: string, clinicName: string, roleId: string) => {
     setSelectedClinic(clinicId);
     
-    // Super admin always operates as super_admin role inside clinics
     let appRole: 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' | 'super_admin' = 'health_pro';
     if (state.isSuperAdmin) {
       appRole = 'super_admin';
@@ -163,7 +160,7 @@ export const SelectClinic = () => {
     
     toast({
       title: "Clínica seleccionada",
-      description: `Accediendo a ${clinicName}`,
+      description: `Accediendo a ${clinicName} como ${getRoleDisplayName(roleId)}`,
     });
 
     setTimeout(() => {
@@ -185,7 +182,6 @@ export const SelectClinic = () => {
   const getRoleBadgeVariant = (roleId: string) => {
     switch (roleId) {
       case 'super_admin':
-        return 'destructive';
       case 'tenant_owner':
       case 'admin_clinic':
         return 'destructive';
@@ -201,7 +197,6 @@ export const SelectClinic = () => {
   const handleClinicCreated = () => {
     setCreateDialogOpen(false);
     setIsLoading(true);
-    // Reload clinics
     window.location.reload();
   };
 
@@ -212,18 +207,14 @@ export const SelectClinic = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-foreground">Seleccionar Clínica</h1>
           <p className="text-muted-foreground">
-            Elige la clínica desde la cual deseas trabajar
+            Elige la clínica y el rol con el que deseas trabajar
           </p>
           <div className="flex items-center justify-center gap-2 mt-2">
             {state.currentUser && (
-              <Badge variant="outline">
-                {state.currentUser.name}
-              </Badge>
+              <Badge variant="outline">{state.currentUser.name}</Badge>
             )}
             {state.isSuperAdmin && (
-              <Badge variant="destructive">
-                Super Admin
-              </Badge>
+              <Badge variant="destructive">Super Admin</Badge>
             )}
           </div>
         </div>
@@ -246,7 +237,7 @@ export const SelectClinic = () => {
         )}
 
         {/* No Clinics */}
-        {!isLoading && clinics.length === 0 && (
+        {!isLoading && groupedClinics.length === 0 && (
           <Card>
             <CardContent className="pt-6 text-center space-y-4">
               <Building className="h-12 w-12 mx-auto text-muted-foreground" />
@@ -269,17 +260,16 @@ export const SelectClinic = () => {
         )}
 
         {/* Clinics Grid */}
-        {!isLoading && clinics.length > 0 && (
+        {!isLoading && groupedClinics.length > 0 && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clinics.map((clinic) => (
+            {groupedClinics.map((clinic) => (
               <Card 
                 key={clinic.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
+                className={`transition-all ${
                   selectedClinic === clinic.id 
                     ? 'ring-2 ring-primary shadow-lg' 
                     : 'hover:shadow-md'
                 }`}
-                onClick={() => handleSelectClinic(clinic.id, clinic.name, clinic.role_id)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -306,21 +296,49 @@ export const SelectClinic = () => {
                     <span>{clinic.timezone}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4" />
-                    <Badge variant={getRoleBadgeVariant(clinic.role_id) as any} className="text-xs">
-                      {getRoleDisplayName(clinic.role_id)}
-                    </Badge>
-                  </div>
-
-                  <div className="pt-2">
-                    <Button 
-                      variant={selectedClinic === clinic.id ? "default" : "outline"}
-                      className="w-full"
-                      disabled={selectedClinic === clinic.id}
-                    >
-                      {selectedClinic === clinic.id ? 'Seleccionada' : 'Seleccionar'}
-                    </Button>
+                  {/* Role selection */}
+                  <div className="space-y-2 pt-2">
+                    {clinic.roles.length === 1 ? (
+                      <>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users className="h-4 w-4" />
+                          <Badge variant={getRoleBadgeVariant(clinic.roles[0].role_id) as any} className="text-xs">
+                            {getRoleDisplayName(clinic.roles[0].role_id)}
+                          </Badge>
+                        </div>
+                        <Button 
+                          variant={selectedClinic === clinic.id ? "default" : "outline"}
+                          className="w-full"
+                          disabled={selectedClinic === clinic.id}
+                          onClick={() => handleSelectClinic(clinic.id, clinic.name, clinic.roles[0].role_id)}
+                        >
+                          {selectedClinic === clinic.id ? 'Seleccionada' : 'Seleccionar'}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          Selecciona tu rol:
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {clinic.roles.map((role) => (
+                            <Button
+                              key={role.role_id}
+                              variant="outline"
+                              className="w-full justify-start gap-2"
+                              disabled={selectedClinic === clinic.id}
+                              onClick={() => handleSelectClinic(clinic.id, clinic.name, role.role_id)}
+                            >
+                              <Badge variant={getRoleBadgeVariant(role.role_id) as any} className="text-xs">
+                                {getRoleDisplayName(role.role_id)}
+                              </Badge>
+                              <span className="text-sm">Ingresar como {getRoleDisplayName(role.role_id)}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
