@@ -726,7 +726,8 @@ const getUserClinicsFromDB = async (authUserId: string): Promise<{ clinics: any[
 };
 
 // Helper function to get user role from database
-const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise<{ user: User; clinicId: string; clinicName: string } | null> => {
+// Now accepts an explicit roleId to support multi-role per clinic
+const getUserRoleFromDB = async (authUserId: string, clinicId?: string, roleId?: string): Promise<{ user: User; clinicId: string; clinicName: string } | null> => {
   try {
     // Get user from public.users
     const { data: userData, error: userError } = await supabase
@@ -759,12 +760,21 @@ const getUserRoleFromDB = async (authUserId: string, clinicId?: string): Promise
       query = query.eq('clinic_id', clinicId);
     }
 
-    const { data: roleData, error: roleError } = await query.single();
+    // If roleId provided, filter by it (multi-role support)
+    if (roleId) {
+      query = query.eq('role_id', roleId);
+    }
 
-    if (roleError || !roleData) {
+    // Use array query instead of .single() to handle multiple roles
+    const { data: rolesData, error: roleError } = await query;
+
+    if (roleError || !rolesData || rolesData.length === 0) {
       console.error('Error fetching user role:', roleError);
       return null;
     }
+
+    // Pick the first (or only) result
+    const roleData = rolesData[0];
 
     // Map database role to app role (now 1:1 mapping)
     let appRole: UserRole = 'receptionist';
@@ -940,18 +950,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         if (clinicsResult.clinics.length === 1) {
           const clinic = clinicsResult.clinics[0];
-          const result = await getUserRoleFromDB(userId, clinic.clinic_id);
+          
+          // Count distinct roles for this single clinic
+          const uniqueClinicId = clinic.clinic_id;
+          const rolesInClinic = clinicsResult.clinics.filter(c => c.clinic_id === uniqueClinicId);
+          const distinctRoles = [...new Set(rolesInClinic.map(r => r.role_id))];
+          
+          if (distinctRoles.length === 1) {
+            // Single clinic, single role → auto-select as before
+            const result = await getUserRoleFromDB(userId, clinic.clinic_id, clinic.role_id);
 
-          if (result) {
-            dispatch({ type: 'LOGIN', payload: result.user });
-            dispatch({
-              type: 'SET_CURRENT_CLINIC',
-              payload: { id: result.clinicId, name: result.clinicName },
-            });
+            if (result) {
+              dispatch({ type: 'LOGIN', payload: result.user });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: result.clinicId, name: result.clinicName },
+              });
+            }
+
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            return;
           }
-
-          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-          return;
+          
+          // Single clinic but multiple roles → redirect to /select-clinic
+          // Fall through to the "multiple clinics" path below
         }
 
         // Multiple clinics
