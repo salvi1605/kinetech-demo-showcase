@@ -175,7 +175,35 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
     }
   }, [clinicId, patient.id, toast, testCurrentDate, currentUserRole, currentUserId, historyByAppointment]);
 
-  const handleTextChange = (appointmentId: string, value: string) => {
+  // Expose flushDrafts to parent via ref
+  useImperativeHandle(ref, () => ({
+    flushDrafts: async () => {
+      const dirtyEntries = entries.filter((e) => {
+        const draftText = drafts[e.appointmentId];
+        return draftText !== undefined && draftText !== e.text;
+      });
+      // Also save entries where draft matches text but completed might need updating
+      const allToSave = entries.filter((e) => {
+        const draftText = drafts[e.appointmentId];
+        if (draftText === undefined) return false;
+        const shouldBeCompleted = draftText.trim() !== '';
+        return draftText !== e.text || shouldBeCompleted !== e.completed;
+      });
+      await Promise.all(
+        allToSave.map((e) => {
+          const currentText = drafts[e.appointmentId] ?? e.text;
+          return saveToDb({
+            ...e,
+            text: currentText,
+            completed: currentText.trim() !== '',
+            updatedAt: new Date().toISOString(),
+          });
+        })
+      );
+    },
+  }), [entries, drafts, saveToDb]);
+
+
     const limited = value.slice(0, 3000);
     setDrafts((prev) => ({ ...prev, [appointmentId]: limited }));
 
