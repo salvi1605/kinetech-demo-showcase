@@ -203,7 +203,7 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
     },
   }), [entries, drafts, saveToDb]);
 
-
+  const handleTextChange = (appointmentId: string, value: string) => {
     const limited = value.slice(0, 3000);
     setDrafts((prev) => ({ ...prev, [appointmentId]: limited }));
 
