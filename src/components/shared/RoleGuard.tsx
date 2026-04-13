@@ -12,8 +12,9 @@ interface RoleGuardProps {
 export const RoleGuard = ({ allowedRoles, children, fallback = null }: RoleGuardProps) => {
   const { state } = useApp();
   
-  // super_admin always has full access (same as tenant_owner + extras)
-  if (state.userRole === 'super_admin' || allowedRoles.includes(state.userRole)) {
+  // super_admin has full access ONLY when not impersonating another role
+  const effectiveIsSuperAdmin = state.userRole === 'super_admin' && !state.isImpersonatingRole;
+  if (effectiveIsSuperAdmin || allowedRoles.includes(state.userRole)) {
     return <>{children}</>;
   }
   
