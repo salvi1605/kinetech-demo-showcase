@@ -1,26 +1,28 @@
 
 
-## Asignar roles adicionales a Thelma y Gerardo
+## Fix: Mostrar selección de roles para Super Admin en /select-clinic
 
-### Datos actuales
-- **Thelma** (id: `39d980cc-...`) → tiene `tenant_owner` en clínica `b95d96b5-...`
-- **Gerardo** (id: `e8903c31-...`) → tiene `admin_clinic` en clínica `b95d96b5-...`
+### Problema
+Como eres Super Admin, el sistema te envía directamente al dashboard de Super Admin sin pasar por la pantalla de selección de rol. Además, cuando un Super Admin visita `/select-clinic`, solo ve el rol "Super Admin" para cada clínica — no muestra los otros roles asignados (Propietario, Administrador, Kinesiólogo, Recepcionista).
 
-### Cambios a realizar
+### Cambios
 
-**Insertar 2 nuevos registros en `user_roles`:**
+**1. `src/pages/SelectClinic.tsx` — Cargar roles reales del Super Admin**
+- En el bloque `if (state.isSuperAdmin)` (líneas 72-91): además de cargar todas las clínicas, también consultar `user_roles` del usuario para obtener sus roles específicos por clínica.
+- Combinar: para cada clínica, mostrar "Super Admin" + los roles específicos que tenga asignados (ej: tenant_owner, health_pro, receptionist, admin_clinic).
+- Resultado: cuando entres a `/select-clinic`, verás todos tus roles disponibles para la clínica.
 
-1. Thelma + `health_pro` (se mostrará como "Profesional de la salud" / "Kinesiólogo" en el selector)
-2. Gerardo + `receptionist` (se mostrará como "Recepcionista" en el selector)
+**2. `src/pages/SuperAdminDashboard.tsx` — Botón para ir a seleccionar clínica con rol**
+- Agregar un botón visible tipo "Entrar a una clínica" que navegue a `/select-clinic`, donde el usuario puede elegir clínica + rol específico.
 
-Ambos en la misma clínica `b95d96b5-c3fd-47ea-ab1a-7e9d171ca48f`.
-
-### Sobre la etiqueta "Kinesiólogo"
-La tabla `roles` tiene `description = 'Profesional de la salud'` para `health_pro`. Necesito revisar cómo `SelectClinic.tsx` muestra los nombres de rol para decidir si usar la descripción de la tabla o mapear a un label más amigable como "Kinesiólogo".
+### Resultado
+- Inicias sesión → llegas al dashboard de Super Admin (como ahora)
+- Desde ahí, clickeas "Entrar a una clínica" → ves tu clínica con 5 botones: Super Admin, Propietario, Administrador, Kinesiólogo, Recepcionista
+- Eliges el rol con el que quieres operar → entras con esos permisos
 
 ### Archivos
-| Cambio | Detalle |
+| Archivo | Cambio |
 |---|---|
-| INSERT en `user_roles` | 2 registros nuevos (Thelma → health_pro, Gerardo → receptionist) |
-| Posible ajuste en `SelectClinic.tsx` | Mapear `health_pro` → "Kinesiólogo" en los botones de selección de rol |
+| `src/pages/SelectClinic.tsx` | Cargar roles específicos del super admin además de "Super Admin" |
+| `src/pages/SuperAdminDashboard.tsx` | Botón "Entrar a una clínica" → navega a /select-clinic |
 
