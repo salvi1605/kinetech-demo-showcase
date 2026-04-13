@@ -143,7 +143,6 @@ export function UserManagementCard({ clinicId, clinicName, clinics }: UserManage
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => {
-                    const userRole = user.user_roles.find(r => r.clinic_id === clinicId);
                     return (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
