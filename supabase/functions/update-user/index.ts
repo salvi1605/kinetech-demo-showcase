@@ -76,7 +76,7 @@ serve(async (req) => {
       .eq('user_id', currentUser.id)
       .eq('active', true);
 
-    const isAdmin = adminRoles?.some(r => r.role_id === 'admin_clinic' || r.role_id === 'tenant_owner');
+    const isAdmin = adminRoles?.some(r => ['admin_clinic', 'tenant_owner', 'super_admin'].includes(r.role_id));
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
@@ -84,7 +84,8 @@ serve(async (req) => {
       });
     }
 
-    const { action, userId, fullName, email, roleId, clinicId, isActive, resetPassword } = await req.json();
+    const body = await req.json();
+    const { action, userId, fullName, email, roleId, roleIds, clinicId, isActive } = body;
 
     // Prevent admin from deactivating themselves
     if (action === 'toggle_active' && userId === currentUser.id && !isActive) {
@@ -117,6 +118,7 @@ serve(async (req) => {
       result.message = 'Perfil actualizado correctamente';
     }
 
+    // Legacy single-role update (kept for backward compat)
     if (action === 'update_role') {
       const { error: deleteError } = await supabaseAdmin
         .from('user_roles')
@@ -138,6 +140,42 @@ serve(async (req) => {
       if (insertError) throw insertError;
 
       result.message = 'Rol actualizado correctamente';
+    }
+
+    // Multi-role update: accepts roleIds: string[]
+    if (action === 'update_roles') {
+      if (!Array.isArray(roleIds) || roleIds.length === 0) {
+        return new Response(JSON.stringify({ error: 'Debe asignar al menos un rol' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Delete existing roles for this user in this clinic (except super_admin which is global)
+      const { error: deleteError } = await supabaseAdmin
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('clinic_id', clinicId)
+        .neq('role_id', 'super_admin');
+
+      if (deleteError) throw deleteError;
+
+      // Insert all selected roles
+      const inserts = roleIds.map((rid: string) => ({
+        user_id: userId,
+        role_id: rid,
+        clinic_id: clinicId,
+        active: true,
+      }));
+
+      const { error: insertError } = await supabaseAdmin
+        .from('user_roles')
+        .insert(inserts);
+
+      if (insertError) throw insertError;
+
+      result.message = 'Roles actualizados correctamente';
     }
 
     if (action === 'toggle_active') {

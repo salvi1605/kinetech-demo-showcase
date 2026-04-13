@@ -1,38 +1,21 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Key, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -40,15 +23,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const editUserSchema = z.object({
-  fullName: z.string().min(1, "Nombre completo requerido"),
-  email: z.string().email("Email inválido"),
-  roleId: z.string().min(1, "Rol requerido"),
-  clinicId: z.string().min(1, "Clínica requerida"),
-  isActive: z.boolean(),
-});
-
-type EditUserFormData = z.infer<typeof editUserSchema>;
+const ROLE_LABELS: Record<string, string> = {
+  tenant_owner: "Propietario",
+  admin_clinic: "Administrador",
+  receptionist: "Secretario/a",
+  health_pro: "Kinesiólogo/a",
+};
 
 interface Role {
   id: string;
@@ -93,80 +73,81 @@ export function EditUserDialog({
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [tempPassword, setTempPassword] = useState("");
 
-  const form = useForm<EditUserFormData>({
-    resolver: zodResolver(editUserSchema),
-    values: user
-      ? {
-          fullName: user.full_name,
-          email: user.email,
-          roleId: user.user_roles[0]?.role_id || "",
-          clinicId: user.user_roles[0]?.clinic_id || "",
-          isActive: user.is_active ?? true,
-        }
-      : undefined,
-  });
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
-  const onSubmit = async (data: EditUserFormData) => {
-    if (!user) return;
+  // Derive the clinicId from the user's existing roles
+  const clinicId = user?.user_roles[0]?.clinic_id || "";
+
+  // Assignable roles (exclude super_admin from UI)
+  const assignableRoles = roles.filter(r => r.id !== "super_admin");
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.full_name);
+      setEmail(user.email);
+      setIsActive(user.is_active ?? true);
+      // Collect all non-super_admin roles for this clinic
+      const currentRoles = user.user_roles
+        .filter(ur => ur.clinic_id === clinicId && ur.role_id !== "super_admin")
+        .map(ur => ur.role_id);
+      setSelectedRoles(currentRoles.length > 0 ? currentRoles : []);
+    }
+  }, [user, clinicId]);
+
+  const toggleRole = (roleId: string) => {
+    setSelectedRoles(prev =>
+      prev.includes(roleId)
+        ? prev.filter(r => r !== roleId)
+        : [...prev, roleId]
+    );
+  };
+
+  const onSubmit = async () => {
+    if (!user || !clinicId) return;
+    if (!fullName.trim()) {
+      toast({ title: "Error", description: "Nombre completo requerido", variant: "destructive" });
+      return;
+    }
+    if (selectedRoles.length === 0) {
+      toast({ title: "Error", description: "Debe asignar al menos un rol", variant: "destructive" });
+      return;
+    }
 
     setIsLoading(true);
     try {
       // Update profile
-      const { error: profileError } = await supabase.functions.invoke(
-        "update-user",
-        {
-          body: {
-            action: "update_profile",
-            userId: user.id,
-            fullName: data.fullName,
-            email: data.email,
-          },
-        }
-      );
-
+      const { error: profileError } = await supabase.functions.invoke("update-user", {
+        body: { action: "update_profile", userId: user.id, fullName, email },
+      });
       if (profileError) throw profileError;
 
-      // Update role if changed
-      if (
-        data.roleId !== user.user_roles[0]?.role_id ||
-        data.clinicId !== user.user_roles[0]?.clinic_id
-      ) {
-        const { error: roleError } = await supabase.functions.invoke(
-          "update-user",
-          {
-            body: {
-              action: "update_role",
-              userId: user.id,
-              roleId: data.roleId,
-              clinicId: data.clinicId,
-            },
-          }
-        );
+      // Update roles (multi-role)
+      const originalRoles = user.user_roles
+        .filter(ur => ur.clinic_id === clinicId && ur.role_id !== "super_admin")
+        .map(ur => ur.role_id)
+        .sort();
+      const newRoles = [...selectedRoles].sort();
+      const rolesChanged = JSON.stringify(originalRoles) !== JSON.stringify(newRoles);
 
-        if (roleError) throw roleError;
+      if (rolesChanged) {
+        const { error: rolesError } = await supabase.functions.invoke("update-user", {
+          body: { action: "update_roles", userId: user.id, roleIds: selectedRoles, clinicId },
+        });
+        if (rolesError) throw rolesError;
       }
 
       // Update active status if changed
-      if (data.isActive !== (user.is_active ?? true)) {
-        const { error: statusError } = await supabase.functions.invoke(
-          "update-user",
-          {
-            body: {
-              action: "toggle_active",
-              userId: user.id,
-              isActive: data.isActive,
-            },
-          }
-        );
-
+      if (isActive !== (user.is_active ?? true)) {
+        const { error: statusError } = await supabase.functions.invoke("update-user", {
+          body: { action: "toggle_active", userId: user.id, isActive },
+        });
         if (statusError) throw statusError;
       }
 
-      toast({
-        title: "Usuario actualizado",
-        description: "Los cambios se guardaron correctamente",
-      });
-
+      toast({ title: "Usuario actualizado", description: "Los cambios se guardaron correctamente" });
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
@@ -182,26 +163,15 @@ export function EditUserDialog({
 
   const handleResetPassword = async () => {
     if (!user) return;
-
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("update-user", {
-        body: {
-          action: "reset_password",
-          userId: user.id,
-          resetPassword: true,
-        },
+        body: { action: "reset_password", userId: user.id, resetPassword: true },
       });
-
       if (error) throw error;
-
       setTempPassword(data.tempPassword);
       setShowResetDialog(true);
-
-      toast({
-        title: "Contraseña restablecida",
-        description: "Se generó una nueva contraseña temporal",
-      });
+      toast({ title: "Contraseña restablecida", description: "Se generó una nueva contraseña temporal" });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -221,142 +191,88 @@ export function EditUserDialog({
             <DialogTitle>Editar Usuario</DialogTitle>
           </DialogHeader>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre Completo</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullname">Nombre Completo</Label>
+              <Input
+                id="edit-fullname"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="roleId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rol</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+            <div className="space-y-3">
+              <Label>Roles asignados</Label>
+              <div className="space-y-2 rounded-lg border p-3">
+                {assignableRoles.map(role => (
+                  <div key={role.id} className="flex items-center gap-3">
+                    <Checkbox
+                      id={`role-${role.id}`}
+                      checked={selectedRoles.includes(role.id)}
+                      onCheckedChange={() => toggleRole(role.id)}
+                    />
+                    <Label
+                      htmlFor={`role-${role.id}`}
+                      className="text-sm font-normal cursor-pointer"
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar rol" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.id} value={role.id}>
-                            {role.description || role.id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clinicId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Clínica</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar clínica" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clinics.map((clinic) => (
-                          <SelectItem key={clinic.id} value={clinic.id}>
-                            {clinic.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Estado del Usuario</FormLabel>
-                      <div className="text-sm text-muted-foreground">
-                        {field.value ? "Activo" : "Inactivo"}
-                      </div>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleResetPassword}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  <Key className="mr-2 h-4 w-4" />
-                  Restablecer Contraseña
-                </Button>
+                      {ROLE_LABELS[role.id] || role.description || role.id}
+                    </Label>
+                  </div>
+                ))}
               </div>
+              {selectedRoles.length === 0 && (
+                <p className="text-sm text-destructive">Debe asignar al menos un rol</p>
+              )}
+            </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Guardar Cambios
-                </Button>
+            <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Estado del Usuario</Label>
+                <div className="text-sm text-muted-foreground">
+                  {isActive ? "Activo" : "Inactivo"}
+                </div>
               </div>
-            </form>
-          </Form>
+              <Switch checked={isActive} onCheckedChange={setIsActive} />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResetPassword}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                <Key className="mr-2 h-4 w-4" />
+                Restablecer Contraseña
+              </Button>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={onSubmit} disabled={isLoading || selectedRoles.length === 0}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -365,10 +281,7 @@ export function EditUserDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Contraseña Temporal Generada</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>
-                Se ha generado una nueva contraseña temporal para el usuario.
-                Comparte esta contraseña de forma segura:
-              </p>
+              <p>Se ha generado una nueva contraseña temporal. Compártela de forma segura:</p>
               <div className="bg-muted p-3 rounded-md font-mono text-sm font-bold">
                 {tempPassword}
               </div>
