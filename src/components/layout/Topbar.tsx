@@ -198,8 +198,8 @@ export const Topbar = () => {
           </div>
         )}
 
-        {/* Super Admin Dashboard Button */}
-        {state.isSuperAdmin && (
+        {/* Super Admin Dashboard Button - hidden when impersonating another role */}
+        {state.isSuperAdmin && !state.isImpersonatingRole && (
           <Button variant="outline" size="sm" onClick={() => {
             dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
             navigate('/super-admin');
@@ -287,7 +287,7 @@ export const Topbar = () => {
                   </div>
                 )}
 
-                {state.isSuperAdmin && (
+                {state.isSuperAdmin && !state.isImpersonatingRole && (
                   <Button 
                     variant="outline" 
                     size="sm" 

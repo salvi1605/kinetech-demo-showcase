@@ -20,7 +20,8 @@ export const PublicRouteGuard = ({ children }: PublicRouteGuardProps) => {
 
   // Authenticated → send to app
   if (state.isAuthenticated) {
-    if (state.isSuperAdmin && !state.currentClinicId) {
+    const effectiveIsSuperAdmin = state.isSuperAdmin && !state.isImpersonatingRole;
+    if (effectiveIsSuperAdmin && !state.currentClinicId) {
       return <Navigate to="/super-admin" replace />;
     }
     if (state.currentClinicId) {
