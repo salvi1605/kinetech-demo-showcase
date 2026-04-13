@@ -66,6 +66,7 @@ export interface AppState {
   canCreateClinic: boolean; // true si usuario puede crear clínica (sin roles)
   hasRolesPending: boolean; // true si tiene roles pero ninguna clínica accesible
   isSuperAdmin: boolean; // true si el usuario tiene rol super_admin global
+  isImpersonatingRole: boolean; // true cuando super_admin eligió operar con otro rol
 }
 
 export type PatientDocument = {
@@ -324,6 +325,7 @@ const initialState: AppState = {
   canCreateClinic: false,
   hasRolesPending: false,
   isSuperAdmin: false,
+  isImpersonatingRole: false,
 };
 
 // Reducer
@@ -336,7 +338,11 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, calendarWeekStart: action.payload };
     
     case 'SET_USER_ROLE':
-      return { ...state, userRole: action.payload };
+      return { 
+        ...state, 
+        userRole: action.payload,
+        isImpersonatingRole: state.isSuperAdmin && action.payload !== 'super_admin',
+      };
     
     case 'TOGGLE_DEMO_MODE':
       return { ...state, isDemoMode: !state.isDemoMode };
@@ -426,6 +432,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         canCreateClinic: false,
         hasRolesPending: false,
         isSuperAdmin: false,
+        isImpersonatingRole: false,
       };
     
     case 'SET_AUTH_LOADING':
