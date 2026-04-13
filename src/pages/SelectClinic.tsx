@@ -181,7 +181,7 @@ export const SelectClinic = () => {
     setSelectedClinic(clinicId);
     
     let appRole: 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' | 'super_admin' = 'health_pro';
-    if (state.isSuperAdmin) {
+    if (roleId === 'super_admin') {
       appRole = 'super_admin';
     } else if (roleId === 'admin_clinic') {
       appRole = 'admin_clinic';
