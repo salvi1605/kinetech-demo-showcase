@@ -824,15 +824,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           },
         });
         if (ensureError) {
-          console.warn('[Bootstrap] ensure-public-user failed, retrying...', ensureError.message);
-          // Wait briefly and retry once — token may have been mid-refresh
-          await new Promise(r => setTimeout(r, 1500));
+          console.warn('[Bootstrap] ensure-public-user failed, refreshing session...', ensureError.message);
+          // Refresh the session before retrying — token may have expired
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error('[Bootstrap] Session refresh failed:', refreshError.message);
+            await supabase.auth.signOut();
+            dispatch({ type: 'LOGOUT' });
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            window.location.replace('/session-expired?reason=expired');
+            return;
+          }
+          await new Promise(r => setTimeout(r, 500));
           const { error: retryError } = await supabase.functions.invoke('ensure-public-user', {
             body: { fullName: userMetadata?.full_name ?? null },
           });
           if (retryError) {
             console.error('[Bootstrap] ensure-public-user retry failed:', retryError.message);
-            // Session is likely expired — sign out and stop bootstrap
             await supabase.auth.signOut();
             dispatch({ type: 'LOGOUT' });
             dispatch({ type: 'SET_AUTH_LOADING', payload: false });
