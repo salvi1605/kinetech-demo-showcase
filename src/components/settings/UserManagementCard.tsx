@@ -149,7 +149,14 @@ export function UserManagementCard({ clinicId, clinicName, clinics }: UserManage
                         <TableCell className="font-medium">{user.full_name}</TableCell>
                         <TableCell className="text-muted-foreground">{user.email}</TableCell>
                         <TableCell>
-                          {userRole ? getRoleBadge(userRole.role_id) : '-'}
+                          <div className="flex flex-wrap gap-1">
+                            {user.user_roles
+                              .filter(r => r.clinic_id === clinicId)
+                              .map(r => (
+                                <span key={r.role_id}>{getRoleBadge(r.role_id)}</span>
+                              ))}
+                            {user.user_roles.filter(r => r.clinic_id === clinicId).length === 0 && '-'}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={user.is_active !== false ? 'outline' : 'secondary'}>
