@@ -68,8 +68,9 @@ export const SelectClinic = () => {
           return;
         }
 
-        // Super admin: load ALL clinics
+        // Super admin: load ALL clinics + specific roles
         if (state.isSuperAdmin) {
+          // Fetch all clinics
           const { data: allClinics, error: clinicsError } = await supabase
             .from('clinics')
             .select('id, name, country_code, timezone, is_active')
@@ -81,10 +82,47 @@ export const SelectClinic = () => {
             return;
           }
 
-          const clinicsWithRoles: ClinicWithRole[] = (allClinics || []).map(c => ({
-            id: c.id, name: c.name, country_code: c.country_code, timezone: c.timezone,
-            is_active: c.is_active, role_id: 'super_admin', role_description: 'Super Admin',
-          }));
+          // Also fetch the super admin's specific user_roles
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .single();
+
+          let specificRoles: { clinic_id: string; role_id: string; role_description: string | null }[] = [];
+          if (userData) {
+            const { data: userRoles } = await supabase
+              .from('user_roles')
+              .select(`clinic_id, role_id, roles:role_id (description)`)
+              .eq('user_id', userData.id)
+              .eq('active', true)
+              .not('clinic_id', 'is', null)
+              .neq('role_id', 'super_admin');
+
+            specificRoles = (userRoles || []).map((ur: any) => ({
+              clinic_id: ur.clinic_id,
+              role_id: ur.role_id,
+              role_description: ur.roles?.description || ur.role_id,
+            }));
+          }
+
+          const clinicsWithRoles: ClinicWithRole[] = [];
+          (allClinics || []).forEach(c => {
+            // Always add super_admin role
+            clinicsWithRoles.push({
+              id: c.id, name: c.name, country_code: c.country_code, timezone: c.timezone,
+              is_active: c.is_active, role_id: 'super_admin', role_description: 'Super Admin',
+            });
+            // Add specific roles for this clinic
+            specificRoles
+              .filter(r => r.clinic_id === c.id)
+              .forEach(r => {
+                clinicsWithRoles.push({
+                  id: c.id, name: c.name, country_code: c.country_code, timezone: c.timezone,
+                  is_active: c.is_active, role_id: r.role_id, role_description: r.role_description,
+                });
+              });
+          });
 
           setClinics(clinicsWithRoles);
           setIsLoading(false);
