@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO, startOfWeek } from 'date-fns';
 import { parseLocalDate, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { es } from 'date-fns/locale';
@@ -20,7 +20,10 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  History
+  History,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import { FreeAppointmentDialog } from './FreeAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
@@ -73,7 +76,22 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [showFreeDialog, setShowFreeDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [selectedSubSlot, setSelectedSubSlot] = useState<number | undefined>(undefined);
+  const [isEditingTreatment, setIsEditingTreatment] = useState(false);
+  const [tempTreatment, setTempTreatment] = useState('');
+  const [isSavingTreatment, setIsSavingTreatment] = useState(false);
+  const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
   const { settings: clinicSettings } = useClinicSettings();
+
+  // Resolve current practitioner ID for health_pro permission check
+  useEffect(() => {
+    if (state.userRole !== 'health_pro') {
+      setCurrentPractitionerId(undefined);
+      return;
+    }
+    supabase.rpc('current_practitioner_id').then(({ data, error }) => {
+      if (!error && data) setCurrentPractitionerId(data);
+    });
+  }, [state.userRole]);
 
   // Get appointment from store by ID
   const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
