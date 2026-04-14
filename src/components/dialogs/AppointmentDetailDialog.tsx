@@ -505,7 +505,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   });
                   if (!result.success) {
                     toast({
-                      title: result.error_code === 'TREATMENT_NOT_ALLOWED' ? 'Tratamiento no permitido' : 'Error',
+                      title: (result.error_code as string) === 'TREATMENT_NOT_ALLOWED' ? 'Tratamiento no permitido' : 'Error',
                       description: result.error_message || 'No se pudo actualizar el tratamiento',
                       variant: 'destructive',
                     });
