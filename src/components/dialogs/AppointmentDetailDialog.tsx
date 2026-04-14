@@ -490,7 +490,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               const isToday = appointmentDateISO === todayStr;
               const isOwnAppointment = !!currentPractitionerId && appointment.practitionerId === currentPractitionerId;
               const canChangeTreatment =
-                ['admin_clinic', 'tenant_owner', 'super_admin'].includes(state.userRole) ||
+                ['admin_clinic', 'tenant_owner', 'super_admin', 'receptionist'].includes(state.userRole) ||
                 (state.userRole === 'health_pro' && isToday && isOwnAppointment);
 
               const handleSaveTreatment = async () => {
