@@ -20,7 +20,10 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  History
+  History,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import { FreeAppointmentDialog } from './FreeAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
@@ -73,7 +76,22 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [showFreeDialog, setShowFreeDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [selectedSubSlot, setSelectedSubSlot] = useState<number | undefined>(undefined);
+  const [isEditingTreatment, setIsEditingTreatment] = useState(false);
+  const [tempTreatment, setTempTreatment] = useState('');
+  const [isSavingTreatment, setIsSavingTreatment] = useState(false);
+  const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
   const { settings: clinicSettings } = useClinicSettings();
+
+  // Resolve current practitioner ID for health_pro permission check
+  useEffect(() => {
+    if (state.userRole !== 'health_pro') {
+      setCurrentPractitionerId(undefined);
+      return;
+    }
+    supabase.rpc('current_practitioner_id').then(({ data, error }) => {
+      if (!error && data) setCurrentPractitionerId(data);
+    });
+  }, [state.userRole]);
 
   // Get appointment from store by ID
   const appointment = appointmentId ? state.appointmentsById[appointmentId] : null;
@@ -467,17 +485,99 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             </div>
 
             {/* Tipo de Tratamiento */}
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-base font-medium">
-                <NotebookPen className="h-4 w-4" />
-                Tratamiento
-              </Label>
-              <div className="bg-muted/30 p-4 rounded-lg">
-                <p className="font-medium">
-                  {appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : 'Sin especificar'}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const todayStr = format(new Date(), 'yyyy-MM-dd');
+              const isToday = appointmentDateISO === todayStr;
+              const isOwnAppointment = !!currentPractitionerId && appointment.practitionerId === currentPractitionerId;
+              const canChangeTreatment =
+                ['admin_clinic', 'tenant_owner', 'super_admin'].includes(state.userRole) ||
+                (state.userRole === 'health_pro' && isToday && isOwnAppointment);
+
+              const handleSaveTreatment = async () => {
+                if (!tempTreatment || tempTreatment === (appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : '')) {
+                  setIsEditingTreatment(false);
+                  return;
+                }
+                setIsSavingTreatment(true);
+                try {
+                  const result = await updateAppointmentRpc(appointment.id, {
+                    treatmentTypeKey: tempTreatment,
+                  });
+                  if (!result.success) {
+                    toast({
+                      title: (result.error_code as string) === 'TREATMENT_NOT_ALLOWED' ? 'Tratamiento no permitido' : 'Error',
+                      description: result.error_message || 'No se pudo actualizar el tratamiento',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  window.dispatchEvent(new Event('appointmentUpdated'));
+                  toast({ title: 'Tratamiento actualizado', description: `Cambiado a ${tempTreatment}` });
+                  setIsEditingTreatment(false);
+                } catch (error) {
+                  console.error('Error updating treatment:', error);
+                  toast({ title: 'Error', description: 'No se pudo actualizar el tratamiento', variant: 'destructive' });
+                } finally {
+                  setIsSavingTreatment(false);
+                }
+              };
+
+              return (
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base font-medium">
+                    <NotebookPen className="h-4 w-4" />
+                    Tratamiento
+                    {canChangeTreatment && !isEditingTreatment && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 ml-1"
+                        onClick={() => {
+                          setTempTreatment(appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : '');
+                          setIsEditingTreatment(true);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </Label>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    {isEditingTreatment ? (
+                      <div className="flex items-center gap-2">
+                        <DynamicTreatmentSelect
+                          value={tempTreatment}
+                          onValueChange={setTempTreatment}
+                          practitionerId={appointment.practitionerId}
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600 hover:text-green-700"
+                          disabled={isSavingTreatment}
+                          onClick={handleSaveTreatment}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive/80"
+                          disabled={isSavingTreatment}
+                          onClick={() => setIsEditingTreatment(false)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="font-medium">
+                        {appointment.treatmentType ? treatmentLabel[appointment.treatmentType] : 'Sin especificar'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Citas del Paciente */}
             <div className="space-y-3">
