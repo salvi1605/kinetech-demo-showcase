@@ -511,6 +511,16 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                     });
                     return;
                   }
+                  // Actualización optimista del estado local
+                  const reverseLabelMap = Object.entries(treatmentLabel).reduce<Record<string, string>>((acc, [k, v]) => { acc[v] = k; return acc; }, {});
+                  const internalKey = reverseLabelMap[tempTreatment] || tempTreatment;
+                  dispatch({
+                    type: 'UPDATE_APPOINTMENT',
+                    payload: {
+                      id: appointment.id,
+                      updates: { treatmentType: internalKey as TreatmentType },
+                    },
+                  });
                   window.dispatchEvent(new Event('appointmentUpdated'));
                   toast({ title: 'Tratamiento actualizado', description: `Cambiado a ${tempTreatment}` });
                   setIsEditingTreatment(false);
