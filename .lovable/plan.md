@@ -1,39 +1,34 @@
 
 
-## Plan: Edición inline de tratamiento para `health_pro`
+## Plan: Actualización inmediata del tratamiento en el diálogo
 
-### Cambio único en `src/components/dialogs/AppointmentDetailDialog.tsx`
+### Problema
+Cuando se guarda el tratamiento editado, el diálogo no refleja el cambio porque:
+1. No se despacha `UPDATE_APPOINTMENT` al AppContext tras guardar
+2. El realtime sí refetcha, pero hay un delay perceptible
 
-En la sección "Tipo de Tratamiento" (líneas 469-480), agregar edición inline:
+### Solución
+En `handleSaveTreatment` (línea ~514), después del `toast`, agregar un `dispatch` para actualizar el appointment en el store local inmediatamente:
 
-1. **Nuevo estado local**: `isEditingTreatment` (boolean) y `tempTreatment` (string)
-2. **Botón lápiz** al lado del label "Tratamiento" — visible solo cuando `canChangeTreatment` es `true`
-3. **Al hacer click**: reemplaza el texto estático por `DynamicTreatmentSelect` + botones Guardar/Cancelar
-4. **Al guardar**: llama `updateAppointmentRpc` con `treatmentTypeKey`, actualiza estado local via dispatch, muestra toast de éxito
-5. **Al cancelar**: vuelve a vista read-only sin cambios
-
-### Restricciones de permisos
-
-```text
-isToday = appointment.date === format(new Date(), 'yyyy-MM-dd')
-isOwnAppointment = appointment.practitionerId === currentPractitionerId
-
-canChangeTreatment =
-  role in ['admin_clinic', 'tenant_owner', 'super_admin']
-  OR (role === 'health_pro' AND isToday AND isOwnAppointment)
+```typescript
+// Después de result.success:
+dispatch({
+  type: 'UPDATE_APPOINTMENT',
+  payload: {
+    id: appointment.id,
+    updates: { treatmentType: mapTreatmentNameToInternal(tempTreatment) }
+  }
+});
 ```
 
-- **`health_pro`**: Solo puede cambiar tratamiento en citas del **día actual** que sean **suyas** (su `practitionerId`)
-- **`admin_clinic` / `tenant_owner`**: Pueden cambiar sin restricción de fecha ni asignación
-- **`receptionist`**: No puede cambiar tratamiento (no aparece el botón)
+Donde `mapTreatmentNameToInternal` reutiliza la lógica existente de `mapTreatmentTypeToInternal` para convertir el nombre del tratamiento seleccionado al `TreatmentType` interno.
 
-### Archivos a modificar
+### Archivo a modificar
 
 | Archivo | Cambio |
 |---|---|
-| `src/components/dialogs/AppointmentDetailDialog.tsx` | Agregar edición inline de tratamiento en la sección read-only (líneas 469-480), con lógica de permisos restrictiva |
+| `src/components/dialogs/AppointmentDetailDialog.tsx` | Agregar `dispatch({ type: 'UPDATE_APPOINTMENT', ... })` en `handleSaveTreatment` tras éxito, usando el nombre del tratamiento para derivar el tipo interno |
 
 ### Sin migraciones de BD
-
-El RPC `validate_and_update_appointment` ya soporta `p_treatment_type_key`, y la RLS policy `appointments_pro_update_own` ya permite UPDATE para `health_pro` en sus propias citas.
+La actualización ya llega correctamente a la BD (confirmado por logs de realtime). Solo falta la actualización optimista del estado local.
 
