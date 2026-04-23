@@ -67,9 +67,8 @@ export const RescheduleSlotPicker = ({
       const [aptsRes, excRes, availRes] = await Promise.all([
         supabase
           .from('appointments')
-          .select('id, start_time, sub_slot, status')
+          .select('id, start_time, sub_slot, status, practitioner_id')
           .eq('clinic_id', clinicId)
-          .eq('practitioner_id', practitionerId)
           .eq('date', date)
           .neq('status', 'cancelled'),
         supabase
