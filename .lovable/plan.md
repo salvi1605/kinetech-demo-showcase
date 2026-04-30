@@ -1,43 +1,137 @@
 
 
-## Plan: Corregir slots fantasma en reprogramación
+## Auto-guardado silencioso de evoluciones clínicas
 
-### Problema (causa raíz)
+### Objetivo
 
-En `RescheduleSlotPicker.tsx` (línea 72), la consulta de citas filtra por `practitioner_id`, mostrando solo las del kinesiólogo seleccionado. Sin embargo, la base de datos impone unicidad **global por clínica** sobre `(clinic_id, date, start_time, sub_slot)` — el índice `uq_appointments_active_slot`. Resultado: un sub-slot ocupado por OTRO kinesiólogo aparece visualmente como "Libre", pero al confirmar la reprogramación la RPC `validate_and_update_appointment` lo rechaza con `SLOT_FULL`.
+Eliminar la pérdida de evoluciones cuando el usuario cierra el diálogo de Historia Clínica por cualquier vía (Cerrar, Esc, click fuera, refresh, cierre de pestaña, expiración de sesión). Sin modal de confirmación. Feedback no intrusivo vía toast.
 
-Esto es exactamente lo que reporta Marianela: ve "Libre" pero el sistema le dice que está ocupado.
+### Causa raíz (confirmada en datos)
 
-### Solución
+Solo el botón "Guardar Cambios" llama a `flushDrafts`. Las otras 3 vías de cierre (botón Cerrar, Esc, click-fuera) tiran los drafts. Esto explica las ≥18 notas con `body=''` y `updated_at = created_at` en las últimas 3 semanas para la clínica de Marianela. Caso Claudia Borgarelli encaja con el patrón.
 
-Quitar el filtro `.eq('practitioner_id', practitionerId)` en la consulta de citas para mostrar la ocupación **real global** del bloque horario, igual que la valida la BD.
+La lógica de "pendiente" (`is_completed`), las RPCs y RLS están correctas — no se tocan.
 
-### Cambio único
+---
 
-**Archivo:** `src/components/shared/RescheduleSlotPicker.tsx`
+## Cambios
 
-1. **Líneas 68-74**: Eliminar el filtro por `practitioner_id` en la consulta de `appointments`. Traer todas las citas activas de la clínica para esa fecha. Agregar `practitioner_id` al `SELECT` para poder distinguir las propias en la UI.
+### Archivo 1 — `src/components/patients/ClinicalHistoryBlock.tsx`
 
-2. **Líneas 145-160** (construcción de `occupiedMap`): Mantener el mapa global de ocupación. Para preservar el indicador "Actual" del turno que se está reprogramando, seguir usando `currentAppointmentId` como referencia.
+Modificar `useImperativeHandle` para que `flushDrafts` devuelva un resumen `{ attempted, succeeded, failed }` y solo persista drafts que **realmente cambiaron** respecto al texto guardado (evita writes redundantes que disparen `updated_at`).
 
-3. **Etiqueta visual** (opcional, mejora UX): Cuando un sub-slot esté ocupado por OTRO profesional, seguir mostrando "Ocupado" (el usuario no necesita saber por quién — basta con que no pueda elegirlo). Cuando sea del profesional actual seleccionado, también "Ocupado". Solo el `currentAppointmentId` mostrará "Actual".
+```text
+flushDrafts():
+  toSave = entries cuyos drafts !== undefined && draft !== entry.text
+  if toSave.length === 0 → return { attempted: 0, succeeded: 0, failed: 0 }
+  results = Promise.allSettled( saveToDb(...) por cada uno )
+  // saveToDb ya tiene su propio try/catch que escribe en localStorage ante error
+  // Detectar fallos contando: rejected + claves clinical-draft-* que persistieron
+  return { attempted, succeeded, failed }
+```
 
-### Comportamiento esperado tras el fix
+Agregar un `useEffect` con listeners de `beforeunload` y `pagehide`:
 
-- Si Mariela está reprogramando con la Lic. X y el sub-slot 3 de las 10:00 ya tiene una cita con la Lic. Y, ese sub-slot se mostrará como **"Ocupado"** (correcto).
-- El sub-slot del turno que se reprograma seguirá apareciendo como **"Actual"**.
-- Ya no habrá discrepancia entre lo que muestra la UI y lo que acepta la BD.
+```text
+window.addEventListener('beforeunload', persistDraftsToLocalStorage)
+window.addEventListener('pagehide',     persistDraftsToLocalStorage)
+```
 
-### Sin migraciones de BD
+El handler recorre `entries` y, para cada draft que difiera del texto persistido, escribe `localStorage[clinical-draft-${appointmentId}] = { text, updatedAt }`. Esto cubre refresh, cierre de pestaña y expiración por inactividad.
 
-La RPC y el índice ya son correctos. Solo se corrige la consulta del picker para alinear la UI con la realidad de la base.
+> El mecanismo de **recuperación** ya existe en líneas 67–80 y 88–100: al abrir el diálogo se detectan drafts en localStorage, se cargan al state y se muestra un toast "Borrador pendiente". No requiere cambios.
 
-### Validación post-implementación
+### Archivo 2 — `src/components/patients/ClinicalHistoryDialog.tsx`
 
-| Escenario | Antes | Después |
+Reemplazar el handler `onOpenChange` del `<Dialog>` y el botón "Cerrar" para que TODA vía de cierre dispare auto-flush silencioso.
+
+```text
+const handleDialogOpenChange = async (nextOpen: boolean) => {
+  if (nextOpen) {
+    onOpenChange(true);
+    return;
+  }
+  // Cerrando: auto-flush silencioso
+  if (isFlushing) return;          // evita doble disparo
+  setIsFlushing(true);
+  try {
+    const result = await historyBlockRef.current?.flushDrafts();
+    if (result && result.attempted > 0) {
+      if (result.failed === 0) {
+        toast({ title: 'Guardado', description: `${result.succeeded} evolución(es) guardadas.` });
+      } else if (result.succeeded > 0) {
+        toast({
+          title: 'Guardado parcial',
+          description: `${result.succeeded} guardadas, ${result.failed} pendientes en este dispositivo. Se reintentarán al reabrir.`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Sin conexión',
+          description: `${result.failed} evolución(es) guardadas localmente. Se sincronizarán al reabrir el historial.`,
+          variant: 'destructive',
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[ClinicalHistoryDialog] flushDrafts error:', err);
+  } finally {
+    setIsFlushing(false);
+    onOpenChange(false);            // siempre cerrar, no atrapar al usuario
+  }
+};
+```
+
+Aplicar:
+
+```text
+- <Dialog open={open} onOpenChange={onOpenChange}>
++ <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+
+- <Button variant="outline" onClick={handleClose}>Cerrar</Button>
++ <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isFlushing}>
++   {isFlushing ? 'Guardando…' : 'Cerrar'}
++ </Button>
+```
+
+`handleSaveAndClose` (botón "Guardar Cambios") queda igual — sigue mostrando el toast verde explícito de éxito.
+
+`handleClose` se elimina (ya no se usa).
+
+---
+
+## Comportamiento resultante
+
+| Vía de cierre | Antes | Después |
 |---|---|---|
-| Sub-slot ocupado por mismo profesional | Ocupado ✅ | Ocupado ✅ |
-| Sub-slot ocupado por otro profesional | Libre ❌ | Ocupado ✅ |
-| Sub-slot del turno actual | Actual ✅ | Actual ✅ |
-| Sub-slot realmente libre en toda la clínica | Libre ✅ | Libre ✅ |
+| Botón "Guardar Cambios" | Guarda + toast | Guarda + toast (sin cambios) |
+| Botón "Cerrar" | Pierde draft | Guarda silenciosamente + toast "Guardado" |
+| Tecla Esc | Pierde draft | Guarda silenciosamente + toast "Guardado" |
+| Click fuera del diálogo | Pierde draft | Guarda silenciosamente + toast "Guardado" |
+| Refresh de página | Pierde draft | `beforeunload` → localStorage → recupera al reabrir |
+| Cierre de pestaña | Pierde draft | `pagehide` → localStorage → recupera al reabrir |
+| Inactividad / logout | Pierde draft | `beforeunload` antes del unmount → localStorage |
+| Sin conexión durante guardado | Pierde draft | `saveToDb` cae a localStorage + toast "Sin conexión" |
+
+## Garantías
+
+- **Cero modals** de confirmación. Cierre siempre se respeta.
+- **Cero pérdida de texto**: si la BD falla, queda en localStorage por appointment.
+- **Feedback no intrusivo**: solo toast cuando hubo escritura real (`attempted > 0`); cierre sin cambios = silencio total.
+- **Sin cambios** en lógica de pendientes, RPCs, RLS, o datos históricos.
+- **Sin re-escrituras espurias**: el diff `draft !== entry.text` evita guardar drafts no modificados (no se infla `updated_at`).
+
+## Riesgos y mitigaciones
+
+- **Doble flush si el usuario clickea Cerrar rápido dos veces**: `if (isFlushing) return` lo previene.
+- **Click fuera accidental con texto a medio escribir**: ahora se guarda — comportamiento deseado, igual al patrón de Google Docs/Notion.
+- **`beforeunload` puede ser bloqueado por algunos navegadores móviles**: por eso agregamos también `pagehide`, que es el canal recomendado en Safari iOS.
+
+## Validación post-implementación
+
+1. Abrir historia de un paciente con cita de hoy → escribir texto → cerrar con "X"/Esc/click-fuera → reabrir: el texto está en BD.
+2. Escribir texto → desconectar red → cerrar → reconectar → reabrir: aparece toast "Borrador pendiente" y el texto está en el textarea (recuperado de localStorage).
+3. Escribir texto → refrescar la pestaña sin cerrar → reabrir: el texto está en localStorage.
+4. Sin cambios + cerrar: no aparece ningún toast.
+5. Reportes y banner de "pendientes" siguen funcionando idénticos.
 
