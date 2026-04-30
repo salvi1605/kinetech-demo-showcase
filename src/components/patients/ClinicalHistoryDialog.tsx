@@ -168,7 +168,7 @@ export const ClinicalHistoryDialog = ({
   if (state.userRole === 'receptionist') return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent ref={contentRef} className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Historial del Paciente - {formatPatientFullName(patient)}</DialogTitle>
@@ -205,7 +205,9 @@ export const ClinicalHistoryDialog = ({
           <Button onClick={handleSaveAndClose} disabled={isFlushing}>
             {isFlushing ? 'Guardando…' : 'Guardar Cambios'}
           </Button>
-          <Button variant="outline" onClick={handleClose}>Cerrar</Button>
+          <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isFlushing}>
+            {isFlushing ? 'Guardando…' : 'Cerrar'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
