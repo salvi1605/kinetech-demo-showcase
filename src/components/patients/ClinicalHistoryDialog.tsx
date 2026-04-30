@@ -108,29 +108,52 @@ export const ClinicalHistoryDialog = ({
     console.log('[ClinicalHistoryDialog] History changed, entries count:', entries.length);
   }, []);
 
-  const handleSaveAndClose = async () => {
+  // Silent auto-save on ANY close path (X button, Esc, click outside, "Cerrar" button).
+  // No confirmation modal. Toast feedback only when there were drafts to flush.
+  const handleDialogOpenChange = useCallback(async (nextOpen: boolean) => {
+    if (nextOpen) {
+      onOpenChange(true);
+      return;
+    }
+    if (isFlushing) return; // prevent double-trigger
     setIsFlushing(true);
     try {
-      await historyBlockRef.current?.flushDrafts();
-      toast({
-        title: 'Cambios guardados',
-        description: 'El historial clínico ha sido guardado correctamente.',
-      });
-      onOpenChange(false);
+      const result = await historyBlockRef.current?.flushDrafts();
+      if (result && result.attempted > 0) {
+        if (result.failed === 0) {
+          toast({
+            title: 'Guardado',
+            description: `${result.succeeded} evolución(es) guardadas.`,
+          });
+        } else if (result.succeeded > 0) {
+          toast({
+            title: 'Guardado parcial',
+            description: `${result.succeeded} guardadas, ${result.failed} pendientes en este dispositivo. Se reintentarán al reabrir.`,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Sin conexión',
+            description: `${result.failed} evolución(es) guardadas localmente. Se sincronizarán al reabrir el historial.`,
+            variant: 'destructive',
+          });
+        }
+      }
     } catch (err) {
-      console.error('[ClinicalHistoryDialog] Error flushing drafts:', err);
+      console.error('[ClinicalHistoryDialog] Auto-flush error:', err);
       toast({
         title: 'Error al guardar',
-        description: 'Algunos cambios no pudieron guardarse. Intentá de nuevo.',
+        description: 'Algunos cambios podrían no haberse sincronizado. Se conservan localmente.',
         variant: 'destructive',
       });
     } finally {
       setIsFlushing(false);
+      onOpenChange(false); // always close — never trap the user
     }
-  };
+  }, [isFlushing, onOpenChange, toast]);
 
-  const handleClose = () => {
-    onOpenChange(false);
+  const handleSaveAndClose = async () => {
+    await handleDialogOpenChange(false);
   };
 
   const age = patient.birthDate 
@@ -145,7 +168,7 @@ export const ClinicalHistoryDialog = ({
   if (state.userRole === 'receptionist') return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent ref={contentRef} className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Historial del Paciente - {formatPatientFullName(patient)}</DialogTitle>
@@ -182,7 +205,9 @@ export const ClinicalHistoryDialog = ({
           <Button onClick={handleSaveAndClose} disabled={isFlushing}>
             {isFlushing ? 'Guardando…' : 'Guardar Cambios'}
           </Button>
-          <Button variant="outline" onClick={handleClose}>Cerrar</Button>
+          <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isFlushing}>
+            {isFlushing ? 'Guardando…' : 'Cerrar'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

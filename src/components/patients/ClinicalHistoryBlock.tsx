@@ -35,8 +35,14 @@ interface ClinicalHistoryBlockProps {
   clinicId?: string;
 }
 
+export interface FlushDraftsResult {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+}
+
 export interface ClinicalHistoryBlockHandle {
-  flushDrafts: () => Promise<void>;
+  flushDrafts: () => Promise<FlushDraftsResult>;
 }
 
 export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, ClinicalHistoryBlockProps>(({
@@ -175,14 +181,22 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
     }
   }, [clinicId, patient.id, toast, testCurrentDate, currentUserRole, currentUserId, historyByAppointment]);
 
-  // Expose flushDrafts to parent via ref — saves all entries with draft text to DB
+  // Expose flushDrafts to parent via ref — saves all entries with draft text to DB.
+  // Returns a summary so the parent can show silent feedback without modals.
   useImperativeHandle(ref, () => ({
-    flushDrafts: async () => {
+    flushDrafts: async (): Promise<FlushDraftsResult> => {
+      // Only persist drafts that actually changed vs the saved text.
       const toSave = entries.filter((e) => {
         const draftText = drafts[e.appointmentId];
-        return draftText !== undefined;
+        if (draftText === undefined) return false;
+        return draftText !== (e.text ?? '');
       });
-      await Promise.all(
+
+      if (toSave.length === 0) {
+        return { attempted: 0, succeeded: 0, failed: 0 };
+      }
+
+      const results = await Promise.allSettled(
         toSave.map((e) => {
           const currentText = drafts[e.appointmentId] ?? e.text;
           return saveToDb({
@@ -193,8 +207,50 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
           });
         })
       );
+
+      // saveToDb swallows errors internally (writes to localStorage on failure).
+      // Detect drafts that fell back to localStorage as "failed" (pending sync).
+      const rejected = results.filter((r) => r.status === 'rejected').length;
+      let pendingLocal = 0;
+      for (const e of toSave) {
+        try {
+          if (localStorage.getItem(`clinical-draft-${e.appointmentId}`)) {
+            pendingLocal++;
+          }
+        } catch {}
+      }
+      const failed = rejected + pendingLocal;
+      return {
+        attempted: toSave.length,
+        succeeded: Math.max(0, toSave.length - failed),
+        failed,
+      };
     },
   }), [entries, drafts, saveToDb]);
+
+  // Safety net: on tab close / refresh / navigation away, persist any unsaved
+  // draft text to localStorage so it can be recovered next time the dialog opens.
+  useEffect(() => {
+    const persistDraftsToLocalStorage = () => {
+      try {
+        for (const e of entries) {
+          const draftText = drafts[e.appointmentId];
+          if (draftText !== undefined && draftText !== (e.text ?? '')) {
+            localStorage.setItem(
+              `clinical-draft-${e.appointmentId}`,
+              JSON.stringify({ text: draftText, updatedAt: new Date().toISOString() })
+            );
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener('beforeunload', persistDraftsToLocalStorage);
+    window.addEventListener('pagehide', persistDraftsToLocalStorage);
+    return () => {
+      window.removeEventListener('beforeunload', persistDraftsToLocalStorage);
+      window.removeEventListener('pagehide', persistDraftsToLocalStorage);
+    };
+  }, [entries, drafts]);
 
   const handleTextChange = (appointmentId: string, value: string) => {
     const limited = value.slice(0, 3000);
