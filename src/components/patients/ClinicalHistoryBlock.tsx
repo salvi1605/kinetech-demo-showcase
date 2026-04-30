@@ -35,8 +35,14 @@ interface ClinicalHistoryBlockProps {
   clinicId?: string;
 }
 
+export interface FlushDraftsResult {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+}
+
 export interface ClinicalHistoryBlockHandle {
-  flushDrafts: () => Promise<void>;
+  flushDrafts: () => Promise<FlushDraftsResult>;
 }
 
 export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, ClinicalHistoryBlockProps>(({
