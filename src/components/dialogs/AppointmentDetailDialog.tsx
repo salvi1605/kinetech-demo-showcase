@@ -215,13 +215,15 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
 
   // Copiar resumen al portapapeles
   const handleCopyToClipboard = async () => {
+    // Normalizar HH:mm:ss → HH:mm para evitar confusiones de lectura.
+    const startHHmm = (appointment.startTime || '').slice(0, 5);
     const summary = `
 RESUMEN DE TURNO
 
 Paciente: ${patient ? formatPatientFullName(patient) : 'Sin paciente'}
 Kinesiólogo: ${practitioner?.name || 'Sin asignar'}
 Fecha: ${format(appointmentDate, 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
-Horario: ${appointment.startTime}
+Horario: ${startHHmm}
 Estado: ${statusInfo.label}
 ${appointment.notes ? `Notas: ${appointment.notes}` : ''}
 
