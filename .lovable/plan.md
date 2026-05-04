@@ -1,137 +1,67 @@
+## Diagnóstico del reporte de Marianela
 
+### 1. Verificación en base de datos (hecho)
 
-## Auto-guardado silencioso de evoluciones clínicas
+Consulté la cita de **Rodríguez Rilo Laila** del **lunes 4 de mayo de 2026**:
 
-### Objetivo
+- ID: `3319ba74-c6dd-42ee-b9ec-b4bc14cff640`
+- `start_time` = **09:30:00** (correcto, coincide con lo que dice Marianela)
+- `sub_slot` = 2
+- Profesional: Lic. Mirian Arias
+- Sin registros en `audit_log` → la cita **nunca cambió de hora** desde que se creó (30/03/2026).
 
-Eliminar la pérdida de evoluciones cuando el usuario cierra el diálogo de Historia Clínica por cualquier vía (Cerrar, Esc, click fuera, refresh, cierre de pestaña, expiración de sesión). Sin modal de confirmación. Feedback no intrusivo vía toast.
+Conclusión: **en la base de datos el dato es correcto (09:30)**. El problema no está en cómo se almacena la cita.
 
-### Causa raíz (confirmada en datos)
+### 2. Auditoría del código de notificaciones
 
-Solo el botón "Guardar Cambios" llama a `flushDrafts`. Las otras 3 vías de cierre (botón Cerrar, Esc, click-fuera) tiran los drafts. Esto explica las ≥18 notas con `body=''` y `updated_at = created_at` en las últimas 3 semanas para la clínica de Marianela. Caso Claudia Borgarelli encaja con el patrón.
+Busqué en todo el repo (`src/` y `supabase/functions/`) cualquier integración de envío automático a pacientes: WhatsApp, SMS, Twilio, recordatorios, mailers transaccionales, edge functions de notificación. Resultado:
 
-La lógica de "pendiente" (`is_completed`), las RPCs y RLS están correctas — no se tocan.
+- **No existe ninguna funcionalidad que envíe automáticamente la hora de la cita al paciente.**
+- Las únicas edge functions son: `backup-clinic-data`, `create-user`, `update-user`, `ensure-public-user`, `export-clinic-data`, `send-contact-email` (formulario público de contacto). Ninguna toca pacientes ni citas.
 
----
+### 3. Auditoría del código de "copiar horario"
 
-## Cambios
+Las únicas formas en que sale un horario hacia el portapapeles (que luego se pega manualmente en WhatsApp/SMS) son:
 
-### Archivo 1 — `src/components/patients/ClinicalHistoryBlock.tsx`
-
-Modificar `useImperativeHandle` para que `flushDrafts` devuelva un resumen `{ attempted, succeeded, failed }` y solo persista drafts que **realmente cambiaron** respecto al texto guardado (evita writes redundantes que disparen `updated_at`).
-
-```text
-flushDrafts():
-  toSave = entries cuyos drafts !== undefined && draft !== entry.text
-  if toSave.length === 0 → return { attempted: 0, succeeded: 0, failed: 0 }
-  results = Promise.allSettled( saveToDb(...) por cada uno )
-  // saveToDb ya tiene su propio try/catch que escribe en localStorage ante error
-  // Detectar fallos contando: rejected + claves clinical-draft-* que persistieron
-  return { attempted, succeeded, failed }
-```
-
-Agregar un `useEffect` con listeners de `beforeunload` y `pagehide`:
-
-```text
-window.addEventListener('beforeunload', persistDraftsToLocalStorage)
-window.addEventListener('pagehide',     persistDraftsToLocalStorage)
-```
-
-El handler recorre `entries` y, para cada draft que difiera del texto persistido, escribe `localStorage[clinical-draft-${appointmentId}] = { text, updatedAt }`. Esto cubre refresh, cierre de pestaña y expiración por inactividad.
-
-> El mecanismo de **recuperación** ya existe en líneas 67–80 y 88–100: al abrir el diálogo se detectan drafts en localStorage, se cargan al state y se muestra un toast "Borrador pendiente". No requiere cambios.
-
-### Archivo 2 — `src/components/patients/ClinicalHistoryDialog.tsx`
-
-Reemplazar el handler `onOpenChange` del `<Dialog>` y el botón "Cerrar" para que TODA vía de cierre dispare auto-flush silencioso.
-
-```text
-const handleDialogOpenChange = async (nextOpen: boolean) => {
-  if (nextOpen) {
-    onOpenChange(true);
-    return;
-  }
-  // Cerrando: auto-flush silencioso
-  if (isFlushing) return;          // evita doble disparo
-  setIsFlushing(true);
-  try {
-    const result = await historyBlockRef.current?.flushDrafts();
-    if (result && result.attempted > 0) {
-      if (result.failed === 0) {
-        toast({ title: 'Guardado', description: `${result.succeeded} evolución(es) guardadas.` });
-      } else if (result.succeeded > 0) {
-        toast({
-          title: 'Guardado parcial',
-          description: `${result.succeeded} guardadas, ${result.failed} pendientes en este dispositivo. Se reintentarán al reabrir.`,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Sin conexión',
-          description: `${result.failed} evolución(es) guardadas localmente. Se sincronizarán al reabrir el historial.`,
-          variant: 'destructive',
-        });
-      }
-    }
-  } catch (err) {
-    console.error('[ClinicalHistoryDialog] flushDrafts error:', err);
-  } finally {
-    setIsFlushing(false);
-    onOpenChange(false);            // siempre cerrar, no atrapar al usuario
-  }
-};
-```
-
-Aplicar:
-
-```text
-- <Dialog open={open} onOpenChange={onOpenChange}>
-+ <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-
-- <Button variant="outline" onClick={handleClose}>Cerrar</Button>
-+ <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isFlushing}>
-+   {isFlushing ? 'Guardando…' : 'Cerrar'}
-+ </Button>
-```
-
-`handleSaveAndClose` (botón "Guardar Cambios") queda igual — sigue mostrando el toast verde explícito de éxito.
-
-`handleClose` se elimina (ya no se usa).
-
----
-
-## Comportamiento resultante
-
-| Vía de cierre | Antes | Después |
+| Lugar | Función | Fuente de la hora |
 |---|---|---|
-| Botón "Guardar Cambios" | Guarda + toast | Guarda + toast (sin cambios) |
-| Botón "Cerrar" | Pierde draft | Guarda silenciosamente + toast "Guardado" |
-| Tecla Esc | Pierde draft | Guarda silenciosamente + toast "Guardado" |
-| Click fuera del diálogo | Pierde draft | Guarda silenciosamente + toast "Guardado" |
-| Refresh de página | Pierde draft | `beforeunload` → localStorage → recupera al reabrir |
-| Cierre de pestaña | Pierde draft | `pagehide` → localStorage → recupera al reabrir |
-| Inactividad / logout | Pierde draft | `beforeunload` antes del unmount → localStorage |
-| Sin conexión durante guardado | Pierde draft | `saveToDb` cae a localStorage + toast "Sin conexión" |
+| `AppointmentDetailDialog.tsx` línea 217 (Resumen del turno) | `handleCopyToClipboard` | `appointment.startTime` (ya normalizado a `HH:mm` desde BD) |
+| `AppointmentDetailDialog.tsx` línea 362 ("Copiar todos los turnos del paciente") | `handleCopyAllPatientAppointments` | Lee `start_time` directo de BD (`09:30:00`) y lo pasa a `formatCopyLine` |
+| `MassCreateAppointmentDialog.tsx` línea 264 ("Copiar seleccionados") | `handleCopySelected` | `slot.hour` viene del slot que el usuario eligió en la grilla |
+| `formatCopyLine` (`src/utils/copyFormat.ts`) | Util compartida | Recibe `hhmm` ya formateado y lo concatena tal cual |
 
-## Garantías
+**Todos los caminos respetan `09:30`.** No hay redondeo, no hay resta de minutos, no hay conversión de timezone aplicada al campo `time`. La hora se pasa como string desde Postgres.
 
-- **Cero modals** de confirmación. Cierre siempre se respeta.
-- **Cero pérdida de texto**: si la BD falla, queda en localStorage por appointment.
-- **Feedback no intrusivo**: solo toast cuando hubo escritura real (`attempted > 0`); cierre sin cambios = silencio total.
-- **Sin cambios** en lógica de pendientes, RPCs, RLS, o datos históricos.
-- **Sin re-escrituras espurias**: el diff `draft !== entry.text` evita guardar drafts no modificados (no se infla `updated_at`).
+### 4. Hipótesis sobre el origen real del "9:00"
 
-## Riesgos y mitigaciones
+Como el sistema no envía nada automáticamente y la copia manual respeta la hora correcta, las hipótesis verosímiles son:
 
-- **Doble flush si el usuario clickea Cerrar rápido dos veces**: `if (isFlushing) return` lo previene.
-- **Click fuera accidental con texto a medio escribir**: ahora se guarda — comportamiento deseado, igual al patrón de Google Docs/Notion.
-- **`beforeunload` puede ser bloqueado por algunos navegadores móviles**: por eso agregamos también `pagehide`, que es el canal recomendado en Safari iOS.
+1. **Confusión visual en el calendario móvil**: Laila está en el bloque `09:30` pero en el bloque anterior (`09:00`) hay 2 pacientes (Myszkin sub_slot 2, Labake sub_slot 3). En vista móvil compacta (376px) las celdas son chicas; Marianela pudo haber leído la fila anterior y enviado "9:00" por WhatsApp manualmente.
+2. **Confusión con cita histórica de la misma paciente**: Laila tuvo una cita el **27/04/2026 a las 09:00** (estado `no_show`). Si Marianela escribió el mensaje mirando un historial viejo, pudo confundirse de fila.
+3. **Error de tipeo manual** al redactar el WhatsApp.
 
-## Validación post-implementación
+Lo que **descartamos con certeza**:
+- Bug en el guardado (BD tiene 09:30).
+- Bug en el redondeo del slot (la cita ocupa el bloque 09:30 correctamente).
+- Bug en notificación automática (no existe tal funcionalidad).
+- Cambio fantasma de hora (el `audit_log` está vacío para esta cita).
 
-1. Abrir historia de un paciente con cita de hoy → escribir texto → cerrar con "X"/Esc/click-fuera → reabrir: el texto está en BD.
-2. Escribir texto → desconectar red → cerrar → reconectar → reabrir: aparece toast "Borrador pendiente" y el texto está en el textarea (recuperado de localStorage).
-3. Escribir texto → refrescar la pestaña sin cerrar → reabrir: el texto está en localStorage.
-4. Sin cambios + cerrar: no aparece ningún toast.
-5. Reportes y banner de "pendientes" siguen funcionando idénticos.
+### 5. Pregunta a confirmar con Marianela antes de tocar código
 
+Para no proponer una solución que no resuelve el problema real, necesito que Marianela aclare **cómo le llegó el horario a la paciente**:
+
+- ¿El mensaje lo escribió ella manualmente (WhatsApp/SMS)?
+- ¿Usó el botón **"Copiar"** del detalle del turno y luego lo pegó? Si sí, ¿qué texto exacto se copió? (importante: si dice "09:30" en el copiado pero ella escribió "9:00" en WhatsApp, es error humano)
+- ¿La paciente recibió un mensaje generado por **otro sistema** (recordatorio externo, Google Calendar, agenda compartida, etc.)?
+
+### 6. Acción mínima propuesta (sólo si confirma que copió y pegó)
+
+Si Marianela confirma que utilizó el botón de copiar y aún así apareció "9:00", hacemos:
+
+- Agregar `console.log` temporal en `handleCopyAllPatientAppointments` y `handleCopyToClipboard` para registrar el texto exacto que va al portapapeles. Le pedimos a Marianela que reproduzca el copiado con otra paciente y nos manda screenshot del log + del mensaje pegado en WhatsApp. Eso permitirá decidir si hay bug o es error humano.
+
+**No se propone ningún cambio funcional ahora** porque la evidencia indica que el bug no está en el sistema.
+
+---
+
+¿Confirmamos primero con Marianela cómo envió el mensaje antes de modificar código?
