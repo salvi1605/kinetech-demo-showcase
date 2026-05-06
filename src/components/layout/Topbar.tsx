@@ -18,6 +18,7 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isDevToolsEnabled } from '@/lib/devTools';
+import { clearSelectedRole } from '@/lib/selectedRoleStorage';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
@@ -211,7 +212,7 @@ export const Topbar = () => {
 
         {/* Change Clinic Button */}
         {state.isAuthenticated && (
-          <Button variant="ghost" size="sm" onClick={() => navigate('/select-clinic')}>
+          <Button variant="ghost" size="sm" onClick={() => { clearSelectedRole(); navigate('/select-clinic'); }}>
             Cambiar Clínica
           </Button>
         )}
@@ -306,7 +307,7 @@ export const Topbar = () => {
                   variant="outline" 
                   size="sm" 
                   className="w-full justify-start"
-                  onClick={() => navigate('/select-clinic')}
+                  onClick={() => { clearSelectedRole(); navigate('/select-clinic'); }}
                 >
                   <Building className="h-4 w-4 mr-2" />
                   Cambiar Clínica
