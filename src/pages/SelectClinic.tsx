@@ -8,6 +8,7 @@ import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
+import { setSelectedRole } from '@/lib/selectedRoleStorage';
 
 type ClinicWithRole = {
   id: string;
