@@ -965,6 +965,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        // ── Restore previously chosen role from sessionStorage ──
+        // Critical for users with multi-role in same clinic: prevents token
+        // refresh from re-routing them to /select-clinic or picking the wrong role.
+        const stored = getSelectedRole();
+        if (stored) {
+          const matches = clinicsResult.clinics.some(
+            (c: any) => c.clinic_id === stored.clinicId && c.role_id === stored.roleId
+          );
+          if (matches) {
+            const result = await getUserRoleFromDB(userId, stored.clinicId, stored.roleId);
+            if (result) {
+              dispatch({ type: 'LOGIN', payload: result.user });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: result.clinicId, name: result.clinicName },
+              });
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+              return;
+            }
+          } else {
+            // Stored choice no longer valid → drop it
+            clearSelectedRole();
+          }
+        }
+
         if (clinicsResult.clinics.length === 1) {
           const clinic = clinicsResult.clinics[0];
           
