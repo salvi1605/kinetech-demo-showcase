@@ -18,6 +18,7 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isDevToolsEnabled } from '@/lib/devTools';
+import { clearSelectedRole } from '@/lib/selectedRoleStorage';
 
 export const Topbar = () => {
   const { state, dispatch } = useApp();
