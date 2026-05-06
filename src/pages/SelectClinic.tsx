@@ -194,6 +194,7 @@ export const SelectClinic = () => {
       appRole = 'health_pro';
     }
 
+    setSelectedRole({ clinicId, roleId });
     dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: clinicId, name: clinicName } });
     dispatch({ type: 'SET_USER_ROLE', payload: appRole });
     
