@@ -4,6 +4,7 @@ import type { TreatmentType } from '@/types/appointments';
 import type { EvolutionEntry } from '@/types/patient';
 import { supabase } from '@/integrations/supabase/client';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
+import { getSelectedRole, clearSelectedRole } from '@/lib/selectedRoleStorage';
 
 // Types
 export type UserRole = 'admin_clinic' | 'receptionist' | 'health_pro' | 'tenant_owner' | 'super_admin';
