@@ -212,7 +212,7 @@ export const Topbar = () => {
 
         {/* Change Clinic Button */}
         {state.isAuthenticated && (
-          <Button variant="ghost" size="sm" onClick={() => navigate('/select-clinic')}>
+          <Button variant="ghost" size="sm" onClick={() => { clearSelectedRole(); navigate('/select-clinic'); }}>
             Cambiar Clínica
           </Button>
         )}
