@@ -423,6 +423,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     
     case 'LOGOUT':
+      clearSelectedRole();
       return {
         ...state,
         isAuthenticated: false,
