@@ -1,56 +1,50 @@
+## Problema 1: Horario copiado distinto al de la cita
 
-## Problema
+**Estado: ✅ YA SOLUCIONADO** (no hay nada que hacer ahora).
 
-La función `validate_and_create_appointment` (que se ejecuta al **crear** turnos nuevos) **no valida los bloqueos de profesional** (`schedule_exceptions` de tipo `practitioner_block`). Como resultado, las recepcionistas pueden agendar pacientes en días/horarios que el profesional marcó como bloqueados.
+**Qué pasaba:** Cuando se copiaba un turno desde el sistema para mandarlo por WhatsApp, a veces aparecía la hora con segundos (ej. `09:30:00`) o se leía mal. En el caso real de Marianela / Rodríguez Laila, el mensaje copiado no coincidía con la hora real de la cita, generando confusión con la paciente.
 
-La función `validate_and_update_appointment` (al editar/mover) sí valida esto correctamente, lo que confirma que el comportamiento esperado es bloquear.
+**Por qué pasaba:** La base de datos guarda la hora como `09:30:00`. En algunos lugares del código se interpolaba ese valor crudo en el texto a copiar, sin recortar los segundos ni normalizar el formato.
 
-**Caso concreto:** Vicky bloqueó el 14/05/2026 el 09/03/2026. Entre el 08/04 y el 30/04 se agendaron 6 citas en ese día sin que el sistema avisara.
+**Qué se hizo:**
+- Se centralizó el formato en `src/utils/copyFormat.ts` con una función `normalizeTime` que **siempre** convierte cualquier hora a `HH:mm` (24h, sin segundos), sin importar cómo venga.
+- Se dejó como **regla del proyecto** (memoria `clipboard-time-format-rule`) que ningún texto destinado al paciente puede usar la hora cruda de la base — siempre tiene que pasar por `formatCopyLine` o normalizarse con `.slice(0,5)`.
+- Todos los lugares donde se copia un resumen de turno fueron auditados y migrados a esta helper.
 
-## Cambios a realizar
+**Por qué ya no vuelve a pasar:** Aunque la base devuelva la hora con segundos o en otro formato, la función la fuerza siempre a `HH:mm`. La hora copiada **es exactamente la misma** que la guardada en la cita.
 
-### 1. Backend (migración SQL) — fuente de verdad
+---
 
-Actualizar la función `validate_and_create_appointment` para que, antes de crear, consulte `schedule_exceptions` y rechace si el profesional tiene un `practitioner_block` que cubre la fecha/hora pedida. Misma lógica que ya tiene `validate_and_update_appointment`:
+## Problema 2: Badge "N" (primera cita) desaparece si el paciente faltó o reagendó
 
-- Si existe un `practitioner_block` con `from_time` y `to_time` NULL → bloqueo de día completo → rechazar.
-- Si tiene rango horario → rechazar solo si la hora pedida cae dentro del rango.
-- Devolver `error_code: 'BLOCKED'` con mensaje claro: "Profesional no disponible: [razón o 'BLOQUEO']".
+**Estado: ❌ NO solucionado todavía. Plan abajo.**
 
-Aplicar la misma validación al inicio del flujo en `validate_and_create_appointments_batch` (citas masivas) ya que delega en `validate_and_create_appointment`, queda cubierto automáticamente.
+**Qué pasa hoy:** El badge "N" (paciente nuevo / primera vez) se muestra en la cita cuya fecha coincide con la fecha más temprana del paciente en el sistema. Hoy el cálculo (`useFirstVisitPatients`) excluye solo las citas **canceladas**, pero **sí cuenta** las citas marcadas como `no_show` (no asistió).
 
-### 2. Frontend — feedback visual al crear
+**Resultado:** Si la primera cita del paciente fue `no_show`, el sistema sigue considerando esa fecha pasada como "la primera visita" y la siguiente cita real (la que sí va a atender) **no** muestra el badge N. El kinesiólogo entonces no sabe que es la primera vez que ve a esa persona.
 
-En `NewAppointmentDialog.tsx`, `MassCreateAppointmentDialog.tsx` y `FreeAppointmentDialog.tsx`, usar el hook `useScheduleExceptions` (ya existe y expone `isBlocked(date, time, practitionerId)`):
+### Plan de acción
 
-- Al elegir profesional + fecha + hora, si `isBlocked()` devuelve `true`, mostrar mensaje rojo inline ("Profesional bloqueado este día/horario: [razón]") y deshabilitar el botón "Crear".
-- En el calendario principal (`Calendar.tsx`), pintar visualmente los slots bloqueados del profesional seleccionado en el filtro (ya hay patrón similar para slots ocupados — ver memoria `calendar-practitioner-filter-occupied-slots`).
+**Cambio principal — lógica del hook `useFirstVisitPatients`:**
 
-### 3. Manejar las 6 citas ya existentes del 14/05
+Redefinir "primera visita" como: la **primera cita que el paciente realmente va a atender o atendió**. Esto significa excluir del cálculo:
+- `cancelled` (ya se excluye)
+- `no_show` (NUEVO — agregar)
 
-Estas citas ya están agendadas en un día que Vicky bloqueó. **Necesito tu decisión** sobre qué hacer con ellas (te lo pregunto antes de tocar nada):
+Citas válidas para marcar como "primera": `scheduled` y `completed`.
 
-- Opción A: Cancelarlas todas y avisar a las pacientes.
-- Opción B: Dejarlas y que vos/Marianela coordinen manualmente con Vicky.
-- Opción C: Reasignarlas a otro profesional disponible.
+Así, si la cita del lunes fue `no_show`, la del jueves siguiente (status `scheduled`) pasa a ser la "primera visita" y muestra el badge N automáticamente. Si después esa también se marca no-show, el badge salta a la siguiente. Y así sucesivamente.
 
-Mi recomendación es **avisar a Marianela primero** para que coordine — el sistema no debería decidir esto solo.
+**Casos cubiertos con este cambio:**
+- Paciente nuevo, primera cita `scheduled` → badge N en esa cita ✅
+- Paciente faltó a la primera (`no_show`) y tiene otra agendada → badge N salta a la nueva ✅
+- Paciente reagendó: la cita vieja queda como `cancelled` o `no_show`, la nueva toma el badge ✅
+- Paciente que ya tuvo una cita `completed` → nunca más muestra badge N ✅
 
-### 4. Auditoría preventiva
+**Detalle técnico:** un solo cambio en `src/hooks/useFirstVisitPatients.ts`, línea 33: cambiar `.neq('status', 'cancelled')` por `.in('status', ['scheduled', 'completed'])`. El resto de la lógica (calcular el mínimo y filtrar a la semana visible) queda igual.
 
-Como mencionaste que esto no es la primera vez, después del fix voy a correr una consulta para listar **todas las citas activas que actualmente caen en un `practitioner_block`** en cualquier fecha futura. Te paso el listado para que puedan revisarlas con las clínicas.
-
-## Detalles técnicos
-
-- Migración SQL con `DROP FUNCTION` previo (regla `rpc-evolution-policy`) para `validate_and_create_appointment`.
-- No tocar `validate_and_update_appointment` (ya funciona bien).
-- No cambiar el shape del retorno JSON — solo agregar el caso `BLOCKED`.
-- Frontend: leer error_code === 'BLOCKED' y mostrar toast con el mensaje del backend.
-
-## Validación
-
-1. Crear excepción de prueba para un profesional en una fecha futura.
-2. Intentar agendar desde recepción → debe fallar con mensaje claro.
-3. Intentar carga masiva → debe fallar para esa fecha y permitir el resto.
-4. Intentar mover una cita a esa fecha → debe seguir fallando (regresión).
-5. Confirmar que el slot se ve bloqueado visualmente en el calendario.
+**Validación:**
+1. Marcar la primera cita de un paciente como `no_show` → la siguiente cita del mismo paciente debe mostrar el badge N en el calendario.
+2. Reagendar la primera cita de un paciente → la nueva cita debe mostrar el badge N.
+3. Paciente con una cita `completed` previa → ninguna cita futura muestra N (no es nuevo).
+4. Paciente realmente nuevo con una sola cita `scheduled` → muestra N (no debe romperse el caso normal).

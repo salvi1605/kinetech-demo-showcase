@@ -30,7 +30,7 @@ export const useFirstVisitPatients = (
         .select('patient_id, date')
         .eq('clinic_id', clinicId)
         .in('patient_id', patientIds)
-        .neq('status', 'cancelled')
+        .in('status', ['scheduled', 'completed'])
         .order('date', { ascending: true });
 
       if (cancelled || error || !data) return;
