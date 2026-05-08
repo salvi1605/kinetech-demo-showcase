@@ -203,6 +203,19 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient, onSuccess }: 
         normalizedForm.identificacion.secondName.trim(),
       ].filter(Boolean).join(' ');
 
+      // Convertir fecha a YYYY-MM-DD si viene en DD-MM-YYYY (formato del form)
+      const rawDob = normalizedForm.identificacion.dateOfBirth;
+      const dobForDb = rawDob
+        ? (() => {
+            // Ya en YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(rawDob)) return rawDob;
+            // DD-MM-YYYY → YYYY-MM-DD
+            const m = rawDob.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+            return rawDob;
+          })()
+        : null;
+
       const { error: updateError } = await supabase
         .from('patients')
         .update({
@@ -213,7 +226,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient, onSuccess }: 
           second_name: normalizedForm.identificacion.secondName.trim() || null,
           preferred_name: normalizedForm.identificacion.preferredName || null,
           document_id: normalizedForm.identificacion.documentId || null,
-          date_of_birth: normalizedForm.identificacion.dateOfBirth || null,
+          date_of_birth: dobForDb,
           phone: normalizedForm.identificacion.mobilePhone || null,
           email: normalizedForm.identificacion.email || null,
           emergency_contact_name: normalizedForm.emergencia.contactName || null,
@@ -251,7 +264,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient, onSuccess }: 
         title: "Error",
         description: isDuplicateDni
           ? "Ya existe un paciente con este DNI/documento en la clínica"
-          : "No se pudo actualizar el paciente",
+          : (error?.message ? `No se pudo actualizar el paciente: ${error.message}` : "No se pudo actualizar el paciente"),
         variant: "destructive",
       });
     } finally {
