@@ -264,7 +264,7 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient, onSuccess }: 
         title: "Error",
         description: isDuplicateDni
           ? "Ya existe un paciente con este DNI/documento en la clínica"
-          : "No se pudo actualizar el paciente",
+          : (error?.message ? `No se pudo actualizar el paciente: ${error.message}` : "No se pudo actualizar el paciente"),
         variant: "destructive",
       });
     } finally {
