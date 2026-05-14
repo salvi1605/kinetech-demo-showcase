@@ -3,6 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -11,6 +12,11 @@ export function Privacy() {
 
   return (
     <PublicLayout>
+      <SeoHead
+        title="Política de Privacidad — AgendixPro"
+        description="Política de privacidad y tratamiento de datos personales en AgendixPro, software de agenda y gestión clínica."
+        path="/privacy"
+      />
       <div className="container max-w-3xl py-12 md:py-16">
         <div className="mb-6">
           <Button asChild variant="ghost" size="sm">

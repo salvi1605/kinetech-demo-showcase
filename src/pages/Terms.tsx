@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -11,6 +12,11 @@ export function Terms() {
 
   return (
     <PublicLayout>
+      <SeoHead
+        title="Términos y Condiciones — AgendixPro"
+        description="Términos y condiciones de uso del software AgendixPro para clínicas y profesionales de la salud."
+        path="/terms"
+      />
       <div className="container max-w-3xl py-12 md:py-16">
         <div className="mb-6">
           <Button asChild variant="ghost" size="sm">
