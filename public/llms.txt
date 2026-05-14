@@ -1,0 +1,16 @@
+# AgendixPro
+
+> Software profesional de agenda y gestión de turnos para clínicas y profesionales de la salud. Permite organizar pacientes, profesionales, horarios e historia clínica en un solo lugar.
+
+## Pages
+
+- [Inicio](/home): Resumen del producto, beneficios y casos de uso para clínicas.
+- [Precios](/pricing): Planes y precios disponibles.
+- [Contacto](/contact): Formulario y canales para hablar con el equipo.
+- [Términos](/terms): Términos y condiciones de uso.
+- [Privacidad](/privacy): Política de privacidad y tratamiento de datos.
+- [Política de cancelación](/cancellation-policy): Condiciones de cancelación y reembolso.
+
+## Optional
+
+- [Acceso](/login): Inicio de sesión para usuarios registrados.
