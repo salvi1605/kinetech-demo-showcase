@@ -15,6 +15,7 @@ import {
   Target,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 import previewAgenda from "@/assets/preview-agenda.jpg";
@@ -29,6 +30,11 @@ export default function Home() {
 
   return (
     <PublicLayout>
+      <SeoHead
+        title="AgendixPro — Agenda y gestión para clínicas de salud"
+        description="Software profesional de agenda, turnos e historia clínica para clínicas y profesionales de la salud. Organizá pacientes, profesionales y horarios en un solo lugar."
+        path="/"
+      />
       {/* ── Hero ── */}
       <section className="container py-20 text-center md:py-28">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">

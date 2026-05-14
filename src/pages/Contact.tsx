@@ -8,6 +8,7 @@ import { Mail, MessageCircle, Clock, Send, ShieldCheck, Loader2 } from "lucide-r
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 const FORMSPREE_URL = "https://formspree.io/f/xeerorql";
@@ -52,6 +53,11 @@ export default function Contact() {
 
   return (
     <PublicLayout>
+      <SeoHead
+        title="Contacto — AgendixPro"
+        description="Hablá con el equipo de AgendixPro por WhatsApp, email o el formulario. Respondemos consultas sobre el software de agenda y gestión para clínicas."
+        path="/contact"
+      />
       <section className="container py-16 md:py-20 text-center">
         <h1 className="text-4xl font-bold tracking-tight md:text-5xl">{t.contact.heading}</h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">{t.contact.subtitle}</p>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref } from "@/utils/obfuscateContact";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -11,6 +12,11 @@ export default function CancellationPolicy() {
 
   return (
     <PublicLayout>
+      <SeoHead
+        title="Política de Cancelación — AgendixPro"
+        description="Condiciones de cancelación y reembolso de los planes de AgendixPro."
+        path="/cancellation-policy"
+      />
       <div className="container max-w-3xl py-12 md:py-16">
         <div className="mb-6">
           <Button asChild variant="ghost" size="sm">
