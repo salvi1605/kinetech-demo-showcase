@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles, Info } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { SeoHead } from "@/components/shared/SeoHead";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Pricing() {
@@ -10,6 +11,11 @@ export default function Pricing() {
 
   return (
     <PublicLayout>
+      <SeoHead
+        title="Precios — AgendixPro"
+        description="Planes y precios de AgendixPro: software de agenda y gestión para clínicas y profesionales de la salud."
+        path="/pricing"
+      />
       {/* Hero */}
       <section className="container py-16 text-center md:py-24">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
