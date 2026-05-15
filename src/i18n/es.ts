@@ -291,6 +291,9 @@ export const es = {
     s4body: "Tras la cancelación, los datos del cliente se conservarán durante un plazo de 30 días para facilitar la exportación o reactivación. Luego de ese período, los datos serán eliminados de forma permanente, salvo obligación legal que indique lo contrario.",
     s5title: "5. Contacto",
     s5body: "Para solicitar una cancelación o consultar sobre reembolsos, ",
+    s5emailButton: "escríbenos por correo",
+  },
+
   // ── 404 ──
   notFound: {
     title: "Página no encontrada",
