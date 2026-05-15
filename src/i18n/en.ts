@@ -295,4 +295,19 @@ export const en: Translations = {
     s5body: "To request a cancellation or inquire about refunds, ",
     s5emailButton: "send us an email",
   },
+
+  // ── 404 ──
+  notFound: {
+    title: "Page not found",
+    message: "The page you are looking for does not exist or has been moved.",
+    backHome: "Back to home",
+    linksTitle: "Looking for one of these sections?",
+    links: {
+      home: "Home",
+      pricing: "Pricing",
+      contact: "Contact",
+      terms: "Terms of Service",
+      privacy: "Privacy Policy",
+    },
+  },
 };
