@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Context
 import { AppProvider } from "@/contexts/AppContext";
@@ -61,7 +61,7 @@ const App = () => (
               <Routes>
                 {/* Public Routes - redirect to app if authenticated */}
                 <Route path="/" element={<PublicRouteGuard><Home /></PublicRouteGuard>} />
-                <Route path="/home" element={<PublicRouteGuard><Home /></PublicRouteGuard>} />
+                <Route path="/home" element={<Navigate to="/" replace />} />
                 <Route path="/pricing" element={<PublicRouteGuard><Pricing /></PublicRouteGuard>} />
                 <Route path="/cancellation-policy" element={<PublicRouteGuard><CancellationPolicy /></PublicRouteGuard>} />
                 <Route path="/contact" element={<PublicRouteGuard><Contact /></PublicRouteGuard>} />
