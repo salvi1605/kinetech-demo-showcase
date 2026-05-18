@@ -1,5 +1,5 @@
 /**
- * Genera public/sitemap.xml desde una única fuente de verdad.
+ * Genera public/sitemap.xml y public/robots.xml desde una única fuente de verdad.
  * Se ejecuta vía npm scripts `predev` y `prebuild`.
  *
  * REGLA: Solo URLs canónicas. No incluir aliases, redirects ni rutas privadas.
@@ -68,7 +68,38 @@ function generateSitemap(items: SitemapEntry[]): string {
   ].join("\n");
 }
 
-const outPath = resolve("public/sitemap.xml");
-mkdirSync(dirname(outPath), { recursive: true });
-writeFileSync(outPath, generateSitemap(entries));
+function generateRobotsTxt(): string {
+  return [
+    `# Robots.txt for AgendixPro (${BASE_URL})`,
+    `# Sitemap reference for all crawlers`,
+    `Sitemap: ${BASE_URL}/sitemap.xml`,
+    ``,
+    `# Googlebot — full access`,
+    `User-agent: Googlebot`,
+    `Allow: /`,
+    ``,
+    `# Bingbot — full access`,
+    `User-agent: Bingbot`,
+    `Allow: /`,
+    ``,
+    `# Social media crawlers — full access (for Open Graph / Twitter Cards)`,
+    `User-agent: Twitterbot`,
+    `Allow: /`,
+    ``,
+    `User-agent: facebookexternalhit`,
+    `Allow: /`,
+    ``,
+    `# Default — all other crawlers`,
+    `User-agent: *`,
+    `Allow: /`,
+    ``,
+  ].join("\n");
+}
+
+mkdirSync(resolve("public"), { recursive: true });
+
+writeFileSync(resolve("public/sitemap.xml"), generateSitemap(entries));
 console.log(`✓ sitemap.xml generado (${entries.length} URLs)`);
+
+writeFileSync(resolve("public/robots.txt"), generateRobotsTxt());
+console.log(`✓ robots.txt generado (${BASE_URL}/sitemap.xml)`);
