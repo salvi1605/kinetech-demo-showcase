@@ -1,16 +1,22 @@
+# Robots.txt for AgendixPro (https://agendixpro.app)
+# Sitemap reference for all crawlers
+Sitemap: https://agendixpro.app/sitemap.xml
+
+# Googlebot — full access
 User-agent: Googlebot
 Allow: /
 
+# Bingbot — full access
 User-agent: Bingbot
 Allow: /
 
+# Social media crawlers — full access (for Open Graph / Twitter Cards)
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
+# Default — all other crawlers
 User-agent: *
 Allow: /
-
-Sitemap: https://agendixpro.app/sitemap.xml
