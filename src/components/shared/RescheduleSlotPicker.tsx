@@ -64,7 +64,7 @@ export const RescheduleSlotPicker = ({
 
       const weekday = new Date(date + 'T12:00:00').getDay();
 
-      const [aptsRes, excRes, availRes] = await Promise.all([
+      const [aptsRes, excRes, availRes, extRes] = await Promise.all([
         supabase
           .from('appointments')
           .select('id, start_time, sub_slot, status, practitioner_id')
@@ -83,7 +83,15 @@ export const RescheduleSlotPicker = ({
           .eq('clinic_id', clinicId)
           .eq('practitioner_id', practitionerId)
           .eq('weekday', weekday),
+        supabase
+          .from('schedule_exceptions')
+          .select('from_time, to_time')
+          .eq('clinic_id', clinicId)
+          .eq('practitioner_id', practitionerId)
+          .eq('date', date)
+          .eq('type', 'extended_hours'),
       ]);
+
 
 
       if (cancelled) return;
