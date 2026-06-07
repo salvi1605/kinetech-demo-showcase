@@ -132,12 +132,31 @@ export const RescheduleSlotPicker = ({
         setNoAvailability(true);
       }
 
-      // Generate time slots from clinic settings
-      const workStart = formatTimeShort(settings.workday_start);
-      const workEnd = formatTimeShort(settings.workday_end);
+      // Generate time slots: extend grid to cover practitioner's real range
+      const clinicStart = formatTimeShort(settings.workday_start);
+      const clinicEnd = formatTimeShort(settings.workday_end);
       const slotMinutes = settings.min_slot_minutes;
       const maxSubSlots = settings.sub_slots_per_block;
-      const timeList = generateTimeSlots(workStart, workEnd, slotMinutes);
+
+      const practitionerRanges = [
+        ...(availRes.data || []),
+        ...((extRes.data || []).filter((e) => e.from_time && e.to_time)),
+      ].map((r) => ({
+        from: formatTimeShort(r.from_time as string),
+        to: formatTimeShort(r.to_time as string),
+      }));
+
+      const effectiveStart = practitionerRanges.reduce(
+        (acc, r) => (r.from < acc ? r.from : acc),
+        clinicStart
+      );
+      const effectiveEnd = practitionerRanges.reduce(
+        (acc, r) => (r.to > acc ? r.to : acc),
+        clinicEnd
+      );
+
+      const timeList = generateTimeSlots(effectiveStart, effectiveEnd, slotMinutes);
+
 
       // Build occupied map: time -> sub_slot -> appointmentId
       const occupiedMap = new Map<string, Map<number, string>>();
