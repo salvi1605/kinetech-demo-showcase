@@ -167,7 +167,7 @@ export const RescheduleSlotPicker = ({
       });
 
       // Build slot info
-      const slotInfos: SlotInfo[] = timeList.slice(0, -1).map((time) => {
+      const slotInfos: SlotInfo[] = timeList.filter((t) => t < effectiveEnd).map((time) => {
         const occupied = occupiedMap.get(time) || new Map<number, string>();
         const isBlockedTime = partialBlocks.some((b) => isTimeInBlock(time, b));
 
