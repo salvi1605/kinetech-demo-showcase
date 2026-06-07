@@ -276,12 +276,20 @@ export const Calendar = () => {
     dbAppointments.forEach(a => { if (a.patientId) ids.add(a.patientId); });
     return Array.from(ids);
   }, [dbAppointments]);
+  // Refresh key: cambia cuando cambia el status de cualquier cita,
+  // para que el badge "N" recalcule al marcar no_show/cancelled.
+  const firstVisitRefreshKey = useMemo(
+    () => dbAppointments.map(a => `${a.id}:${a.status}`).join('|'),
+    [dbAppointments]
+  );
   const firstVisitPatients = useFirstVisitPatients(
     state.currentClinicId,
     weekPatientIds,
     format(weekDates[0], 'yyyy-MM-dd'),
-    format(weekDates[4], 'yyyy-MM-dd')
+    format(weekDates[4], 'yyyy-MM-dd'),
+    firstVisitRefreshKey
   );
+
 
   // Índice de TODAS las citas memoizado (para verificar ocupación por otros profesionales)
   const allAppointmentsBySlotKey = useMemo(() => {
