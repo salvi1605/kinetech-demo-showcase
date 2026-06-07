@@ -3,14 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook that detects first-visit patients for the visible week.
- * Returns a Map<patientId, firstDate> for patients whose earliest appointment falls within the week.
- * The badge should only show on the appointment matching that exact firstDate.
+ *
+ * Uses the RPC `get_first_visit_dates` (SECURITY DEFINER) so the calculation
+ * ignores RLS asymmetry between roles (health_pro only sees their own
+ * appointments, receptionist sees the whole clinic) and produces a stable
+ * "first visit" date that is identical across all clinic roles.
+ *
+ * The RPC excludes `no_show` and `cancelled` appointments, so when the first
+ * appointment is marked as no_show/cancelled the badge automatically moves to
+ * the next scheduled/completed appointment.
  */
 export const useFirstVisitPatients = (
   clinicId: string | undefined,
   patientIds: string[],
   weekStartISO: string,
-  weekEndISO: string
+  weekEndISO: string,
+  refreshKey: number | string = 0
 ): Map<string, string> => {
   const [firstVisitMap, setFirstVisitMap] = useState<Map<string, string>>(new Map());
 
@@ -25,31 +33,18 @@ export const useFirstVisitPatients = (
     let cancelled = false;
 
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('patient_id, date')
-        .eq('clinic_id', clinicId)
-        .in('patient_id', patientIds)
-        .in('status', ['scheduled', 'completed'])
-        .order('date', { ascending: true });
+      const { data, error } = await supabase.rpc('get_first_visit_dates', {
+        p_clinic_id: clinicId,
+        p_patient_ids: patientIds,
+      });
 
       if (cancelled || error || !data) return;
 
-      // Build map: patient_id -> min date
-      const minDateMap = new Map<string, string>();
-      for (const row of data) {
-        if (!row.patient_id) continue;
-        const existing = minDateMap.get(row.patient_id);
-        if (!existing || row.date < existing) {
-          minDateMap.set(row.patient_id, row.date);
-        }
-      }
-
-      // Keep only patients whose first date is within the visible week
       const result = new Map<string, string>();
-      for (const [pid, firstDate] of minDateMap) {
-        if (firstDate >= weekStartISO && firstDate <= weekEndISO) {
-          result.set(pid, firstDate);
+      for (const row of data as Array<{ patient_id: string; first_date: string }>) {
+        if (!row.patient_id || !row.first_date) continue;
+        if (row.first_date >= weekStartISO && row.first_date <= weekEndISO) {
+          result.set(row.patient_id, row.first_date);
         }
       }
 
@@ -58,7 +53,7 @@ export const useFirstVisitPatients = (
 
     fetchData();
     return () => { cancelled = true; };
-  }, [clinicId, patientKey, weekStartISO, weekEndISO]);
+  }, [clinicId, patientKey, weekStartISO, weekEndISO, refreshKey]);
 
   return firstVisitMap;
 };
