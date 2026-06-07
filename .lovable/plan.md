@@ -1,75 +1,40 @@
-
 ## Objetivo
 
-Que el badge **"N"** (paciente nuevo) se comporte de forma idéntica para `health_pro`, `receptionist`, `admin_clinic` y `tenant_owner`, y que cuando la primera cita pase a `no_show` o `cancelled` el badge **salte automáticamente al siguiente turno agendado/realizado** (porque el paciente "todavía no vino por primera vez").
+Corregir `RescheduleSlotPicker` para que muestre todos los slots dentro del horario real del profesional, no solo dentro de `workday_start`/`workday_end` de la clínica.
 
-## Causas raíz a corregir
+## Causa raíz (recordatorio)
 
-1. **Asimetría RLS**: `useFirstVisitPatients` calcula `MIN(date)` desde el cliente. Con RLS, `health_pro` ve solo sus citas, mientras `receptionist` ve todas las de la clínica → la "primera cita" da fechas distintas según el rol.
-2. **Filtro de status sin RPC**: Hoy se filtra `status IN ('scheduled','completed')` en el cliente, pero como el cálculo ya está sesgado por RLS, el resultado es inconsistente.
+Hoy la grilla se genera con `generateTimeSlots(workday_start, workday_end, slotMinutes)` y luego se aplica `.slice(0, -1)`. Si la clínica termina a 19:00 pero el profesional atiende hasta 19:30, los slots 19:00 y 19:30 nunca se renderizan.
 
-## Solución (Opción C — RPC `SECURITY DEFINER`)
+## Cambios (solo UI, sin tocar BD ni configuración de clínica)
 
-Mover el cálculo a una función Postgres `SECURITY DEFINER` que ignora RLS y devuelve, para cada paciente, la **fecha del próximo turno "primera visita pendiente"**: el `MIN(date, start_time)` entre los turnos con `status IN ('scheduled','completed')` de toda la clínica. Si el primero pasa a `no_show`/`cancelled`, el `MIN` recae automáticamente en el siguiente válido y el badge se mueve solo.
+### Archivo único: `src/components/shared/RescheduleSlotPicker.tsx`
 
-## Cambios técnicos
+1. Tras el `Promise.all`, además de `availRes` (disponibilidad regular del weekday), traer también las excepciones de tipo `extended_hours` para esa fecha y profesional (mismo patrón que `checkPractitionerAvailability.ts`).
 
-### 1) Nueva RPC `get_first_visit_dates`
+2. Calcular el rango efectivo de la grilla:
+   - `effectiveStart = min(clinic.workday_start, min(from_time) de availRes + extended_hours)`
+   - `effectiveEnd = max(clinic.workday_end, max(to_time) de availRes + extended_hours)`
+   - Si el profesional no tiene disponibilidad ese día ni extended_hours, usar los valores de la clínica (comportamiento actual).
+   - Normalizar a `HH:mm` con `formatTimeShort`.
 
-```text
-get_first_visit_dates(p_clinic_id uuid, p_patient_ids uuid[])
-  returns table(patient_id uuid, first_date date)
-  language sql
-  stable
-  security definer
-  set search_path = public
-```
+3. Generar la grilla con `generateTimeSlots(effectiveStart, effectiveEnd, slotMinutes)`.
 
-Lógica:
-- Para cada `patient_id` en `p_patient_ids`, retorna el `MIN(date)` de `appointments` donde:
-  - `clinic_id = p_clinic_id`
-  - `patient_id = ANY(p_patient_ids)`
-  - `status IN ('scheduled','completed')` (excluye `no_show` y `cancelled` → así el badge salta)
-- Guard de autorización dentro de la función: el caller debe ser `is_admin_clinic(p_clinic_id)`, `is_receptionist(p_clinic_id)` o `is_health_pro(p_clinic_id)`. Si no, devuelve set vacío.
-- `GRANT EXECUTE ... TO authenticated`.
+4. Reemplazar el `.slice(0, -1)` actual por un filtro que descarte slots cuya hora sea `>= effectiveEnd` (equivalente correcto cuando el rango ya no necesariamente termina en un múltiplo del slot original de la clínica). Esto evita renderizar el "borde superior" como slot iniciable.
 
-Esto elimina la asimetría RLS sin filtrar datos sensibles (solo devuelve `patient_id` + `date` para IDs que el caller ya conoce de su vista).
+5. Mantener intacto el resto de la lógica: bloqueos parciales (`partialBlocks`), `fullDayBlock`, mapa de ocupados, render de sub-slots (`Actual`/`Bloqueado`/`Ocupado`/`Libre`/`Nuevo`), y el aviso "Sin disponibilidad configurada para este día".
 
-### 2) Refactor `src/hooks/useFirstVisitPatients.ts`
+## Lo que NO se toca
 
-Reemplazar el `supabase.from('appointments').select(...)` por:
+- `clinic_settings.workday_start` / `workday_end` (no se modifica config global).
+- `useClinicSettings`, calendario principal, `NewAppointmentDialog`, validaciones de `checkPractitionerAvailability`.
+- Lógica de conflictos, RLS ni RPCs.
 
-```text
-supabase.rpc('get_first_visit_dates', {
-  p_clinic_id: clinicId,
-  p_patient_ids: patientIds,
-})
-```
+## Cómo verificar
 
-El resto del hook (recorte a la semana visible vía `weekStartISO`/`weekEndISO`) se mantiene igual.
+1. Profesional con `practitioner_availability.to_time = 19:30` un día puntual → al reprogramar una cita de ese día, la grilla muestra hasta 19:30 inclusive (último slot iniciable = 19:00; 19:30 no aparece porque sería inicio fuera del rango).
+2. Profesional que solo atiende 09:00–13:00 → la grilla muestra de 08:00 (clínica) a 19:00 (clínica), mismo comportamiento que hoy, porque sus horarios caen dentro del rango de la clínica.
+3. Profesional con `extended_hours` 19:00–20:30 ese día → la grilla se extiende hasta 20:30.
+4. Día sin disponibilidad y sin extended_hours → comportamiento idéntico al actual (grilla = horario clínica, aviso amarillo visible).
 
-### 3) Refresco reactivo
-
-Suscribirse (o invalidar) ante cambios de `appointments` para que cuando una cita pase a `no_show`/`cancelled`, el badge se recalcule sin recargar la página. Opciones:
-- Reutilizar el canal `postgres_changes` ya existente de la agenda y, en su callback, forzar un refetch del hook (bump de una dep o exponer `refetch`).
-- Alternativa mínima: agregar como dep un "tick" que cambia cuando el reducer aplica `UPDATE_APPOINTMENT_STATUS`.
-
-Implementaré la alternativa mínima para no tocar la suscripción global.
-
-## Por qué resuelve ambos casos
-
-- **Marianela (recepcionista)**: la RPC ignora RLS → ve el mismo `MIN(date)` que un `health_pro` con acceso completo. Badge consistente entre roles.
-- **Salto en no_show**: la RPC excluye `no_show`/`cancelled`, así que el `MIN` salta naturalmente al siguiente turno `scheduled`/`completed`. Cuando ese turno cae en la semana visible, el badge "N" aparece ahí.
-
-## Fuera de alcance
-
-- No se cambia el esquema (`patients` no recibe nueva columna).
-- No se toca la definición de "paciente nuevo" en reportes ni en otras vistas.
-- No se modifican RLS de `appointments`.
-
-## Validación post-implementación
-
-1. Crear paciente nuevo + 2 turnos futuros. Verifico badge en el primero (rol recep y rol health_pro).
-2. Marcar el primero como `no_show` → badge debe moverse al segundo en ambos roles.
-3. Cancelar el segundo → badge salta al tercero (si existe) o desaparece.
-4. Confirmar que un paciente con historial previo (turnos `completed` antiguos) no recibe badge.
+¿Confirmás que avance con este cambio?
