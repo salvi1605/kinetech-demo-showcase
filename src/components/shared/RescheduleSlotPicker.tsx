@@ -85,6 +85,7 @@ export const RescheduleSlotPicker = ({
           .eq('weekday', weekday),
       ]);
 
+
       if (cancelled) return;
 
       // Separate full-day blocks from partial blocks
