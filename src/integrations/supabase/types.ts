@@ -1220,6 +1220,13 @@ export type Database = {
         Args: { p_appointment_ids: string[] }
         Returns: Json
       }
+      get_first_visit_dates: {
+        Args: { p_clinic_id: string; p_patient_ids: string[] }
+        Returns: {
+          first_date: string
+          patient_id: string
+        }[]
+      }
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
