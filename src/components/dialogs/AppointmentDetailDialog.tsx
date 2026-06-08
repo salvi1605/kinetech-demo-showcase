@@ -405,9 +405,99 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     });
   };
 
+  // Permisos para enviar correo de información del turno
+  const effectiveIsSuperAdmin = state.userRole === 'super_admin' && !state.isImpersonatingRole;
+  const canSendEmail =
+    effectiveIsSuperAdmin ||
+    state.userRole === 'admin_clinic' ||
+    state.userRole === 'tenant_owner' ||
+    state.userRole === 'receptionist';
+  const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
+
+  const handleSendAppointmentInfoEmail = async () => {
+    if (!appointment) return;
+
+    const trimmedTest = testEmail.trim();
+    const recipient = trimmedTest || patient?.email?.trim() || '';
+
+    if (!recipient) {
+      toast({
+        title: 'Sin correo destinatario',
+        description: effectiveIsSuperAdmin
+          ? 'Ingresá un correo de prueba o asigná un email al paciente.'
+          : 'El paciente no tiene correo registrado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validación mínima de formato
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+      toast({
+        title: 'Correo inválido',
+        description: 'Revisá el formato del correo destinatario.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const formattedDate = format(appointmentDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es });
+      const startHHmm = (appointment.startTime || '').slice(0, 5);
+      const treatmentName = appointment.treatmentType
+        ? (treatmentLabel[appointment.treatmentType] || appointment.treatmentType)
+        : undefined;
+
+      const { data, error } = await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'appointment-info',
+          recipientEmail: recipient,
+          idempotencyKey: `appointment-info-${appointment.id}-${Date.now()}`,
+          templateData: {
+            patientName: patient ? formatPatientFullName(patient) : undefined,
+            appointmentDate: formattedDate,
+            appointmentTime: startHHmm,
+            practitionerName: practitioner?.name,
+            treatmentName,
+            clinicName: state.currentClinicName || 'AgendixPro',
+            notes: appointment.notes || undefined,
+          },
+        },
+      });
+
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      if ((data as any)?.success === false && (data as any)?.reason === 'email_suppressed') {
+        toast({
+          title: 'Correo bloqueado',
+          description: 'Esta dirección está en la lista de bajas y no recibe correos.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Correo encolado',
+        description: `Se envió la información del turno a ${recipient}.`,
+      });
+      setTestEmail('');
+    } catch (err: any) {
+      console.error('Error sending appointment info email:', err);
+      toast({
+        title: 'Error al enviar',
+        description: err?.message || 'No se pudo enviar el correo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
