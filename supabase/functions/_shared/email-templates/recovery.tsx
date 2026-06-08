@@ -24,19 +24,19 @@ export const RecoveryEmail = ({
 }: RecoveryEmailProps) => (
   <Html lang="es" dir="ltr">
     <Head />
-    <Preview>Restablecé tu contraseña en {siteName}</Preview>
+    <Preview>Restablece tu contraseña en {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Restablecer contraseña</Heading>
         <Text style={text}>
           Recibimos una solicitud para restablecer tu contraseña en {siteName}.
-          Hacé clic en el botón para elegir una nueva.
+          Haz clic en el botón para elegir una nueva.
         </Text>
         <Button style={button} href={confirmationUrl}>
           Restablecer contraseña
         </Button>
         <Text style={footer}>
-          Si no solicitaste el cambio, podés ignorar este correo. Tu contraseña
+          Si no solicitaste el cambio, puedes ignorar este correo. Tu contraseña
           no será modificada.
         </Text>
       </Container>

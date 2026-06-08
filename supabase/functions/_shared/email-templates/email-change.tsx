@@ -30,7 +30,7 @@ export const EmailChangeEmail = ({
 }: EmailChangeEmailProps) => (
   <Html lang="es" dir="ltr">
     <Head />
-    <Preview>Confirmá el cambio de correo en {siteName}</Preview>
+    <Preview>Confirma el cambio de correo en {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Confirmar cambio de correo</Heading>
@@ -45,12 +45,12 @@ export const EmailChangeEmail = ({
           </Link>
           .
         </Text>
-        <Text style={text}>Hacé clic abajo para confirmar el cambio:</Text>
+        <Text style={text}>Haz clic en el botón para confirmar el cambio:</Text>
         <Button style={button} href={confirmationUrl}>
           Confirmar cambio
         </Button>
         <Text style={footer}>
-          Si no solicitaste este cambio, asegurá tu cuenta de inmediato.
+          Si no solicitaste este cambio, asegura tu cuenta de inmediato.
         </Text>
       </Container>
     </Body>
