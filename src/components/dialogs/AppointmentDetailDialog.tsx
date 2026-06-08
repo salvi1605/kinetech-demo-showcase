@@ -818,6 +818,57 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               </div>
             )}
 
+            {/* Envío manual de información del turno por correo (MVP) */}
+            {canSendEmail && emailRemindersEnabled && (
+              <div className="space-y-3 pt-2">
+                <Label className="flex items-center gap-2 text-base font-medium">
+                  <Mail className="h-4 w-4" />
+                  Información del turno por correo
+                </Label>
+                <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                  {effectiveIsSuperAdmin && (
+                    <div className="space-y-1">
+                      <Label htmlFor="test-email" className="text-xs text-muted-foreground">
+                        Enviar a correo de prueba (solo super admin)
+                      </Label>
+                      <Input
+                        id="test-email"
+                        type="email"
+                        placeholder="tu-correo@ejemplo.com"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
+                        autoComplete="off"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Si dejás este campo vacío, se enviará al correo del paciente.
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-xs text-muted-foreground">
+                      Destinatario:{' '}
+                      <span className="font-medium text-foreground">
+                        {testEmail.trim() || patient?.email || '— sin correo —'}
+                      </span>
+                    </p>
+                    <Button
+                      onClick={handleSendAppointmentInfoEmail}
+                      disabled={
+                        isSendingEmail ||
+                        (!testEmail.trim() && !patient?.email)
+                      }
+                      className="flex items-center gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      {isSendingEmail ? 'Enviando…' : 'Enviar información del turno'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
+
             {/* Acciones */}
             <div className="flex flex-wrap gap-2 pt-4">
               {canEdit && (
