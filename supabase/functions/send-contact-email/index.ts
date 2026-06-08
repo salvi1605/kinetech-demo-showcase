@@ -69,6 +69,13 @@ Deno.serve(async (req) => {
     let emailSent = false;
 
     if (resendApiKey) {
+      const escapeHtml = (s: string) =>
+        s.replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#39;");
+
       try {
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -79,15 +86,16 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: "AgendixPro <onboarding@resend.dev>",
             to: ["agendixpro2026@gmail.com"],
-            subject: `[AgendixPro] Nuevo mensaje de contacto de ${sanitized.name}`,
+            subject: `[AgendixPro] Nuevo mensaje de contacto de ${escapeHtml(sanitized.name)}`,
             html: `
               <h2>Nuevo mensaje de contacto</h2>
-              <p><strong>Nombre:</strong> ${sanitized.name}</p>
-              <p><strong>Clínica:</strong> ${sanitized.clinic || "No especificada"}</p>
-              <p><strong>Email:</strong> ${sanitized.email}</p>
+              <p><strong>Nombre:</strong> ${escapeHtml(sanitized.name)}</p>
+              <p><strong>Clínica:</strong> ${sanitized.clinic ? escapeHtml(sanitized.clinic) : "No especificada"}</p>
+              <p><strong>Email:</strong> ${escapeHtml(sanitized.email)}</p>
               <hr />
               <p><strong>Mensaje:</strong></p>
-              <p>${sanitized.message.replace(/\n/g, "<br/>")}</p>
+              <p>${escapeHtml(sanitized.message).replace(/\n/g, "<br/>")}</p>
+
               <hr />
               <p style="color:#888;font-size:12px;">Enviado desde el formulario de contacto de AgendixPro</p>
             `,
