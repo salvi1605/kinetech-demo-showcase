@@ -139,6 +139,9 @@ serve(async (req) => {
     let result: any = {};
 
     if (action === 'update_profile') {
+      const denied = await assertCanManageTargetUser();
+      if (denied) return denied;
+
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({ full_name: fullName, email: email })
@@ -161,6 +164,14 @@ serve(async (req) => {
 
     // Legacy single-role update (kept for backward compat)
     if (action === 'update_role') {
+      if (roleId === 'super_admin' && !isSuperAdmin) {
+        return new Response(JSON.stringify({ error: 'Solo un super_admin puede asignar el rol super_admin' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const denied = assertCanManageClinic(clinicId);
+      if (denied) return denied;
+
       const { error: deleteError } = await supabaseAdmin
         .from('user_roles')
         .delete()
@@ -191,6 +202,13 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      if (roleIds.includes('super_admin') && !isSuperAdmin) {
+        return new Response(JSON.stringify({ error: 'Solo un super_admin puede asignar el rol super_admin' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const denied = assertCanManageClinic(clinicId);
+      if (denied) return denied;
 
       // Delete existing roles for this user in this clinic (except super_admin which is global)
       const { error: deleteError } = await supabaseAdmin
@@ -202,11 +220,11 @@ serve(async (req) => {
 
       if (deleteError) throw deleteError;
 
-      // Insert all selected roles
+      // Insert all selected roles (super_admin is global → clinic_id null)
       const inserts = roleIds.map((rid: string) => ({
         user_id: userId,
         role_id: rid,
-        clinic_id: clinicId,
+        clinic_id: rid === 'super_admin' ? null : clinicId,
         active: true,
       }));
 
@@ -220,6 +238,9 @@ serve(async (req) => {
     }
 
     if (action === 'toggle_active') {
+      const denied = await assertCanManageTargetUser();
+      if (denied) return denied;
+
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({ is_active: isActive })
@@ -231,6 +252,9 @@ serve(async (req) => {
     }
 
     if (action === 'reset_password') {
+      const denied = await assertCanManageTargetUser();
+      if (denied) return denied;
+
       const tempPassword = generateSecurePassword(16);
 
       const { data: targetUser } = await supabaseAdmin
@@ -253,6 +277,7 @@ serve(async (req) => {
       result.message = 'Contraseña restablecida';
       result.tempPassword = tempPassword;
     }
+
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
