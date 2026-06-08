@@ -24,6 +24,7 @@ import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
 import { format, subDays, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { EmailAuditPanel } from '@/components/super-admin/EmailAuditPanel';
 
 const ROOT_USER_ID = 'f6157dc0-677c-4fd7-8441-bc424c4e5056';
 
