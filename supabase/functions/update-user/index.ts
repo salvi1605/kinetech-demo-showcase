@@ -72,11 +72,17 @@ serve(async (req) => {
 
     const { data: adminRoles } = await supabaseAdmin
       .from('user_roles')
-      .select('role_id')
+      .select('role_id, clinic_id')
       .eq('user_id', currentUser.id)
       .eq('active', true);
 
-    const isAdmin = adminRoles?.some(r => ['admin_clinic', 'tenant_owner', 'super_admin'].includes(r.role_id));
+    const isSuperAdmin = adminRoles?.some(r => r.role_id === 'super_admin' && r.clinic_id === null) ?? false;
+    const adminClinicIds = new Set(
+      (adminRoles ?? [])
+        .filter(r => (r.role_id === 'admin_clinic' || r.role_id === 'tenant_owner') && r.clinic_id)
+        .map(r => r.clinic_id as string)
+    );
+    const isAdmin = isSuperAdmin || adminClinicIds.size > 0;
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
@@ -87,6 +93,40 @@ serve(async (req) => {
     const body = await req.json();
     const { action, userId, fullName, email, roleId, roleIds, clinicId, isActive } = body;
 
+    // Helper: caller must administer the clinic where the target user belongs (or be super_admin)
+    const assertCanManageTargetUser = async (): Promise<Response | null> => {
+      if (isSuperAdmin) return null;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId requerido' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: targetClinics } = await supabaseAdmin
+        .from('user_roles')
+        .select('clinic_id')
+        .eq('user_id', userId)
+        .eq('active', true);
+      const targetClinicIds = (targetClinics ?? []).map(r => r.clinic_id).filter(Boolean) as string[];
+      // Caller must administer at least one clinic that the target user belongs to
+      const overlap = targetClinicIds.some(cid => adminClinicIds.has(cid));
+      if (!overlap) {
+        return new Response(JSON.stringify({ error: 'No tienes permisos sobre este usuario' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return null;
+    };
+
+    const assertCanManageClinic = (targetClinicId: string | null | undefined): Response | null => {
+      if (isSuperAdmin) return null;
+      if (!targetClinicId || !adminClinicIds.has(targetClinicId)) {
+        return new Response(JSON.stringify({ error: 'No tienes permisos sobre la clínica destino' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return null;
+    };
+
     // Prevent admin from deactivating themselves
     if (action === 'toggle_active' && userId === currentUser.id && !isActive) {
       return new Response(JSON.stringify({ error: 'No puedes desactivarte a ti mismo' }), {
@@ -94,6 +134,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     let result: any = {};
 
