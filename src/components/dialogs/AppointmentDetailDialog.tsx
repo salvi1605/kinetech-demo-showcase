@@ -481,6 +481,22 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         title: 'Correo encolado',
         description: `Se envió la información del turno a ${recipient}.`,
       });
+
+      // Registro de auditoría (no bloquea el flujo si falla)
+      try {
+        const { error: auditError } = await supabase.rpc('log_appointment_email_sent', {
+          p_appointment_id: appointment.id,
+          p_recipient_email: recipient,
+          p_template_name: 'appointment-info',
+          p_was_test: !!trimmedTest,
+        });
+        if (auditError) {
+          console.warn('No se pudo registrar la auditoría del envío:', auditError);
+        }
+      } catch (auditErr) {
+        console.warn('Error registrando auditoría del envío:', auditErr);
+      }
+
       setTestEmail('');
     } catch (err: any) {
       console.error('Error sending appointment info email:', err);
