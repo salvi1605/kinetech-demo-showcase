@@ -1354,6 +1354,15 @@ export type Database = {
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
+      log_appointment_email_sent: {
+        Args: {
+          p_appointment_id: string
+          p_recipient_email: string
+          p_template_name: string
+          p_was_test?: boolean
+        }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
