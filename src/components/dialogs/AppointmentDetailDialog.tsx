@@ -23,7 +23,9 @@ import {
   History,
   Pencil,
   Check,
-  X
+  X,
+  Mail,
+  Send
 } from 'lucide-react';
 import { FreeAppointmentDialog } from './FreeAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
@@ -80,6 +82,8 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [tempTreatment, setTempTreatment] = useState('');
   const [isSavingTreatment, setIsSavingTreatment] = useState(false);
   const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
+  const [testEmail, setTestEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { settings: clinicSettings } = useClinicSettings();
 
   // Resolve current practitioner ID for health_pro permission check
