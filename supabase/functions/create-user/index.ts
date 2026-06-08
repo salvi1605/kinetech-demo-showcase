@@ -87,6 +87,32 @@ serve(async (req) => {
     // Obtener datos del request
     const { email, password, fullName, roleId, clinicId } = await req.json()
 
+    // Enforce clinic-scoped admin check for non-super_admin role assignments
+    if (roleId !== 'super_admin') {
+      if (!clinicId) {
+        return new Response(
+          JSON.stringify({ error: 'clinicId es obligatorio' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      const isAdminOfTargetClinic = isSuperAdmin || userRoles?.some(
+        ur => (ur.role_id === 'admin_clinic' || ur.role_id === 'tenant_owner')
+      ) && (await supabaseAdmin
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userRecord.id)
+        .eq('clinic_id', clinicId)
+        .in('role_id', ['admin_clinic', 'tenant_owner'])
+        .eq('active', true)
+        .maybeSingle()).data
+      if (!isSuperAdmin && !isAdminOfTargetClinic) {
+        return new Response(
+          JSON.stringify({ error: 'No tienes permisos sobre la clínica destino' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     // Validate password minimum length
     if (!password || password.length < 8) {
       return new Response(
@@ -94,6 +120,7 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
 
     let authUserId: string | null = null
     let userId: string
