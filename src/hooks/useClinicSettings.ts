@@ -12,6 +12,7 @@ export interface ClinicSettings {
   allow_professional_self_block: boolean;
   auto_mark_no_show: boolean;
   auto_mark_no_show_time: string;
+  email_reminders_enabled: boolean;
 }
 
 /**
@@ -60,12 +61,18 @@ export const useClinicSettings = () => {
               allow_professional_self_block: true,
               auto_mark_no_show: true,
               auto_mark_no_show_time: '00:00:00',
+              email_reminders_enabled: false,
             });
           } else {
             throw fetchError;
           }
         } else {
-          setSettings({ ...data, auto_mark_no_show: (data as any).auto_mark_no_show ?? true, sub_slots_per_block: (data as any).sub_slots_per_block ?? 5 });
+          setSettings({
+            ...data,
+            auto_mark_no_show: (data as any).auto_mark_no_show ?? true,
+            sub_slots_per_block: (data as any).sub_slots_per_block ?? 5,
+            email_reminders_enabled: (data as any).email_reminders_enabled ?? false,
+          });
         }
       } catch (err) {
         if (!isMounted) return;
@@ -82,6 +89,7 @@ export const useClinicSettings = () => {
           allow_professional_self_block: true,
           auto_mark_no_show: true,
           auto_mark_no_show_time: '00:00:00',
+          email_reminders_enabled: false,
         });
       } finally {
         if (isMounted) {
