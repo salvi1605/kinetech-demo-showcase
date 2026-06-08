@@ -28,6 +28,7 @@ const editClinicSchema = z.object({
   allow_professional_self_block: z.boolean(),
   auto_mark_no_show: z.boolean(),
   auto_mark_no_show_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
+  email_reminders_enabled: z.boolean(),
 });
 
 type EditClinicFormData = z.infer<typeof editClinicSchema>;
@@ -52,6 +53,7 @@ interface ClinicSettings {
   allow_professional_self_block: boolean | null;
   auto_mark_no_show: boolean | null;
   auto_mark_no_show_time: string | null;
+  email_reminders_enabled?: boolean | null;
 }
 
 interface EditClinicFormProps {
@@ -117,6 +119,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       allow_professional_self_block: settings?.allow_professional_self_block ?? true,
       auto_mark_no_show: settings?.auto_mark_no_show ?? true,
       auto_mark_no_show_time: formatTimeValue(settings?.auto_mark_no_show_time, '00:00'),
+      email_reminders_enabled: settings?.email_reminders_enabled ?? false,
     },
   });
 
@@ -156,6 +159,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
           allow_professional_self_block: data.allow_professional_self_block,
           auto_mark_no_show: data.auto_mark_no_show,
           auto_mark_no_show_time,
+          email_reminders_enabled: data.email_reminders_enabled,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'clinic_id'
@@ -487,6 +491,40 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                 )}
               />
             )}
+          </CardContent>
+        </Card>
+
+        {/* Recordatorios por correo (MVP manual) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recordatorios por correo</CardTitle>
+            <CardDescription>
+              Habilitá el envío manual de "Información del turno" a pacientes.
+              No activa ningún envío automático.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="email_reminders_enabled"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Envío manual de información de turnos</FormLabel>
+                    <FormDescription>
+                      Cuando está activo, el personal puede usar el botón
+                      "Enviar información del turno" desde el detalle de la cita.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 

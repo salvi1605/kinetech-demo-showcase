@@ -211,6 +211,7 @@ export type Database = {
           auto_mark_no_show_time: string
           clinic_id: string
           created_at: string | null
+          email_reminders_enabled: boolean
           id: string
           min_slot_minutes: number | null
           sub_slots_per_block: number
@@ -224,6 +225,7 @@ export type Database = {
           auto_mark_no_show_time?: string
           clinic_id: string
           created_at?: string | null
+          email_reminders_enabled?: boolean
           id?: string
           min_slot_minutes?: number | null
           sub_slots_per_block?: number
@@ -237,6 +239,7 @@ export type Database = {
           auto_mark_no_show_time?: string
           clinic_id?: string
           created_at?: string | null
+          email_reminders_enabled?: boolean
           id?: string
           min_slot_minutes?: number | null
           sub_slots_per_block?: number
