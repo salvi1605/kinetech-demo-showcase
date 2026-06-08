@@ -658,6 +658,7 @@ export default function SuperAdminDashboard() {
             <TabsList>
               <TabsTrigger value="super_admins">Super Admins</TabsTrigger>
               <TabsTrigger value="create_user">Crear Usuario</TabsTrigger>
+              <TabsTrigger value="email_audit">Auditoría de emails</TabsTrigger>
             </TabsList>
 
             {/* ── Super Admins Tab ── */}
