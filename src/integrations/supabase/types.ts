@@ -1342,6 +1342,30 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_appointment_email_audit: {
+        Args: {
+          p_clinic_id?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_recipient?: string
+        }
+        Returns: {
+          appointment_id: string
+          clinic_id: string
+          clinic_name: string
+          created_at: string
+          id: string
+          recipient_email: string
+          template_name: string
+          total_count: number
+          user_email: string
+          user_full_name: string
+          user_id: string
+          was_test: boolean
+        }[]
+      }
       get_first_visit_dates: {
         Args: { p_clinic_id: string; p_patient_ids: string[] }
         Returns: {
