@@ -95,23 +95,25 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      const isAdminOfTargetClinic = isSuperAdmin || userRoles?.some(
-        ur => (ur.role_id === 'admin_clinic' || ur.role_id === 'tenant_owner')
-      ) && (await supabaseAdmin
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', userRecord.id)
-        .eq('clinic_id', clinicId)
-        .in('role_id', ['admin_clinic', 'tenant_owner'])
-        .eq('active', true)
-        .maybeSingle()).data
-      if (!isSuperAdmin && !isAdminOfTargetClinic) {
-        return new Response(
-          JSON.stringify({ error: 'No tienes permisos sobre la clínica destino' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      if (!isSuperAdmin) {
+        const { data: clinicAdminRow } = await supabaseAdmin
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', userRecord.id)
+          .eq('clinic_id', clinicId)
+          .in('role_id', ['admin_clinic', 'tenant_owner'])
+          .eq('active', true)
+          .maybeSingle()
+
+        if (!clinicAdminRow) {
+          return new Response(
+            JSON.stringify({ error: 'No tienes permisos sobre la clínica destino' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
       }
     }
+
 
     // Validate password minimum length
     if (!password || password.length < 8) {
