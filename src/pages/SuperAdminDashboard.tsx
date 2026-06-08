@@ -24,6 +24,7 @@ import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
 import { format, subDays, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { EmailAuditPanel } from '@/components/super-admin/EmailAuditPanel';
 
 const ROOT_USER_ID = 'f6157dc0-677c-4fd7-8441-bc424c4e5056';
 
@@ -657,6 +658,7 @@ export default function SuperAdminDashboard() {
             <TabsList>
               <TabsTrigger value="super_admins">Super Admins</TabsTrigger>
               <TabsTrigger value="create_user">Crear Usuario</TabsTrigger>
+              <TabsTrigger value="email_audit">Auditoría de emails</TabsTrigger>
             </TabsList>
 
             {/* ── Super Admins Tab ── */}
@@ -770,6 +772,11 @@ export default function SuperAdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* ── Email Audit Tab ── */}
+            <TabsContent value="email_audit" className="space-y-4">
+              <EmailAuditPanel clinics={clinicOptions} />
             </TabsContent>
           </Tabs>
         </div>
