@@ -773,6 +773,11 @@ export default function SuperAdminDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* ── Email Audit Tab ── */}
+            <TabsContent value="email_audit" className="space-y-4">
+              <EmailAuditPanel clinics={clinicOptions} />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
