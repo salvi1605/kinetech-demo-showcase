@@ -27,22 +27,22 @@ export const InviteEmail = ({
 }: InviteEmailProps) => (
   <Html lang="es" dir="ltr">
     <Head />
-    <Preview>Te invitaron a {siteName}</Preview>
+    <Preview>Te han invitado a {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Te invitaron a colaborar</Heading>
+        <Heading style={h1}>Te han invitado a colaborar</Heading>
         <Text style={text}>
           Recibiste una invitación para unirte a{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          . Hacé clic abajo para aceptar la invitación y crear tu cuenta.
+          . Haz clic en el botón para aceptar la invitación y crear tu cuenta.
         </Text>
         <Button style={button} href={confirmationUrl}>
           Aceptar invitación
         </Button>
         <Text style={footer}>
-          Si no esperabas esta invitación, podés ignorar este correo.
+          Si no esperabas esta invitación, puedes ignorar este correo.
         </Text>
       </Container>
     </Body>

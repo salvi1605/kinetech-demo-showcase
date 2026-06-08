@@ -1,40 +1,43 @@
 ## Objetivo
 
-Corregir `RescheduleSlotPicker` para que muestre todos los slots dentro del horario real del profesional, no solo dentro de `workday_start`/`workday_end` de la clínica.
+Reemplazar el voseo rioplatense ("confirmá", "hacé", "solicitaste", "podés", "asegurá", "ingresá") por español neutro latinoamericano (tuteo estándar: "confirma", "haz clic", "puedes", etc.) en las 6 plantillas de correo de autenticación.
 
-## Causa raíz (recordatorio)
+## Alcance
 
-Hoy la grilla se genera con `generateTimeSlots(workday_start, workday_end, slotMinutes)` y luego se aplica `.slice(0, -1)`. Si la clínica termina a 19:00 pero el profesional atiende hasta 19:30, los slots 19:00 y 19:30 nunca se renderizan.
+Solo edición de texto visible en estos archivos. No se toca lógica, estilos, props ni el hook `auth-email-hook`.
 
-## Cambios (solo UI, sin tocar BD ni configuración de clínica)
+- `supabase/functions/_shared/email-templates/signup.tsx`
+- `supabase/functions/_shared/email-templates/recovery.tsx`
+- `supabase/functions/_shared/email-templates/magic-link.tsx`
+- `supabase/functions/_shared/email-templates/invite.tsx`
+- `supabase/functions/_shared/email-templates/email-change.tsx`
+- `supabase/functions/_shared/email-templates/reauthentication.tsx`
 
-### Archivo único: `src/components/shared/RescheduleSlotPicker.tsx`
+## Criterio de estilo
 
-1. Tras el `Promise.all`, además de `availRes` (disponibilidad regular del weekday), traer también las excepciones de tipo `extended_hours` para esa fecha y profesional (mismo patrón que `checkPractitionerAvailability.ts`).
+- Tuteo neutro estándar (evitar "vos", "tenés", terminaciones agudas tipo "confirmá/hacé/ingresá").
+- Vocabulario neutro: "correo electrónico" o "correo" (no "mail"), "haz clic" (no "hacé clic"), "puedes ignorar" (no "podés ignorar"), "solicitaste" se mantiene (es neutro), "asegura tu cuenta" (no "asegurá").
+- Mantener tono claro, breve, sin modismos regionales.
+- Mantener marca AgendixPro, color #3B82F6, fuente Inter, estructura y componentes React Email iguales.
 
-2. Calcular el rango efectivo de la grilla:
-   - `effectiveStart = min(clinic.workday_start, min(from_time) de availRes + extended_hours)`
-   - `effectiveEnd = max(clinic.workday_end, max(to_time) de availRes + extended_hours)`
-   - Si el profesional no tiene disponibilidad ese día ni extended_hours, usar los valores de la clínica (comportamiento actual).
-   - Normalizar a `HH:mm` con `formatTimeShort`.
+## Ejemplos de cambios
 
-3. Generar la grilla con `generateTimeSlots(effectiveStart, effectiveEnd, slotMinutes)`.
+- "Confirmá tu correo" → "Confirma tu correo"
+- "Hacé clic abajo para confirmar el cambio" → "Haz clic en el botón para confirmar el cambio"
+- "Podés ignorar este correo" → "Puedes ignorar este correo"
+- "Ingresá a {siteName}" / "Ingresar" → "Ingresa a {siteName}" / "Ingresar" (infinitivo del botón se mantiene)
+- "Asegurá tu cuenta de inmediato" → "Asegura tu cuenta de inmediato"
+- "Usá el siguiente código" → "Usa el siguiente código"
+- "Recibiste una invitación para unirte" → se mantiene (ya es neutro)
 
-4. Reemplazar el `.slice(0, -1)` actual por un filtro que descarte slots cuya hora sea `>= effectiveEnd` (equivalente correcto cuando el rango ya no necesariamente termina en un múltiplo del slot original de la clínica). Esto evita renderizar el "borde superior" como slot iniciable.
+## Implementación
 
-5. Mantener intacto el resto de la lógica: bloqueos parciales (`partialBlocks`), `fullDayBlock`, mapa de ocupados, render de sub-slots (`Actual`/`Bloqueado`/`Ocupado`/`Libre`/`Nuevo`), y el aviso "Sin disponibilidad configurada para este día".
+1. Reescribir los 6 archivos `.tsx` con copy en español neutro.
+2. Desplegar `auth-email-hook` para que tome las plantillas actualizadas (`supabase--deploy_edge_functions` con `["auth-email-hook"]`).
+3. Ofrecer botones de preview para verificar.
 
-## Lo que NO se toca
+## Fuera de alcance
 
-- `clinic_settings.workday_start` / `workday_end` (no se modifica config global).
-- `useClinicSettings`, calendario principal, `NewAppointmentDialog`, validaciones de `checkPractitionerAvailability`.
-- Lógica de conflictos, RLS ni RPCs.
-
-## Cómo verificar
-
-1. Profesional con `practitioner_availability.to_time = 19:30` un día puntual → al reprogramar una cita de ese día, la grilla muestra hasta 19:30 inclusive (último slot iniciable = 19:00; 19:30 no aparece porque sería inicio fuera del rango).
-2. Profesional que solo atiende 09:00–13:00 → la grilla muestra de 08:00 (clínica) a 19:00 (clínica), mismo comportamiento que hoy, porque sus horarios caen dentro del rango de la clínica.
-3. Profesional con `extended_hours` 19:00–20:30 ese día → la grilla se extiende hasta 20:30.
-4. Día sin disponibilidad y sin extended_hours → comportamiento idéntico al actual (grilla = horario clínica, aviso amarillo visible).
-
-¿Confirmás que avance con este cambio?
+- No se modifican estilos, estructura, ni el hook.
+- No se tocan otros módulos del proyecto.
+- No se cambia el remitente ni la configuración de dominio.

@@ -29,10 +29,10 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="es" dir="ltr">
     <Head />
-    <Preview>Confirmá tu correo en {siteName}</Preview>
+    <Preview>Confirma tu correo en {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirmá tu correo</Heading>
+        <Heading style={h1}>Confirma tu correo</Heading>
         <Text style={text}>
           Gracias por registrarte en{' '}
           <Link href={siteUrl} style={link}>
@@ -41,7 +41,7 @@ export const SignupEmail = ({
           .
         </Text>
         <Text style={text}>
-          Confirmá tu dirección de correo (
+          Confirma tu dirección de correo (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
@@ -51,7 +51,7 @@ export const SignupEmail = ({
           Confirmar correo
         </Button>
         <Text style={footer}>
-          Si no creaste una cuenta, podés ignorar este correo.
+          Si no creaste una cuenta, puedes ignorar este correo.
         </Text>
       </Container>
     </Body>
