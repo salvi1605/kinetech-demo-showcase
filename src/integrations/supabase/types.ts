@@ -1227,6 +1227,36 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          compact_view: boolean
+          created_at: string
+          dark_theme: boolean
+          email_notifications: boolean
+          push_notifications: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          compact_view?: boolean
+          created_at?: string
+          dark_theme?: boolean
+          email_notifications?: boolean
+          push_notifications?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          compact_view?: boolean
+          created_at?: string
+          dark_theme?: boolean
+          email_notifications?: boolean
+          push_notifications?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           active: boolean | null
