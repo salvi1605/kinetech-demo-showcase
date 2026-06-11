@@ -32,7 +32,8 @@ export const useFirstVisitPatients = (
 
     let cancelled = false;
 
-    const fetchData = async () => {
+    // Debounce para evitar disparar la RPC ante cambios menores y consecutivos
+    const timer = setTimeout(async () => {
       const { data, error } = await supabase.rpc('get_first_visit_dates', {
         p_clinic_id: clinicId,
         p_patient_ids: patientIds,
@@ -49,10 +50,9 @@ export const useFirstVisitPatients = (
       }
 
       setFirstVisitMap(result);
-    };
+    }, 250);
 
-    fetchData();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [clinicId, patientKey, weekStartISO, weekEndISO, refreshKey]);
 
   return firstVisitMap;

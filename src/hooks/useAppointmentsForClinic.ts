@@ -123,9 +123,17 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
     fetchAppointments(false);
   }, [fetchAppointments]);
 
-  // Suscribirse a cambios en tiempo real de appointments
+  // Suscribirse a cambios en tiempo real de appointments (con debounce para colapsar ráfagas)
   useEffect(() => {
     if (!state.currentClinicId) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchAppointments(true);
+      }, 300);
+    };
 
     const channel = supabase
       .channel('calendar-appointments-realtime')
@@ -137,15 +145,15 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
           table: 'appointments',
           filter: `clinic_id=eq.${state.currentClinicId}`
         },
-        (payload) => {
-          console.log('Realtime calendar update:', payload);
-          // Refetch silencioso: no mostrar skeleton
-          fetchAppointments(true);
+        () => {
+          // Refetch silencioso debounced: evita N recargas seguidas
+          scheduleRefetch();
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [state.currentClinicId, fetchAppointments]);

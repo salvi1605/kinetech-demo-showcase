@@ -254,12 +254,9 @@ export const Calendar = () => {
   // Fetch schedule exceptions and holidays for the visible week
   const { exceptionsMap, isBlocked: isSlotBlocked } = useScheduleExceptions(weekDates[0], weekDates[4]);
   
-  // Effect to refetch when appointments are updated
-  useEffect(() => {
-    const handleRefetch = () => refetch();
-    window.addEventListener('appointmentUpdated', handleRefetch);
-    return () => window.removeEventListener('appointmentUpdated', handleRefetch);
-  }, [refetch]);
+  // Nota: el refetch por evento 'appointmentUpdated' fue removido para evitar
+  // duplicar las recargas; la suscripción realtime de useAppointmentsForClinic
+  // ya cubre las actualizaciones (con debounce). Esto reduce queries pesadas.
   
   // Sincronizar citas de BD con AppContext (protegido contra dispatches redundantes)
   const prevAppointmentsRef = useRef(dbAppointments);
