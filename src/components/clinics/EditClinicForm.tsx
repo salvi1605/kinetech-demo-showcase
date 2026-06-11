@@ -514,18 +514,51 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                     <FormDescription>
                       Cuando está activo, el personal puede usar el botón
                       "Enviar información del turno" desde el detalle de la cita.
+                      Los cambios se guardan automáticamente.
                     </FormDescription>
                   </div>
                   <FormControl>
                     <Switch
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      disabled={isSaving}
+                      onCheckedChange={async (checked) => {
+                        // Optimistic UI
+                        field.onChange(checked);
+                        setIsSaving(true);
+                        try {
+                          const { error } = await supabase
+                            .from('clinic_settings')
+                            .upsert(
+                              {
+                                clinic_id: clinic.id,
+                                email_reminders_enabled: checked,
+                                updated_at: new Date().toISOString(),
+                              },
+                              { onConflict: 'clinic_id' }
+                            );
+                          if (error) throw error;
+                          toast.success(
+                            checked
+                              ? 'Recordatorios por correo activados'
+                              : 'Recordatorios por correo desactivados'
+                          );
+                          onSuccess();
+                        } catch (err: any) {
+                          console.error('Error toggling email reminders:', err);
+                          // Revertir UI si falla
+                          field.onChange(!checked);
+                          toast.error(err.message || 'No se pudo actualizar el ajuste');
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
           </CardContent>
+
         </Card>
 
         <div className="flex justify-end">
