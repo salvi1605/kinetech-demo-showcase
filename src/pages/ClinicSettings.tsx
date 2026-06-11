@@ -50,7 +50,7 @@ export default function ClinicSettings() {
       navigate('/login');
       return;
     }
-    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner') {
+    if (state.userRole !== 'admin_clinic' && state.userRole !== 'tenant_owner' && state.userRole !== 'super_admin') {
       toast.error('No tienes permisos para acceder a esta sección');
       navigate('/calendar');
       return;
@@ -86,25 +86,37 @@ export default function ClinicSettings() {
 
       if (!userData) throw new Error('User record not found');
 
-      // Get clinics where user has admin_clinic role
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('clinic_id, clinics(id, name, country_code, timezone, default_locale, default_currency, is_active)')
-        .eq('user_id', userData.id)
-        .in('role_id', ['admin_clinic', 'tenant_owner'])
-        .eq('active', true);
+      let clinicsData: Clinic[] = [];
 
-      if (userRoles && userRoles.length > 0) {
-        const clinicsData = userRoles
-          .map(ur => ur.clinics as unknown as Clinic)
-          .filter(c => c && c.is_active);
+      if (state.userRole === 'super_admin') {
+        // super_admin tiene acceso a todas las clínicas activas
+        const { data: allClinics } = await supabase
+          .from('clinics')
+          .select('id, name, country_code, timezone, default_locale, default_currency, is_active')
+          .eq('is_active', true)
+          .order('name');
+        clinicsData = (allClinics as unknown as Clinic[]) || [];
+      } else {
+        // Get clinics where user has admin_clinic / tenant_owner role
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('clinic_id, clinics(id, name, country_code, timezone, default_locale, default_currency, is_active)')
+          .eq('user_id', userData.id)
+          .in('role_id', ['admin_clinic', 'tenant_owner'])
+          .eq('active', true);
 
-        setClinics(clinicsData);
-
-        // Set first clinic as selected if none selected
-        if (!selectedClinicId && clinicsData.length > 0) {
-          setSelectedClinicId(clinicsData[0].id);
+        if (userRoles && userRoles.length > 0) {
+          clinicsData = userRoles
+            .map(ur => ur.clinics as unknown as Clinic)
+            .filter(c => c && c.is_active);
         }
+      }
+
+      setClinics(clinicsData);
+
+      // Set first clinic as selected if none selected
+      if (!selectedClinicId && clinicsData.length > 0) {
+        setSelectedClinicId(clinicsData[0].id);
       }
     } catch (error) {
       console.error('Error loading clinics:', error);
