@@ -15,6 +15,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { seedDemoData, clearDemoData, getDemoClinicId } from '@/lib/demoDataService';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { UserManagementCard } from '@/components/settings/UserManagementCard';
 import {
   AlertDialog,
@@ -43,6 +44,8 @@ export const Settings = () => {
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
   const [isClearingDemo, setIsClearingDemo] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const { prefs, loading: prefsLoading, saving: prefsSaving, updatePref } = useUserPreferences();
+  
   
   // Estadísticas desde BD
   const [stats, setStats] = useState({ patients: 0, practitioners: 0, appointments: 0 });
@@ -220,7 +223,11 @@ export const Settings = () => {
                 <Label>Notificaciones por email</Label>
                 <p className="text-sm text-muted-foreground">Recibe notificaciones de citas</p>
               </div>
-              <Switch />
+              <Switch
+                checked={prefs.email_notifications}
+                disabled={prefsLoading || prefsSaving}
+                onCheckedChange={(v) => updatePref('email_notifications', v)}
+              />
             </div>
             <Separator />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -228,7 +235,11 @@ export const Settings = () => {
                 <Label>Notificaciones push</Label>
                 <p className="text-sm text-muted-foreground">Alertas en tiempo real</p>
               </div>
-              <Switch />
+              <Switch
+                checked={prefs.push_notifications}
+                disabled={prefsLoading || prefsSaving}
+                onCheckedChange={(v) => updatePref('push_notifications', v)}
+              />
             </div>
             <Separator />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -236,7 +247,11 @@ export const Settings = () => {
                 <Label>Tema oscuro</Label>
                 <p className="text-sm text-muted-foreground">Cambiar a modo oscuro</p>
               </div>
-              <Switch />
+              <Switch
+                checked={prefs.dark_theme}
+                disabled={prefsLoading || prefsSaving}
+                onCheckedChange={(v) => updatePref('dark_theme', v)}
+              />
             </div>
             <Separator />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -244,7 +259,11 @@ export const Settings = () => {
                 <Label>Vista compacta</Label>
                 <p className="text-sm text-muted-foreground">Usar interfaz más compacta</p>
               </div>
-              <Switch />
+              <Switch
+                checked={prefs.compact_view}
+                disabled={prefsLoading || prefsSaving}
+                onCheckedChange={(v) => updatePref('compact_view', v)}
+              />
             </div>
             <Separator />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
