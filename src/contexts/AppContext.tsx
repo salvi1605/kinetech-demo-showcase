@@ -940,8 +940,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        // Super admin always goes to SuperAdmin dashboard first (no auto-select)
+        // Super admin: try to restore previously selected clinic before falling back to SuperAdmin dashboard
         if (clinicsResult.isSuperAdmin) {
+          const storedSA = getSelectedRole();
+
+          if (storedSA?.clinicId) {
+            const { data: clinicRow } = await supabase
+              .from('clinics')
+              .select('id, name, is_active')
+              .eq('id', storedSA.clinicId)
+              .maybeSingle();
+
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id, full_name, email')
+              .eq('auth_user_id', userId)
+              .single();
+
+            if (clinicRow && clinicRow.is_active && userData) {
+              dispatch({
+                type: 'LOGIN',
+                payload: {
+                  id: userData.id,
+                  name: userData.full_name,
+                  email: userData.email,
+                  role: (storedSA.roleId as any) || 'super_admin',
+                  clinicId: clinicRow.id,
+                },
+              });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: clinicRow.id, name: clinicRow.name },
+              });
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+              return;
+            }
+
+            // Stored clinic no longer valid → clear and fall through to dashboard
+            clearSelectedRole();
+          }
+
           const { data: userData } = await supabase
             .from('users')
             .select('id, full_name, email')
@@ -964,6 +1002,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
           return;
         }
+
 
         // ── Restore previously chosen role from sessionStorage ──
         // Critical for users with multi-role in same clinic: prevents token
