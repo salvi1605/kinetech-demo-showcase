@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { setSelectedRole } from '@/lib/selectedRoleStorage';
 import { CreateClinicDialog } from '@/components/clinics/CreateClinicDialog';
 import { format, subDays, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -246,9 +247,14 @@ export default function SuperAdminDashboard() {
   };
 
   const handleSelectClinic = (clinicId: string, clinicName: string) => {
+    // Persistir la selección antes de navegar para que el bootstrap del AppContext
+    // restaure la clínica tras un refresh y AuthRouteGuard no redirija a /super-admin.
+    setSelectedRole({ clinicId, roleId: 'super_admin' });
     dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: clinicId, name: clinicName } });
-    navigate('/', { replace: true });
     toast({ title: 'Clínica seleccionada', description: `Accediendo a ${clinicName}` });
+    // Navegar directamente al calendario para evitar el microestado en "/"
+    // que AuthRouteGuard interpreta como "super_admin sin clínica" y redirige a /super-admin.
+    navigate('/calendar', { replace: true });
   };
 
   const handleCreateDialogClose = (open: boolean) => {
