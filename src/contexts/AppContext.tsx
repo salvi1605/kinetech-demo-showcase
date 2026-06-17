@@ -873,13 +873,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           dispatch({ type: 'SET_IS_SUPER_ADMIN', payload: true });
         }
 
-        // Super admin with no clinic-specific roles → go to SelectClinic (sees all clinics)
+        // Super admin with no clinic-specific roles → restore previously selected clinic
+        // or fall back to SuperAdmin dashboard / SelectClinic
         if (clinicsResult.isSuperAdmin && clinicsResult.clinics.length === 0) {
           const { data: userData } = await supabase
             .from('users')
             .select('id, full_name, email')
             .eq('auth_user_id', userId)
             .single();
+
+          // Try to restore the clinic the super_admin previously selected
+          const storedSA0 = getSelectedRole();
+          if (storedSA0?.clinicId && userData) {
+            const { data: clinicRow } = await supabase
+              .from('clinics')
+              .select('id, name, is_active')
+              .eq('id', storedSA0.clinicId)
+              .maybeSingle();
+
+            if (clinicRow && clinicRow.is_active) {
+              dispatch({
+                type: 'LOGIN',
+                payload: {
+                  id: userData.id,
+                  name: userData.full_name,
+                  email: userData.email,
+                  role: (storedSA0.roleId as any) || 'super_admin',
+                  clinicId: clinicRow.id,
+                },
+              });
+              dispatch({
+                type: 'SET_CURRENT_CLINIC',
+                payload: { id: clinicRow.id, name: clinicRow.name },
+              });
+              dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+              return;
+            }
+
+            // Stored clinic invalid → clear and fall back to dashboard
+            clearSelectedRole();
+          }
 
           if (userData) {
             dispatch({
