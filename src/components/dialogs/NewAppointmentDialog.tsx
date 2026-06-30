@@ -395,10 +395,22 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
 
             {/* Búsqueda y selección de paciente */}
             <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Paciente
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Paciente
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={handleOpenNewPatientDialog}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Nuevo
+                </Button>
+              </div>
               
               <div className="space-y-2">
                  <Input
