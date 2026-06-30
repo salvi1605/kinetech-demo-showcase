@@ -24,6 +24,7 @@ import { usePractitionerTreatments } from '@/hooks/useTreatments';
 import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { useClinicSettings, generateTimeSlots as generateClinicTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 import { SubSlotPicker } from '@/components/shared/SubSlotPicker';
+import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
