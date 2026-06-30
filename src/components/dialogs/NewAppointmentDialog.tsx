@@ -126,64 +126,9 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       patient.phone.includes(patientSearch);
   });
 
-  // Crear paciente rápido - CONECTADO A BD
-  const handleQuickCreatePatient = async () => {
-    if (!quickPatientName.trim()) return;
-    
-    if (!state.currentClinicId) {
-      toast({
-        title: "Error",
-        description: "No hay clínica seleccionada",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Insertar en BD real
-      const { data: newPatientData, error: insertError } = await supabase
-        .from('patients')
-        .insert({
-          clinic_id: state.currentClinicId,
-          full_name: quickPatientName.trim(),
-          phone: '',
-          email: '',
-          is_deleted: false,
-        })
-        .select('id, full_name')
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Crear objeto para estado local
-      const newPatient = {
-        id: newPatientData.id,
-        name: newPatientData.full_name,
-        phone: '',
-        email: '',
-        birthDate: '',
-        conditions: [],
-      };
-
-      // Actualizar estado local
-      dispatch({ type: 'ADD_PATIENT', payload: newPatient });
-      form.setValue('patientId', newPatient.id);
-      setPatientSearch(quickPatientName);
-      setQuickPatientName('');
-      setShowQuickCreatePatient(false);
-
-      toast({
-        title: "Paciente creado",
-        description: `${formatPatientFullName(newPatient)} ha sido creado y seleccionado`,
-      });
-    } catch (error) {
-      console.error('Error creating quick patient:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el paciente",
-        variant: "destructive",
-      });
-    }
+  // Crear paciente: abrir el wizard completo (asegura DNI/DOB/seguro)
+  const handleOpenNewPatientDialog = () => {
+    setShowNewPatientDialog(true);
   };
 
   // Verificar campos requeridos
