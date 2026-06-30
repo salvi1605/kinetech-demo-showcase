@@ -578,5 +578,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
+
+    <NewPatientDialogV2
+      open={showNewPatientDialog}
+      onOpenChange={setShowNewPatientDialog}
+      onSuccess={(id, name) => {
+        if (id) {
+          form.setValue('patientId', id);
+          setPatientSearch(name || '');
+        }
+        setShowNewPatientDialog(false);
+        window.dispatchEvent(new Event('patientsUpdated'));
+      }}
+    />
+    </>
   );
 };
