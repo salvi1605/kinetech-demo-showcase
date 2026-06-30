@@ -287,6 +287,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
