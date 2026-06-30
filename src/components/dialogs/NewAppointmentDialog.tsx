@@ -24,6 +24,7 @@ import { usePractitionerTreatments } from '@/hooks/useTreatments';
 import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { useClinicSettings, generateTimeSlots as generateClinicTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
 import { SubSlotPicker } from '@/components/shared/SubSlotPicker';
+import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 
 const newAppointmentSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
@@ -51,8 +52,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [patientSearch, setPatientSearch] = useState('');
-  const [showQuickCreatePatient, setShowQuickCreatePatient] = useState(false);
-  const [quickPatientName, setQuickPatientName] = useState('');
+  const [showNewPatientDialog, setShowNewPatientDialog] = useState(false);
   const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -126,64 +126,9 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
       patient.phone.includes(patientSearch);
   });
 
-  // Crear paciente rápido - CONECTADO A BD
-  const handleQuickCreatePatient = async () => {
-    if (!quickPatientName.trim()) return;
-    
-    if (!state.currentClinicId) {
-      toast({
-        title: "Error",
-        description: "No hay clínica seleccionada",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Insertar en BD real
-      const { data: newPatientData, error: insertError } = await supabase
-        .from('patients')
-        .insert({
-          clinic_id: state.currentClinicId,
-          full_name: quickPatientName.trim(),
-          phone: '',
-          email: '',
-          is_deleted: false,
-        })
-        .select('id, full_name')
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Crear objeto para estado local
-      const newPatient = {
-        id: newPatientData.id,
-        name: newPatientData.full_name,
-        phone: '',
-        email: '',
-        birthDate: '',
-        conditions: [],
-      };
-
-      // Actualizar estado local
-      dispatch({ type: 'ADD_PATIENT', payload: newPatient });
-      form.setValue('patientId', newPatient.id);
-      setPatientSearch(quickPatientName);
-      setQuickPatientName('');
-      setShowQuickCreatePatient(false);
-
-      toast({
-        title: "Paciente creado",
-        description: `${formatPatientFullName(newPatient)} ha sido creado y seleccionado`,
-      });
-    } catch (error) {
-      console.error('Error creating quick patient:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el paciente",
-        variant: "destructive",
-      });
-    }
+  // Crear paciente: abrir el wizard completo (asegura DNI/DOB/seguro)
+  const handleOpenNewPatientDialog = () => {
+    setShowNewPatientDialog(true);
   };
 
   // Verificar campos requeridos
@@ -342,6 +287,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -450,10 +396,22 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
 
             {/* Búsqueda y selección de paciente */}
             <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Paciente
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Paciente
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={handleOpenNewPatientDialog}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Nuevo
+                </Button>
+              </div>
               
               <div className="space-y-2">
                  <Input
@@ -490,56 +448,17 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setQuickPatientName(patientSearch);
-                            setShowQuickCreatePatient(true);
-                          }}
+                          onClick={handleOpenNewPatientDialog}
                           className="text-xs"
                         >
                           <UserPlus className="h-3 w-3 mr-1" />
-                          Crear paciente rápido
+                          Crear paciente nuevo
                         </Button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Crear paciente rápido */}
-                {showQuickCreatePatient && (
-                  <div className="border rounded-lg p-3 bg-muted/30">
-                    <Label className="text-sm font-medium mb-2 block">
-                      Crear paciente rápido
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nombre completo"
-                        value={quickPatientName}
-                        onChange={(e) => setQuickPatientName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleQuickCreatePatient()}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleQuickCreatePatient}
-                        disabled={!quickPatientName.trim()}
-                      >
-                        Crear
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setShowQuickCreatePatient(false);
-                          setQuickPatientName('');
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Paciente seleccionado */}
                 {form.watch('patientId') && (
@@ -659,5 +578,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
+
+    <NewPatientDialogV2
+      open={showNewPatientDialog}
+      onOpenChange={setShowNewPatientDialog}
+      onSuccess={(id, name) => {
+        if (id) {
+          form.setValue('patientId', id);
+          setPatientSearch(name || '');
+        }
+        setShowNewPatientDialog(false);
+        window.dispatchEvent(new Event('patientsUpdated'));
+      }}
+    />
+    </>
   );
 };

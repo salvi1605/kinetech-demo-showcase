@@ -75,5 +75,12 @@ export const usePatients = (clinicId?: string) => {
     fetchPatients();
   }, [fetchPatients]);
 
+  // Refrescar cuando otros componentes notifiquen cambios en pacientes
+  useEffect(() => {
+    const onPatientsUpdated = () => fetchPatients();
+    window.addEventListener('patientsUpdated', onPatientsUpdated);
+    return () => window.removeEventListener('patientsUpdated', onPatientsUpdated);
+  }, [fetchPatients]);
+
   return { patients, loading, error, refetch: fetchPatients };
 };
