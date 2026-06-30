@@ -435,56 +435,17 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setQuickPatientName(patientSearch);
-                            setShowQuickCreatePatient(true);
-                          }}
+                          onClick={handleOpenNewPatientDialog}
                           className="text-xs"
                         >
                           <UserPlus className="h-3 w-3 mr-1" />
-                          Crear paciente rápido
+                          Crear paciente nuevo
                         </Button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Crear paciente rápido */}
-                {showQuickCreatePatient && (
-                  <div className="border rounded-lg p-3 bg-muted/30">
-                    <Label className="text-sm font-medium mb-2 block">
-                      Crear paciente rápido
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nombre completo"
-                        value={quickPatientName}
-                        onChange={(e) => setQuickPatientName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleQuickCreatePatient()}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleQuickCreatePatient}
-                        disabled={!quickPatientName.trim()}
-                      >
-                        Crear
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setShowQuickCreatePatient(false);
-                          setQuickPatientName('');
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Paciente seleccionado */}
                 {form.watch('patientId') && (
