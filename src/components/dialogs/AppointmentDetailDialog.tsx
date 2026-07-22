@@ -1027,6 +1027,17 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             scrollToDate={appointment?.date}
           />
         )}
+
+        {/* Diálogo Envío manual de información del turno */}
+        {appointment && (
+          <SendAppointmentInfoDialog
+            open={sendEmailOpen}
+            onOpenChange={setSendEmailOpen}
+            appointment={appointment}
+            patient={patient}
+            practitioner={practitioner}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
