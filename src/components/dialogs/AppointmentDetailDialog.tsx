@@ -47,6 +47,7 @@ import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 import { RescheduleSlotPicker } from '@/components/shared/RescheduleSlotPicker';
+import { SendAppointmentInfoDialog } from '@/components/dialogs/SendAppointmentInfoDialog';
 
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb, updateAppointmentRpc } from '@/lib/appointmentService';
@@ -82,8 +83,6 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [tempTreatment, setTempTreatment] = useState('');
   const [isSavingTreatment, setIsSavingTreatment] = useState(false);
   const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
-  const [testEmail, setTestEmail] = useState('');
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { settings: clinicSettings } = useClinicSettings();
 
   // Resolve current practitioner ID for health_pro permission check
@@ -413,102 +412,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     state.userRole === 'tenant_owner' ||
     state.userRole === 'receptionist';
   const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
-
-  const handleSendAppointmentInfoEmail = async () => {
-    if (!appointment) return;
-
-    const trimmedTest = testEmail.trim();
-    const recipient = trimmedTest || patient?.email?.trim() || '';
-
-    if (!recipient) {
-      toast({
-        title: 'Sin correo destinatario',
-        description: effectiveIsSuperAdmin
-          ? 'Ingresá un correo de prueba o asigná un email al paciente.'
-          : 'El paciente no tiene correo registrado.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validación mínima de formato
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-      toast({
-        title: 'Correo inválido',
-        description: 'Revisá el formato del correo destinatario.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsSendingEmail(true);
-    try {
-      const formattedDate = format(appointmentDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es });
-      const startHHmm = (appointment.startTime || '').slice(0, 5);
-      const treatmentName = appointment.treatmentType
-        ? (treatmentLabel[appointment.treatmentType] || appointment.treatmentType)
-        : undefined;
-
-      const { data, error } = await supabase.functions.invoke('send-transactional-email', {
-        body: {
-          templateName: 'appointment-info',
-          recipientEmail: recipient,
-          idempotencyKey: `appointment-info-${appointment.id}-${Date.now()}`,
-          templateData: {
-            patientName: patient ? formatPatientFullName(patient) : undefined,
-            appointmentDate: formattedDate,
-            appointmentTime: startHHmm,
-            practitionerName: practitioner?.name,
-            treatmentName,
-            clinicName: state.currentClinicName || 'AgendixPro',
-            notes: appointment.notes || undefined,
-          },
-        },
-      });
-
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      if ((data as any)?.success === false && (data as any)?.reason === 'email_suppressed') {
-        toast({
-          title: 'Correo bloqueado',
-          description: 'Esta dirección está en la lista de bajas y no recibe correos.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      toast({
-        title: 'Correo encolado',
-        description: `Se envió la información del turno a ${recipient}.`,
-      });
-
-      // Registro de auditoría (no bloquea el flujo si falla)
-      try {
-        const { error: auditError } = await supabase.rpc('log_appointment_email_sent', {
-          p_appointment_id: appointment.id,
-          p_recipient_email: recipient,
-          p_template_name: 'appointment-info',
-          p_was_test: !!trimmedTest,
-        });
-        if (auditError) {
-          console.warn('No se pudo registrar la auditoría del envío:', auditError);
-        }
-      } catch (auditErr) {
-        console.warn('Error registrando auditoría del envío:', auditErr);
-      }
-
-      setTestEmail('');
-    } catch (err: any) {
-      console.error('Error sending appointment info email:', err);
-      toast({
-        title: 'Error al enviar',
-        description: err?.message || 'No se pudo enviar el correo.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -841,44 +745,20 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <Mail className="h-4 w-4" />
                   Información del turno por correo
                 </Label>
-                <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                  {effectiveIsSuperAdmin && (
-                    <div className="space-y-1">
-                      <Label htmlFor="test-email" className="text-xs text-muted-foreground">
-                        Enviar a correo de prueba (solo super admin)
-                      </Label>
-                      <Input
-                        id="test-email"
-                        type="email"
-                        placeholder="tu-correo@ejemplo.com"
-                        value={testEmail}
-                        onChange={(e) => setTestEmail(e.target.value)}
-                        autoComplete="off"
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        Si dejás este campo vacío, se enviará al correo del paciente.
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <p className="text-xs text-muted-foreground">
-                      Destinatario:{' '}
-                      <span className="font-medium text-foreground">
-                        {testEmail.trim() || patient?.email || '— sin correo —'}
-                      </span>
-                    </p>
-                    <Button
-                      onClick={handleSendAppointmentInfoEmail}
-                      disabled={
-                        isSendingEmail ||
-                        (!testEmail.trim() && !patient?.email)
-                      }
-                      className="flex items-center gap-2"
-                    >
-                      <Send className="h-4 w-4" />
-                      {isSendingEmail ? 'Enviando…' : 'Enviar información del turno'}
-                    </Button>
-                  </div>
+                <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-xs text-muted-foreground">
+                    Destinatario predeterminado:{' '}
+                    <span className="font-medium text-foreground">
+                      {patient?.email || '— sin correo —'}
+                    </span>
+                  </p>
+                  <Button
+                    onClick={() => setSendEmailOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    Enviar información del turno
+                  </Button>
                 </div>
               </div>
             )}
@@ -1145,6 +1025,17 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             onOpenChange={setShowHistoryDialog}
             patient={patient}
             scrollToDate={appointment?.date}
+          />
+        )}
+
+        {/* Diálogo Envío manual de información del turno */}
+        {appointment && (
+          <SendAppointmentInfoDialog
+            open={sendEmailOpen}
+            onOpenChange={setSendEmailOpen}
+            appointment={appointment}
+            patient={patient}
+            practitionerName={practitioner?.name}
           />
         )}
       </DialogContent>

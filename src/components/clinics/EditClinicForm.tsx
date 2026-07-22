@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -21,6 +22,9 @@ const editClinicSchema = z.object({
   default_locale: z.string().min(1, 'Idioma requerido'),
   default_currency: z.string().min(1, 'Moneda requerida'),
   is_active: z.boolean(),
+  address: z.string().max(300).optional().or(z.literal('')),
+  contact_phone: z.string().max(50).optional().or(z.literal('')),
+  appointment_instructions: z.string().max(1000).optional().or(z.literal('')),
   min_slot_minutes: z.number().min(15).max(60),
   sub_slots_per_block: z.number().min(1, 'Mínimo 1').max(10, 'Máximo 10'),
   workday_start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
@@ -29,6 +33,8 @@ const editClinicSchema = z.object({
   auto_mark_no_show: z.boolean(),
   auto_mark_no_show_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
   email_reminders_enabled: z.boolean(),
+  email_subject_override: z.string().max(150).optional().or(z.literal('')),
+  email_custom_message: z.string().max(500).optional().or(z.literal('')),
 });
 
 type EditClinicFormData = z.infer<typeof editClinicSchema>;
@@ -41,6 +47,9 @@ interface Clinic {
   default_locale: string | null;
   default_currency: string | null;
   is_active: boolean | null;
+  address?: string | null;
+  contact_phone?: string | null;
+  appointment_instructions?: string | null;
 }
 
 interface ClinicSettings {
@@ -54,6 +63,8 @@ interface ClinicSettings {
   auto_mark_no_show: boolean | null;
   auto_mark_no_show_time: string | null;
   email_reminders_enabled?: boolean | null;
+  email_subject_override?: string | null;
+  email_custom_message?: string | null;
 }
 
 interface EditClinicFormProps {
@@ -112,6 +123,9 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       default_locale: clinic.default_locale || 'es',
       default_currency: clinic.default_currency || 'ARS',
       is_active: clinic.is_active ?? true,
+      address: clinic.address || '',
+      contact_phone: clinic.contact_phone || '',
+      appointment_instructions: clinic.appointment_instructions || '',
       min_slot_minutes: settings?.min_slot_minutes || 30,
       sub_slots_per_block: settings?.sub_slots_per_block ?? 5,
       workday_start: formatTimeValue(settings?.workday_start, '08:00'),
@@ -120,6 +134,8 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       auto_mark_no_show: settings?.auto_mark_no_show ?? true,
       auto_mark_no_show_time: formatTimeValue(settings?.auto_mark_no_show_time, '00:00'),
       email_reminders_enabled: settings?.email_reminders_enabled ?? false,
+      email_subject_override: settings?.email_subject_override || '',
+      email_custom_message: settings?.email_custom_message || '',
     },
   });
 
@@ -141,6 +157,9 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
           default_locale: data.default_locale,
           default_currency: data.default_currency,
           is_active: data.is_active,
+          address: data.address?.trim() || null,
+          contact_phone: data.contact_phone?.trim() || null,
+          appointment_instructions: data.appointment_instructions?.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', clinic.id);
@@ -160,6 +179,8 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
           auto_mark_no_show: data.auto_mark_no_show,
           auto_mark_no_show_time,
           email_reminders_enabled: data.email_reminders_enabled,
+          email_subject_override: data.email_subject_override?.trim() || null,
+          email_custom_message: data.email_custom_message?.trim() || null,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'clinic_id'
@@ -321,6 +342,64 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <Separator />
+
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium">Datos de contacto para pacientes</h4>
+              <p className="text-xs text-muted-foreground">
+                Aparecen en los correos manuales de "Información del turno".
+              </p>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dirección de la clínica</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Av. Siempre Viva 123, Piso 2" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono de contacto</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+54 11 1234-5678" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="appointment_instructions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Instrucciones para el turno (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      placeholder="Ej: Llegá 10 minutos antes con ropa cómoda."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Texto libre que se incluye en cada correo enviado a pacientes.
+                  </FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -554,6 +633,47 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                       }}
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <Separator />
+
+            <FormField
+              control={form.control}
+              name="email_subject_override"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Asunto personalizado (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Información de tu próximo turno" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Si se deja vacío, se usa el asunto por defecto.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email_custom_message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mensaje personalizado (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      placeholder="Ej: Recordá traer tu orden médica actualizada."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Párrafo corto que aparece antes de los datos del turno.
+                    La estructura visual del email la controla AgendixPro.
+                  </FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />

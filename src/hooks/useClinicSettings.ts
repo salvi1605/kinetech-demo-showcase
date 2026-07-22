@@ -13,6 +13,8 @@ export interface ClinicSettings {
   auto_mark_no_show: boolean;
   auto_mark_no_show_time: string;
   email_reminders_enabled: boolean;
+  email_subject_override: string | null;
+  email_custom_message: string | null;
 }
 
 /**
@@ -62,6 +64,8 @@ export const useClinicSettings = () => {
               auto_mark_no_show: true,
               auto_mark_no_show_time: '00:00:00',
               email_reminders_enabled: false,
+              email_subject_override: null,
+              email_custom_message: null,
             });
           } else {
             throw fetchError;
@@ -72,6 +76,8 @@ export const useClinicSettings = () => {
             auto_mark_no_show: (data as any).auto_mark_no_show ?? true,
             sub_slots_per_block: (data as any).sub_slots_per_block ?? 5,
             email_reminders_enabled: (data as any).email_reminders_enabled ?? false,
+            email_subject_override: (data as any).email_subject_override ?? null,
+            email_custom_message: (data as any).email_custom_message ?? null,
           });
         }
       } catch (err) {
@@ -90,6 +96,8 @@ export const useClinicSettings = () => {
           auto_mark_no_show: true,
           auto_mark_no_show_time: '00:00:00',
           email_reminders_enabled: false,
+          email_subject_override: null,
+          email_custom_message: null,
         });
       } finally {
         if (isMounted) {
