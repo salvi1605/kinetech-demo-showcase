@@ -211,7 +211,9 @@ export type Database = {
           auto_mark_no_show_time: string
           clinic_id: string
           created_at: string | null
+          email_custom_message: string | null
           email_reminders_enabled: boolean
+          email_subject_override: string | null
           id: string
           min_slot_minutes: number | null
           sub_slots_per_block: number
@@ -225,7 +227,9 @@ export type Database = {
           auto_mark_no_show_time?: string
           clinic_id: string
           created_at?: string | null
+          email_custom_message?: string | null
           email_reminders_enabled?: boolean
+          email_subject_override?: string | null
           id?: string
           min_slot_minutes?: number | null
           sub_slots_per_block?: number
@@ -239,7 +243,9 @@ export type Database = {
           auto_mark_no_show_time?: string
           clinic_id?: string
           created_at?: string | null
+          email_custom_message?: string | null
           email_reminders_enabled?: boolean
+          email_subject_override?: string | null
           id?: string
           min_slot_minutes?: number | null
           sub_slots_per_block?: number
@@ -304,6 +310,9 @@ export type Database = {
       }
       clinics: {
         Row: {
+          address: string | null
+          appointment_instructions: string | null
+          contact_phone: string | null
           country_code: string | null
           created_at: string | null
           default_currency: string | null
@@ -315,6 +324,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
+          appointment_instructions?: string | null
+          contact_phone?: string | null
           country_code?: string | null
           created_at?: string | null
           default_currency?: string | null
@@ -326,6 +338,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
+          appointment_instructions?: string | null
+          contact_phone?: string | null
           country_code?: string | null
           created_at?: string | null
           default_currency?: string | null
@@ -1402,6 +1417,14 @@ export type Database = {
         Returns: {
           first_date: string
           patient_id: string
+        }[]
+      }
+      get_last_appointment_email_send: {
+        Args: { p_appointment_id: string }
+        Returns: {
+          recipient_email: string
+          sent_at: string
+          user_full_name: string
         }[]
       }
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
