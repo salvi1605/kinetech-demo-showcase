@@ -636,6 +636,47 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                 </FormItem>
               )}
             />
+
+            <Separator />
+
+            <FormField
+              control={form.control}
+              name="email_subject_override"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Asunto personalizado (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Información de tu próximo turno" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Si se deja vacío, se usa el asunto por defecto.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email_custom_message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mensaje personalizado (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      placeholder="Ej: Recordá traer tu orden médica actualizada."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Párrafo corto que aparece antes de los datos del turno.
+                    La estructura visual del email la controla AgendixPro.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
 
         </Card>
