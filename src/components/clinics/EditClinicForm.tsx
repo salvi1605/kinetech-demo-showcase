@@ -47,6 +47,9 @@ interface Clinic {
   default_locale: string | null;
   default_currency: string | null;
   is_active: boolean | null;
+  address?: string | null;
+  contact_phone?: string | null;
+  appointment_instructions?: string | null;
 }
 
 interface ClinicSettings {
@@ -60,6 +63,8 @@ interface ClinicSettings {
   auto_mark_no_show: boolean | null;
   auto_mark_no_show_time: string | null;
   email_reminders_enabled?: boolean | null;
+  email_subject_override?: string | null;
+  email_custom_message?: string | null;
 }
 
 interface EditClinicFormProps {
