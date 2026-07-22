@@ -123,6 +123,9 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       default_locale: clinic.default_locale || 'es',
       default_currency: clinic.default_currency || 'ARS',
       is_active: clinic.is_active ?? true,
+      address: clinic.address || '',
+      contact_phone: clinic.contact_phone || '',
+      appointment_instructions: clinic.appointment_instructions || '',
       min_slot_minutes: settings?.min_slot_minutes || 30,
       sub_slots_per_block: settings?.sub_slots_per_block ?? 5,
       workday_start: formatTimeValue(settings?.workday_start, '08:00'),
@@ -131,6 +134,8 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
       auto_mark_no_show: settings?.auto_mark_no_show ?? true,
       auto_mark_no_show_time: formatTimeValue(settings?.auto_mark_no_show_time, '00:00'),
       email_reminders_enabled: settings?.email_reminders_enabled ?? false,
+      email_subject_override: settings?.email_subject_override || '',
+      email_custom_message: settings?.email_custom_message || '',
     },
   });
 
