@@ -13,6 +13,8 @@ import { useApp, Patient } from '@/contexts/AppContext';
 import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { parsePatientDbError } from '@/utils/patientDbErrors';
+
 import { usePatients } from '@/hooks/usePatients';
 import { 
   PatientForm, 

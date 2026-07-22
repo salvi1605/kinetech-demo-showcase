@@ -12,6 +12,8 @@ import { useApp } from '@/contexts/AppContext';
 import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { parsePatientDbError } from '@/utils/patientDbErrors';
+
 type ObraSocial = '' | 'osde' | 'luis_pasteur' | 'particular';
 type ReminderPref = '24h' | 'none';
 
