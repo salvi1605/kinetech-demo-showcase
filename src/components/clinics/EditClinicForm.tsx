@@ -345,6 +345,64 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                 </FormItem>
               )}
             />
+
+            <Separator />
+
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium">Datos de contacto para pacientes</h4>
+              <p className="text-xs text-muted-foreground">
+                Aparecen en los correos manuales de "Información del turno".
+              </p>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dirección de la clínica</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Av. Siempre Viva 123, Piso 2" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono de contacto</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+54 11 1234-5678" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="appointment_instructions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Instrucciones para el turno (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      placeholder="Ej: Llegá 10 minutos antes con ropa cómoda."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Texto libre que se incluye en cada correo enviado a pacientes.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
