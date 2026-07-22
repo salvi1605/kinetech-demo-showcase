@@ -383,21 +383,22 @@ export const EditPatientDialogV2 = ({ open, onOpenChange, patient, onSuccess }: 
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error updating patient:', error);
-      const isDuplicateDni = error?.message?.includes('idx_patients_unique_document_per_clinic') || error?.code === '23505';
-      if (isDuplicateDni) {
-        setErrors({ documentId: 'Ya existe un paciente con este DNI en la clínica' });
+      const parsed = parsePatientDbError(error);
+      if (parsed.field && parsed.fieldMessage) {
+        setErrors({ [parsed.field]: parsed.fieldMessage });
+      }
+      if (parsed.section === 'identificacion') {
         setSection('identificacion');
       }
       toast({
-        title: "Error",
-        description: isDuplicateDni
-          ? "Ya existe un paciente con este DNI/documento en la clínica"
-          : "No se pudo actualizar el paciente",
-        variant: "destructive",
+        title: parsed.toastTitle,
+        description: parsed.toastDescription,
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
     }
+
   };
 
   const renderStepContent = () => {
