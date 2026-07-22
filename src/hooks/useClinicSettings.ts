@@ -96,6 +96,8 @@ export const useClinicSettings = () => {
           auto_mark_no_show: true,
           auto_mark_no_show_time: '00:00:00',
           email_reminders_enabled: false,
+          email_subject_override: null,
+          email_custom_message: null,
         });
       } finally {
         if (isMounted) {
