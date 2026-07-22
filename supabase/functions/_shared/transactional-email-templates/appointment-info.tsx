@@ -22,6 +22,9 @@ interface AppointmentInfoProps {
   treatmentName?: string
   clinicName?: string
   clinicAddress?: string
+  clinicPhone?: string
+  appointmentInstructions?: string
+  customMessage?: string
   notes?: string
 }
 
@@ -33,6 +36,9 @@ const AppointmentInfoEmail = ({
   treatmentName,
   clinicName,
   clinicAddress,
+  clinicPhone,
+  appointmentInstructions,
+  customMessage,
   notes,
 }: AppointmentInfoProps) => {
   const greetingName = patientName?.trim() || 'Paciente'
@@ -52,6 +58,12 @@ const AppointmentInfoEmail = ({
             Te enviamos los datos de tu próximo turno en <strong>{clinic}</strong>:
           </Text>
 
+          {customMessage && (
+            <Section style={messageBox}>
+              <Text style={messageText}>{customMessage}</Text>
+            </Section>
+          )}
+
           <Section style={card}>
             {appointmentDate && (
               <Row label="Fecha" value={appointmentDate} />
@@ -68,11 +80,21 @@ const AppointmentInfoEmail = ({
             {clinicAddress && (
               <Row label="Dirección" value={clinicAddress} />
             )}
+            {clinicPhone && (
+              <Row label="Teléfono" value={clinicPhone} />
+            )}
           </Section>
+
+          {appointmentInstructions && (
+            <>
+              <Text style={label}>Instrucciones</Text>
+              <Text style={notesText}>{appointmentInstructions}</Text>
+            </>
+          )}
 
           {notes && (
             <>
-              <Text style={label}>Notas</Text>
+              <Text style={label}>Notas del turno</Text>
               <Text style={notesText}>{notes}</Text>
             </>
           )}
@@ -80,7 +102,7 @@ const AppointmentInfoEmail = ({
           <Hr style={hr} />
           <Text style={footer}>
             Si no reconocés este turno o necesitás reprogramarlo, comunicate con
-            la clínica.
+            la clínica{clinicPhone ? ` al ${clinicPhone}` : ''}.
           </Text>
         </Container>
       </Body>
@@ -101,10 +123,15 @@ const Row = ({ label: l, value }: { label: string; value: string }) => (
 
 export const template = {
   component: AppointmentInfoEmail,
-  subject: (data: Record<string, any>) =>
-    data?.appointmentDate
+  subject: (data: Record<string, any>) => {
+    // Permite override de asunto por clínica
+    if (data?.subjectOverride && typeof data.subjectOverride === 'string' && data.subjectOverride.trim()) {
+      return data.subjectOverride.trim()
+    }
+    return data?.appointmentDate
       ? `Información de tu turno - ${data.appointmentDate}`
-      : 'Información de tu turno',
+      : 'Información de tu turno'
+  },
   displayName: 'Información del turno',
   previewData: {
     patientName: 'María Pérez',
@@ -114,7 +141,10 @@ export const template = {
     treatmentName: 'FKT',
     clinicName: 'AgendixPro Demo',
     clinicAddress: 'Av. Siempre Viva 123, Buenos Aires',
-    notes: 'Por favor, llegá 10 minutos antes.',
+    clinicPhone: '+54 11 1234-5678',
+    appointmentInstructions: 'Llegá 10 minutos antes con ropa cómoda.',
+    customMessage: 'Recordá traer tu orden médica actualizada.',
+    notes: 'Sesión de control post-quirúrgico.',
   },
 } satisfies TemplateEntry
 
@@ -147,6 +177,20 @@ const notesText = {
   color: '#0f172a',
   lineHeight: '1.6',
   margin: '0 0 8px',
+  whiteSpace: 'pre-wrap' as const,
+}
+const messageBox = {
+  borderLeft: '3px solid #3B82F6',
+  padding: '10px 14px',
+  margin: '0 0 16px',
+  backgroundColor: '#eff6ff',
+  borderRadius: '4px',
+}
+const messageText = {
+  fontSize: '14px',
+  color: '#0f172a',
+  lineHeight: '1.6',
+  margin: '0',
   whiteSpace: 'pre-wrap' as const,
 }
 const card = {
