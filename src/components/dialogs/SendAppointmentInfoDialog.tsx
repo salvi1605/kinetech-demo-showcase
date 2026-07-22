@@ -21,8 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { parseLocalDate } from '@/utils/dateUtils';
 import { formatPatientFullName, treatmentLabel } from '@/utils/formatters';
 import { useClinicSettings } from '@/hooks/useClinicSettings';
-import type { Appointment } from '@/contexts/AppContext';
-import type { Patient } from '@/types/patient';
+import type { Appointment, Patient } from '@/contexts/AppContext';
 
 interface ClinicInfo {
   name: string | null;
