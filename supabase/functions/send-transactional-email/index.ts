@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
     payload: {
       message_id: messageId,
       to: effectiveRecipient,
-      from: `${SITE_NAME} <agenda@${FROM_DOMAIN}>`,
+      from: `${fromLabel || SITE_NAME} <agenda@${FROM_DOMAIN}>`,
       sender_domain: SENDER_DOMAIN,
       subject: resolvedSubject,
       html,
