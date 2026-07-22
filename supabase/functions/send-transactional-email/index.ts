@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let fromLabel: string | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -63,6 +64,12 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    // fromLabel: opcional. Personaliza el nombre visible del remitente
+    // (ej: "Clínica CTAK | AgendixPro"). El dominio sigue siendo el verificado.
+    if (typeof body.fromLabel === 'string' && body.fromLabel.trim()) {
+      // Sanitizar: remover caracteres de control de cabeceras SMTP
+      fromLabel = body.fromLabel.trim().replace(/[\r\n<>"]/g, '').slice(0, 80)
     }
   } catch {
     return new Response(
