@@ -47,6 +47,7 @@ import type { Appointment } from '@/contexts/AppContext';
 import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 import { RescheduleSlotPicker } from '@/components/shared/RescheduleSlotPicker';
+import { SendAppointmentInfoDialog } from '@/components/dialogs/SendAppointmentInfoDialog';
 
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb, updateAppointmentRpc } from '@/lib/appointmentService';
