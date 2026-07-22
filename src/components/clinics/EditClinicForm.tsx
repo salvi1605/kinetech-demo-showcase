@@ -157,6 +157,9 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
           default_locale: data.default_locale,
           default_currency: data.default_currency,
           is_active: data.is_active,
+          address: data.address?.trim() || null,
+          contact_phone: data.contact_phone?.trim() || null,
+          appointment_instructions: data.appointment_instructions?.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', clinic.id);
@@ -176,6 +179,8 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
           auto_mark_no_show: data.auto_mark_no_show,
           auto_mark_no_show_time,
           email_reminders_enabled: data.email_reminders_enabled,
+          email_subject_override: data.email_subject_override?.trim() || null,
+          email_custom_message: data.email_custom_message?.trim() || null,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'clinic_id'
