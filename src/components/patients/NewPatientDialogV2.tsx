@@ -12,6 +12,8 @@ import { useApp } from '@/contexts/AppContext';
 import { DateOfBirthTripleInput } from '@/components/patients/DateOfBirthTripleInput';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { parsePatientDbError } from '@/utils/patientDbErrors';
+
 type ObraSocial = '' | 'osde' | 'luis_pasteur' | 'particular';
 type ReminderPref = '24h' | 'none';
 
@@ -290,23 +292,23 @@ export const NewPatientDialogV2 = ({ open, onOpenChange, onSuccess }: NewPatient
       setErrors({});
     } catch (error: any) {
       console.error('Error creating patient:', error);
-      const isDuplicateDni = error?.message?.includes('idx_patients_unique_document_per_clinic') 
-        || error?.code === '23505';
-      if (isDuplicateDni) {
-        setErrors({ documentId: 'Ya existe un paciente con este DNI en la clínica' });
+      const parsed = parsePatientDbError(error);
+      if (parsed.field && parsed.fieldMessage) {
+        setErrors({ [parsed.field]: parsed.fieldMessage });
+      }
+      if (parsed.section === 'identificacion') {
         setCurrentStep(1);
       }
       toast({
-        title: "Error al crear paciente",
-        description: isDuplicateDni 
-          ? "Ya existe un paciente con este DNI/documento en la clínica" 
-          : (error.message || "Ocurrió un error inesperado"),
-        variant: "destructive",
+        title: parsed.toastTitle,
+        description: parsed.toastDescription,
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const renderStepContent = () => {
     switch (currentStep) {
