@@ -5,17 +5,18 @@ const DEMO_CLINIC_NAME = 'Clínica Demo';
 
 // Demo patient names
 const DEMO_PATIENTS = [
-  { full_name: 'María García López', phone: '+54 11 5555-0001', email: 'maria.garcia@demo.com' },
-  { full_name: 'Juan Carlos Rodríguez', phone: '+54 11 5555-0002', email: 'juan.rodriguez@demo.com' },
-  { full_name: 'Ana Belén Martínez', phone: '+54 11 5555-0003', email: 'ana.martinez@demo.com' },
-  { full_name: 'Pedro Pablo Fernández', phone: '+54 11 5555-0004', email: 'pedro.fernandez@demo.com' },
-  { full_name: 'Laura Sofía Gómez', phone: '+54 11 5555-0005', email: 'laura.gomez@demo.com' },
-  { full_name: 'Diego Armando Sánchez', phone: '+54 11 5555-0006', email: 'diego.sanchez@demo.com' },
-  { full_name: 'Carolina Inés Díaz', phone: '+54 11 5555-0007', email: 'carolina.diaz@demo.com' },
-  { full_name: 'Roberto Miguel Pérez', phone: '+54 11 5555-0008', email: 'roberto.perez@demo.com' },
-  { full_name: 'Valentina Rosa Torres', phone: '+54 11 5555-0009', email: 'valentina.torres@demo.com' },
-  { full_name: 'Martín Eduardo López', phone: '+54 11 5555-0010', email: 'martin.lopez@demo.com' },
+  { full_name: 'María García López', phone: '+54 11 5555-0001', email: 'maria.garcia@demo.com', document_id: '30000001', date_of_birth: '1985-03-12' },
+  { full_name: 'Juan Carlos Rodríguez', phone: '+54 11 5555-0002', email: 'juan.rodriguez@demo.com', document_id: '30000002', date_of_birth: '1978-07-24' },
+  { full_name: 'Ana Belén Martínez', phone: '+54 11 5555-0003', email: 'ana.martinez@demo.com', document_id: '30000003', date_of_birth: '1990-11-05' },
+  { full_name: 'Pedro Pablo Fernández', phone: '+54 11 5555-0004', email: 'pedro.fernandez@demo.com', document_id: '30000004', date_of_birth: '1982-01-30' },
+  { full_name: 'Laura Sofía Gómez', phone: '+54 11 5555-0005', email: 'laura.gomez@demo.com', document_id: '30000005', date_of_birth: '1995-06-18' },
+  { full_name: 'Diego Armando Sánchez', phone: '+54 11 5555-0006', email: 'diego.sanchez@demo.com', document_id: '30000006', date_of_birth: '1975-09-09' },
+  { full_name: 'Carolina Inés Díaz', phone: '+54 11 5555-0007', email: 'carolina.diaz@demo.com', document_id: '30000007', date_of_birth: '1988-04-22' },
+  { full_name: 'Roberto Miguel Pérez', phone: '+54 11 5555-0008', email: 'roberto.perez@demo.com', document_id: '30000008', date_of_birth: '1970-12-15' },
+  { full_name: 'Valentina Rosa Torres', phone: '+54 11 5555-0009', email: 'valentina.torres@demo.com', document_id: '30000009', date_of_birth: '1998-02-27' },
+  { full_name: 'Martín Eduardo López', phone: '+54 11 5555-0010', email: 'martin.lopez@demo.com', document_id: '30000010', date_of_birth: '1983-08-03' },
 ];
+
 
 // Demo practitioner names
 const DEMO_PRACTITIONERS = [

@@ -823,9 +823,9 @@ export type Database = {
           contact_auth_whatsapp: boolean | null
           copago: number | null
           created_at: string | null
-          date_of_birth: string | null
+          date_of_birth: string
           deleted_at: string | null
-          document_id: string | null
+          document_id: string
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -837,7 +837,7 @@ export type Database = {
           is_deleted: boolean | null
           numero_afiliado: string | null
           obra_social: string | null
-          phone: string | null
+          phone: string
           preferred_name: string | null
           reminder_preference: string | null
           second_name: string | null
@@ -851,9 +851,9 @@ export type Database = {
           contact_auth_whatsapp?: boolean | null
           copago?: number | null
           created_at?: string | null
-          date_of_birth?: string | null
+          date_of_birth: string
           deleted_at?: string | null
-          document_id?: string | null
+          document_id: string
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -865,7 +865,7 @@ export type Database = {
           is_deleted?: boolean | null
           numero_afiliado?: string | null
           obra_social?: string | null
-          phone?: string | null
+          phone: string
           preferred_name?: string | null
           reminder_preference?: string | null
           second_name?: string | null
@@ -879,9 +879,9 @@ export type Database = {
           contact_auth_whatsapp?: boolean | null
           copago?: number | null
           created_at?: string | null
-          date_of_birth?: string | null
+          date_of_birth?: string
           deleted_at?: string | null
-          document_id?: string | null
+          document_id?: string
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -893,7 +893,7 @@ export type Database = {
           is_deleted?: boolean | null
           numero_afiliado?: string | null
           obra_social?: string | null
-          phone?: string | null
+          phone?: string
           preferred_name?: string | null
           reminder_preference?: string | null
           second_name?: string | null
