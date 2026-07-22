@@ -64,7 +64,9 @@ export const SendAppointmentInfoDialog = ({
 
   const effectiveIsSuperAdmin = state.userRole === 'super_admin' && !state.isImpersonatingRole;
   const patientEmail = patient?.email?.trim() || '';
-  const contactAuthEmail = patient?.contactAuthEmail ?? true;
+  // Consentimiento: si el paciente no autorizó email, bloqueamos el envío.
+  // Default true cuando no hay dato para no romper flujos previos a la captura de consentimiento.
+  const contactAuthEmail = patient?.seguro?.contactAuth?.email ?? true;
 
   // Cargar datos de clínica y último envío al abrir
   useEffect(() => {
