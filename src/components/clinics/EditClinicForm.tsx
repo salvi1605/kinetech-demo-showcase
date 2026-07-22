@@ -22,6 +22,9 @@ const editClinicSchema = z.object({
   default_locale: z.string().min(1, 'Idioma requerido'),
   default_currency: z.string().min(1, 'Moneda requerida'),
   is_active: z.boolean(),
+  address: z.string().max(300).optional().or(z.literal('')),
+  contact_phone: z.string().max(50).optional().or(z.literal('')),
+  appointment_instructions: z.string().max(1000).optional().or(z.literal('')),
   min_slot_minutes: z.number().min(15).max(60),
   sub_slots_per_block: z.number().min(1, 'Mínimo 1').max(10, 'Máximo 10'),
   workday_start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
@@ -30,6 +33,8 @@ const editClinicSchema = z.object({
   auto_mark_no_show: z.boolean(),
   auto_mark_no_show_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato inválido (HH:mm)'),
   email_reminders_enabled: z.boolean(),
+  email_subject_override: z.string().max(150).optional().or(z.literal('')),
+  email_custom_message: z.string().max(500).optional().or(z.literal('')),
 });
 
 type EditClinicFormData = z.infer<typeof editClinicSchema>;
