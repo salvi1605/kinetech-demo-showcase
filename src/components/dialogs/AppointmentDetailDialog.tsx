@@ -1035,7 +1035,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             onOpenChange={setSendEmailOpen}
             appointment={appointment}
             patient={patient}
-            practitioner={practitioner}
+            practitionerName={practitioner?.name}
           />
         )}
       </DialogContent>
