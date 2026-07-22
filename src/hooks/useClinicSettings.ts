@@ -13,6 +13,8 @@ export interface ClinicSettings {
   auto_mark_no_show: boolean;
   auto_mark_no_show_time: string;
   email_reminders_enabled: boolean;
+  email_subject_override: string | null;
+  email_custom_message: string | null;
 }
 
 /**
