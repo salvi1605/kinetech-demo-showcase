@@ -194,7 +194,7 @@ export const EditProfessionalDialog = ({ professional, onClose }: EditProfession
         if (slot.from >= slot.to) {
           toast({
             title: 'Error de validación',
-            description: "Revisa los horarios: 'Hasta' debe ser mayor que 'Desde'",
+            description: "Revisa los horarios: la hora de fin debe ser posterior a la de inicio",
             variant: 'destructive',
           });
           return;
