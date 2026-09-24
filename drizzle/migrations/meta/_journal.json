@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790219924808,
+      "tag": "0000_tighten_roles_read_and_contact_messages_insert",
+      "breakpoints": true
+    }
+  ]
+}
