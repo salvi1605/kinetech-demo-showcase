@@ -76,6 +76,17 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
     fetchFuture();
   }, [open, appointment?.patientId, state.currentClinicId]);
 
+  // Manejar estado indeterminado del checkbox maestro
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      const input = selectAllCheckboxRef.current.querySelector('input') as HTMLInputElement;
+      if (input) {
+        const isIndeterminate = selectedIds.size > 0 && selectedIds.size < futureAppointments.length;
+        input.indeterminate = isIndeterminate;
+      }
+    }
+  }, [selectedIds.size, futureAppointments.length]);
+
   if (!appointment) return null;
 
   const patient = state.patients.find(p => p.id === appointment.patientId);
@@ -94,17 +105,6 @@ export const FreeAppointmentDialog = ({ open, onOpenChange, appointment }: FreeA
   const toggleAll = (all: boolean) => {
     setSelectedIds(all ? new Set(futureAppointments.map(a => a.id)) : new Set());
   };
-
-  // Manejar estado indeterminado del checkbox maestro
-  useEffect(() => {
-    if (selectAllCheckboxRef.current) {
-      const input = selectAllCheckboxRef.current.querySelector('input') as HTMLInputElement;
-      if (input) {
-        const isIndeterminate = selectedIds.size > 0 && selectedIds.size < futureAppointments.length;
-        input.indeterminate = isIndeterminate;
-      }
-    }
-  }, [selectedIds.size, futureAppointments.length]);
 
   const formatAppointmentDisplay = (apt: FutureAppointmentRow) => {
     const practitioner = state.practitioners.find(p => p.id === apt.practitionerId);

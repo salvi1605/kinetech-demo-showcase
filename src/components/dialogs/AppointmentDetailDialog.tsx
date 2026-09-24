@@ -83,6 +83,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [tempTreatment, setTempTreatment] = useState('');
   const [isSavingTreatment, setIsSavingTreatment] = useState(false);
   const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const { settings: clinicSettings } = useClinicSettings();
 
   // Resolve current practitioner ID for health_pro permission check
@@ -412,7 +413,6 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     state.userRole === 'tenant_owner' ||
     state.userRole === 'receptionist';
   const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
-  const [sendEmailOpen, setSendEmailOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
