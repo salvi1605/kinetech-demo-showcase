@@ -11,9 +11,10 @@ interface TimePickerProps {
   onChange: (time: string) => void;
   placeholder?: string;
   className?: string;
+  ariaLabel?: string;
 }
 
-export function TimePicker({ value, onChange, placeholder = 'HH:mm', className }: TimePickerProps) {
+export function TimePicker({ value, onChange, placeholder = 'HH:mm', className, ariaLabel }: TimePickerProps) {
   const [open, setOpen] = useState(false);
 
   // SIEMPRE retorna formato "HH:mm" (5 caracteres exactos)

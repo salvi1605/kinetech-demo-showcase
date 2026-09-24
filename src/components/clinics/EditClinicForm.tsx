@@ -489,7 +489,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                 name="workday_end"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hora de Fin</FormLabel>
+                    <FormLabel>Hora del último turno</FormLabel>
                     <FormControl>
                       <TimePicker
                         value={field.value || "19:00"}
@@ -497,7 +497,7 @@ export function EditClinicForm({ clinic, settings, onSuccess }: EditClinicFormPr
                       />
                     </FormControl>
                     <FormDescription>
-                      Última hora de inicio permitida (formato 24h: 19:00)
+                      Hora a la que puede empezar la última cita. Con bloques de 30 min, la última cita termina 30 min después (ej.: 19:00 → cierre 19:30)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
