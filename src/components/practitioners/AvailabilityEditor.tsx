@@ -188,6 +188,13 @@ export function AvailabilityEditor({ value, onChange, showCapacity = false }: Av
                 {day.slots.length === 0 && (
                   <div className="text-sm text-muted-foreground italic">Sin horarios</div>
                 )}
+                {day.slots.length > 0 && (
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground" aria-hidden="true">
+                    <span className="w-28">Empieza a atender</span>
+                    <span className="w-2.5" />
+                    <span className="w-28">Deja de atender</span>
+                  </div>
+                )}
                 {day.slots.map((s, i) => {
                   const error = validateSlot(s);
                   return (
@@ -197,6 +204,7 @@ export function AvailabilityEditor({ value, onChange, showCapacity = false }: Av
                         onChange={(time) => setSlot(d, i, { from: time })}
                         placeholder="08:00"
                         className="w-28"
+                        ariaLabel={`Empieza a atender, ${DAY_LABELS[d]}, franja ${i + 1}`}
                       />
                       <span className="text-muted-foreground">–</span>
                       <TimePicker
@@ -204,6 +212,7 @@ export function AvailabilityEditor({ value, onChange, showCapacity = false }: Av
                         onChange={(time) => setSlot(d, i, { to: time })}
                         placeholder="12:00"
                         className="w-28"
+                        ariaLabel={`Deja de atender, ${DAY_LABELS[d]}, franja ${i + 1}`}
                       />
                       <Button
                         type="button"
