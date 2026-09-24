@@ -82,7 +82,7 @@ export const Availability = () => {
     for (const day of activeDays) {
       for (const slot of day.slots) {
         if (slot.from >= slot.to) {
-          toast({ title: 'Error de validación', description: "'Hasta' debe ser mayor que 'Desde'", variant: 'destructive' });
+          toast({ title: 'Error de validación', description: 'La hora de fin debe ser posterior a la de inicio', variant: 'destructive' });
           return;
         }
       }
