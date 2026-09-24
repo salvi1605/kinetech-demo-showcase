@@ -100,6 +100,7 @@ export function TimePicker({ value, onChange, placeholder = 'HH:mm', className, 
         onChange={handleInputChange}
         onBlur={handleInputBlur}
         className="pr-10 text-left"
+        aria-label={ariaLabel}
       />
       
       <Popover open={open} onOpenChange={setOpen}>

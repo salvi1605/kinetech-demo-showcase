@@ -126,7 +126,7 @@ export function AvailabilityEditor({ value, onChange, showCapacity = false }: Av
       return "Formato HH:mm";
     }
     if (slot.from >= slot.to) {
-      return "'Hasta' debe ser mayor que 'Desde'";
+      return "La hora de fin debe ser posterior a la de inicio";
     }
     return null;
   };
@@ -134,6 +134,9 @@ export function AvailabilityEditor({ value, onChange, showCapacity = false }: Av
   return (
     <TooltipProvider>
       <div className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          En cada franja, la segunda hora es aquella a la que el profesional <span className="font-medium">deja de atender</span>. El último turno disponible será antes de esa hora (con bloques de 30 min, hasta 30 min antes).
+        </p>
         {dayOrder.map(d => {
           const day = value.find(v => v.day === d)!;
           const hasErrors = day.slots.some(s => validateSlot(s)) || hasOverlap(day.slots);
