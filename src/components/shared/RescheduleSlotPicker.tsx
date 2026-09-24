@@ -20,6 +20,7 @@ interface SubSlotInfo {
   appointmentId: string | null;
   isCurrent: boolean;
   isBlocked: boolean;
+  isOutOfHours: boolean;
 }
 
 interface SlotInfo {
@@ -167,7 +168,11 @@ export const RescheduleSlotPicker = ({
       });
 
       // Build slot info
-      const slotInfos: SlotInfo[] = timeList.filter((t) => t < effectiveEnd).map((time) => {
+      // Incluir siempre hasta el cierre de la clínica (inclusive, igual que la agenda);
+      // más allá solo si el profesional atiende en ese rango.
+      const hasRanges = practitionerRanges.length > 0;
+      const slotInfos: SlotInfo[] = timeList.filter((t) => t <= clinicEnd || t < effectiveEnd).map((time) => {
+        const isOutOfHours = hasRanges && !practitionerRanges.some((r) => time >= r.from && time < r.to);
         const occupied = occupiedMap.get(time) || new Map<number, string>();
         const isBlockedTime = partialBlocks.some((b) => isTimeInBlock(time, b));
 
@@ -179,6 +184,7 @@ export const RescheduleSlotPicker = ({
             appointmentId: aptId,
             isCurrent: aptId === currentAppointmentId,
             isBlocked: isBlockedTime,
+            isOutOfHours,
           };
         });
         return { time, subSlots };
@@ -270,6 +276,17 @@ export const RescheduleSlotPicker = ({
                         className="h-6 min-w-[3.5rem] px-1 rounded text-xs flex items-center justify-center bg-destructive/10 text-destructive border border-destructive/30"
                       >
                         Bloqueado
+                      </div>
+                    );
+                  }
+                  if (sub.isOutOfHours && !sub.appointmentId) {
+                    return (
+                      <div
+                        key={sub.subSlot}
+                        title="Fuera del horario del profesional"
+                        className="h-6 min-w-[3.5rem] px-1 rounded text-[10px] flex items-center justify-center bg-muted/50 text-muted-foreground/70 border border-dashed border-muted-foreground/30"
+                      >
+                        Fuera de horario
                       </div>
                     );
                   }
