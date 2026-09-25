@@ -5,6 +5,7 @@ export const es = {
     contact: "Contacto",
     terms: "Términos",
     privacy: "Privacidad",
+    records: "Historia clínica",
     login: "Iniciar Sesión",
   },
   footer: {
@@ -24,19 +25,48 @@ export const es = {
   // ── Home ──
   home: {
     hero: {
-      title: "Organiza la agenda, pacientes y operación diaria de tu clínica en un solo sistema",
-      subtitle: "Gestiona turnos, profesionales y pacientes desde una plataforma simple y pensada para clínicas de salud.",
+      title: "Software de agenda y gestión para clínicas de kinesiología",
+      subtitle: "Sistema de turnos online, ficha de pacientes e historia clínica digital en un solo lugar. Menos turnos perdidos, menos papel y más tiempo para atender.",
       cta: "Solicitar demo",
       ctaAlt: "Hablar por WhatsApp",
     },
     problem: {
-      heading: "¿Qué problema resolvemos?",
+      heading: "¿Te pasa esto en tu clínica o consultorio?",
       items: [
-        "Turnos desordenados",
-        "Información dispersa",
-        "Doble trabajo (papel + sistema)",
-        "Falta de control sobre la agenda",
+        { pain: "Turnos anotados en cuadernos, planillas o chats", solution: "Una agenda online única por profesional, visible para todo el equipo." },
+        { pain: "Datos del paciente repartidos en papeles y carpetas", solution: "Ficha completa con datos, obra social y documentos del paciente." },
+        { pain: "Doble trabajo entre papel y sistema", solution: "Todo se carga una sola vez y queda disponible desde cualquier dispositivo." },
+        { pain: "Ausencias y huecos que nadie controla", solution: "Control de asistencia, no-shows y estado diario de la agenda." },
       ],
+    },
+    benefits: {
+      heading: "Qué gana tu clínica con AgendixPro",
+      items: [
+        { title: "Agenda ordenada", desc: "Cada profesional con sus horarios, excepciones y feriados. Sin superposiciones ni turnos dobles." },
+        { title: "Menos tiempo administrativo", desc: "Recepción da turnos, reprograma y copia el horario al paciente en segundos." },
+        { title: "Seguimiento clínico real", desc: "Evolución por sesión en la historia clínica digital de cada paciente." },
+        { title: "Datos protegidos", desc: "Acceso con usuario y rol: cada persona ve solo lo que necesita." },
+      ],
+    },
+    steps: {
+      heading: "Empezar es simple",
+      items: [
+        { title: "Nos escribes", desc: "Por WhatsApp, correo o formulario. Nos cuentas cómo trabaja tu clínica." },
+        { title: "Te mostramos el sistema", desc: "Demo adaptada a tu clínica y definimos juntos el alcance." },
+        { title: "Lo ponemos en marcha", desc: "Configuramos profesionales y horarios y capacitamos a tu equipo." },
+      ],
+      cta: "Quiero una demo",
+    },
+    recordsPromo: {
+      heading: "Historia clínica digital incluida",
+      desc: "Registra la evolución de cada sesión, adjunta estudios y consulta el historial completo del paciente desde la agenda.",
+      cta: "Conocer la historia clínica digital",
+    },
+    ctaBand: {
+      heading: "¿Quieres ver AgendixPro funcionando en tu clínica?",
+      desc: "Pide una demo sin compromiso. Respondemos dentro de las 24 horas hábiles.",
+      primary: "Solicitar demo",
+      secondary: "Hablar por WhatsApp",
     },
     comingSoon: {
       heading: "Próximamente",
@@ -109,6 +139,7 @@ export const es = {
   pricing: {
     heading: "Planes y servicio",
     subtitle: "Un sistema simple para organizar la operación diaria de tu clínica.",
+    valueLine: "Agenda, pacientes, historia clínica digital, soporte y actualizaciones en un solo abono mensual. Sin instalar nada.",
     perMonth: "/ mes",
     early: {
       name: "PLAN PRIMEROS CLIENTES",
@@ -167,6 +198,12 @@ export const es = {
     responseTimeDesc: "Respondemos dentro de las 24 horas hábiles.",
     commitment: "Compromiso",
     commitmentDesc: "Sin compromisos iniciales. Consultá libremente sobre el servicio.",
+    nextStepsHeading: "Qué pasa después de escribirnos",
+    nextSteps: [
+      "Te respondemos dentro de las 24 horas hábiles.",
+      "Coordinamos una llamada o demo para conocer tu clínica.",
+      "Te enviamos alcance y condiciones, sin compromiso.",
+    ],
     formTitle: "Enviar mensaje",
     formSubtitle: "Completá el formulario y te responderemos a la brevedad.",
     name: "Nombre",
@@ -184,6 +221,19 @@ export const es = {
     toastDesc: "Nos pondremos en contacto a la brevedad.",
     toastErrorTitle: "Error al enviar",
     toastErrorDesc: "No se pudo enviar el mensaje. Intentá de nuevo.",
+  },
+
+  // ── Preguntas frecuentes ──
+  faq: {
+    heading: "Preguntas frecuentes",
+    items: [
+      { q: "¿Tengo que instalar algo?", a: "No. AgendixPro funciona desde el navegador en computadora, tablet o celular. Solo necesitas conexión a internet." },
+      { q: "¿Sirve para mi clínica de kinesiología o consultorio?", a: "Sí. Está pensado para clínicas de kinesiología, centros de rehabilitación y profesionales que trabajan con agenda por turnos, con uno o varios profesionales." },
+      { q: "¿Mis datos y los de mis pacientes están seguros?", a: "Cada usuario entra con su cuenta y su rol, y solo ve la información de su clínica. Los datos se respaldan automáticamente." },
+      { q: "¿Cuánto cuesta?", a: "El plan mensual es de USD 250 e incluye soporte y actualizaciones. La implementación inicial se cobra una sola vez (USD 250 – 500)." },
+      { q: "¿Cuánto tarda empezar a usarlo?", a: "Depende del tamaño de la clínica. Configuramos profesionales y horarios con tu equipo y los acompañamos en los primeros días de uso." },
+      { q: "¿Tienen soporte?", a: "Sí. El servicio incluye soporte para resolver dudas, mantenimiento y ajustes según las necesidades de la clínica." },
+    ],
   },
 
   // ── Historia clínica digital ──

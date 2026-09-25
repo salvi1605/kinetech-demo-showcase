@@ -7,6 +7,7 @@ export const en: Translations = {
     contact: "Contact",
     terms: "Terms",
     privacy: "Privacy",
+    records: "Medical records",
     login: "Sign In",
   },
   footer: {
@@ -26,19 +27,48 @@ export const en: Translations = {
   // ── Home ──
   home: {
     hero: {
-      title: "Organize your clinic's schedule, patients, and daily operations in one system",
-      subtitle: "Manage appointments, practitioners, and patients from a simple platform built for health clinics.",
+      title: "Scheduling and management software for physiotherapy clinics",
+      subtitle: "Online appointment system, patient records and digital medical history in one place. Fewer missed appointments, less paperwork and more time to treat patients.",
       cta: "Request a demo",
       ctaAlt: "Chat on WhatsApp",
     },
     problem: {
-      heading: "What problem do we solve?",
+      heading: "Does this happen at your clinic?",
       items: [
-        "Disorganized appointments",
-        "Scattered information",
-        "Double work (paper + system)",
-        "Lack of control over the schedule",
+        { pain: "Appointments written in notebooks, spreadsheets or chats", solution: "One online schedule per practitioner, visible to the whole team." },
+        { pain: "Patient data scattered across papers and folders", solution: "A complete record with personal data, insurance and documents." },
+        { pain: "Double work between paper and software", solution: "Enter everything once and access it from any device." },
+        { pain: "No-shows and gaps nobody tracks", solution: "Attendance, no-show and daily schedule tracking." },
       ],
+    },
+    benefits: {
+      heading: "What your clinic gains with AgendixPro",
+      items: [
+        { title: "An organized schedule", desc: "Each practitioner with their hours, exceptions and holidays. No overlaps or double bookings." },
+        { title: "Less admin time", desc: "Reception books, reschedules and sends the schedule to patients in seconds." },
+        { title: "Real clinical follow-up", desc: "Session-by-session progress in each patient's digital medical record." },
+        { title: "Protected data", desc: "Access by user and role: each person sees only what they need." },
+      ],
+    },
+    steps: {
+      heading: "Getting started is simple",
+      items: [
+        { title: "You contact us", desc: "Via WhatsApp, email or the form. Tell us how your clinic works." },
+        { title: "We show you the system", desc: "A demo tailored to your clinic, and we define the scope together." },
+        { title: "We set it up", desc: "We configure practitioners and hours and train your team." },
+      ],
+      cta: "I want a demo",
+    },
+    recordsPromo: {
+      heading: "Digital medical records included",
+      desc: "Log each session's progress, attach studies and view the patient's full history right from the schedule.",
+      cta: "Learn about digital medical records",
+    },
+    ctaBand: {
+      heading: "Want to see AgendixPro working at your clinic?",
+      desc: "Request a no-commitment demo. We reply within 24 business hours.",
+      primary: "Request a demo",
+      secondary: "Chat on WhatsApp",
     },
     comingSoon: {
       heading: "Coming soon",
@@ -111,6 +141,7 @@ export const en: Translations = {
   pricing: {
     heading: "Plans & Service",
     subtitle: "A simple system to organize your clinic's daily operations.",
+    valueLine: "Schedule, patients, digital medical records, support and updates in one monthly fee. Nothing to install.",
     perMonth: "/ month",
     early: {
       name: "EARLY ADOPTERS PLAN",
@@ -169,6 +200,12 @@ export const en: Translations = {
     responseTimeDesc: "We respond within 24 business hours.",
     commitment: "Commitment",
     commitmentDesc: "No initial commitments. Feel free to ask about the service.",
+    nextStepsHeading: "What happens after you write to us",
+    nextSteps: [
+      "We reply within 24 business hours.",
+      "We schedule a call or demo to learn about your clinic.",
+      "We send you scope and conditions, with no commitment.",
+    ],
     formTitle: "Send a message",
     formSubtitle: "Fill in the form and we'll get back to you shortly.",
     name: "Name",
@@ -186,6 +223,19 @@ export const en: Translations = {
     toastDesc: "We'll get back to you shortly.",
     toastErrorTitle: "Error sending",
     toastErrorDesc: "Could not send the message. Please try again.",
+  },
+
+  // ── FAQ ──
+  faq: {
+    heading: "Frequently asked questions",
+    items: [
+      { q: "Do I need to install anything?", a: "No. AgendixPro runs in the browser on computer, tablet or phone. You only need an internet connection." },
+      { q: "Is it suitable for my physiotherapy clinic or practice?", a: "Yes. It's built for physiotherapy clinics, rehabilitation centers and practitioners who work by appointment, with one or several practitioners." },
+      { q: "Is my data and my patients' data secure?", a: "Each user signs in with their own account and role, and only sees their clinic's information. Data is backed up automatically." },
+      { q: "How much does it cost?", a: "The monthly plan is USD 250 and includes support and updates. Initial implementation is a one-time fee (USD 250 – 500)." },
+      { q: "How long does it take to get started?", a: "It depends on the clinic's size. We set up practitioners and hours with your team and support you during the first days." },
+      { q: "Do you offer support?", a: "Yes. The service includes support for questions, maintenance and adjustments to your clinic's needs." },
+    ],
   },
 
   // ── Digital medical records ──
