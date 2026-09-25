@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles, Info } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { SeoHead } from "@/components/shared/SeoHead";
+import { FaqSection } from "@/components/public/FaqSection";
+import { CtaBand } from "@/components/public/CtaBand";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Pricing() {
@@ -12,8 +14,8 @@ export default function Pricing() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Precios — AgendixPro"
-        description="Planes y precios de AgendixPro: software de agenda y gestión para clínicas y profesionales de la salud."
+        title="Precios del software para clínicas y kinesiólogos — AgendixPro"
+        description="Planes de AgendixPro: sistema de turnos, agenda para consultorio e historia clínica digital desde USD 250/mes con soporte incluido. Solicitá información."
         path="/pricing"
       />
       {/* Hero */}
@@ -23,6 +25,9 @@ export default function Pricing() {
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
           {t.pricing.subtitle}
+        </p>
+        <p className="mx-auto mt-3 max-w-2xl font-medium text-foreground">
+          {t.pricing.valueLine}
         </p>
       </section>
 
@@ -146,6 +151,10 @@ export default function Pricing() {
           </div>
         </div>
       </section>
+
+      <FaqSection />
+
+      <CtaBand />
     </PublicLayout>
   );
 }
