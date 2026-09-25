@@ -1,3 +1,4 @@
+import { SeoHead } from '@/components/shared/SeoHead';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,7 @@ export default function Unsubscribe() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <SeoHead title="Cancelar suscripción a emails — AgendixPro" description="Gestioná tu suscripción a los correos informativos de turnos enviados por AgendixPro." path="/unsubscribe" />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">

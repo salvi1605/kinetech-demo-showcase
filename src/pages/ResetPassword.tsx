@@ -1,3 +1,4 @@
+import { SeoHead } from '@/components/shared/SeoHead';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, KeyRound } from 'lucide-react';
@@ -83,6 +84,7 @@ export const ResetPassword = () => {
   if (!isValidSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
+        <SeoHead title="Restablecer contraseña — AgendixPro" description="Creá una nueva contraseña segura para tu cuenta de AgendixPro." path="/reset-password" />
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Link Inválido o Expirado</CardTitle>
@@ -102,6 +104,7 @@ export const ResetPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
+      <SeoHead title="Restablecer contraseña — AgendixPro" description="Creá una nueva contraseña segura para tu cuenta de AgendixPro." path="/reset-password" />
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
