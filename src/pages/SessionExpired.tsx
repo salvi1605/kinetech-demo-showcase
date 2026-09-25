@@ -12,9 +12,9 @@ const messages: Record<string, { icon: typeof Clock; title: string; description:
   },
   expired: {
     icon: ShieldAlert,
-    title: 'Tu sesión ha expirado',
+    title: 'Cerramos tu sesión por seguridad',
     description:
-      'Tu sesión dejó de ser válida. Esto puede ocurrir si pasó mucho tiempo o si iniciaste sesión en otro dispositivo.',
+      'No pudimos validar tu sesión; puede ser por inactividad prolongada o una interrupción momentánea de conexión. Tus datos están a salvo.',
   },
 };
 
@@ -36,9 +36,17 @@ const SessionExpired = () => {
           <CardTitle className="text-xl">{title}</CardTitle>
           <CardDescription className="text-base">{description}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="pt-4 flex flex-col gap-2">
           <Button className="w-full" size="lg" onClick={() => navigate('/login', { replace: true })}>
             Iniciar sesión
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            size="lg"
+            onClick={() => window.location.replace('/')}
+          >
+            Reintentar
           </Button>
         </CardContent>
       </Card>
