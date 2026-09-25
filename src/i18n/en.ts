@@ -188,6 +188,40 @@ export const en: Translations = {
     toastErrorDesc: "Could not send the message. Please try again.",
   },
 
+  // ── Digital medical records ──
+  records: {
+    heading: "Digital medical records",
+    subtitle: "Track each patient's progress, keep clinical information safe and organized, and leave paper and loose spreadsheets behind.",
+    ctaPrimary: "Request a demo",
+    ctaSecondary: "See plans and pricing",
+    benefitsHeading: "Benefits for your clinic",
+    benefits: [
+      { title: "Data security", desc: "Clinical information protected with per-user access and roles, encrypted connections and secure servers." },
+      { title: "Structured clinical evolution", desc: "Every session is logged with date, treatment and progress notes, with version history to review changes." },
+      { title: "Less paper, less double work", desc: "All the information lives in the patient file: no notebooks, no loose spreadsheets, no duplicate entry." },
+      { title: "Access from anywhere", desc: "Check the medical record from the browser, at the clinic or remotely, only with the team you authorize." },
+      { title: "Treatment follow-up", desc: "Every note links to the appointment and treatment to see patient progress session by session." },
+      { title: "A connected team", desc: "Practitioners, reception and administration work on the same information, always up to date." },
+    ],
+    howHeading: "How it works in AgendixPro",
+    steps: [
+      { title: "Patient file", desc: "Identification, contact, insurance and consent data in a single place." },
+      { title: "Session-by-session notes", desc: "The practitioner records each appointment's progress with structured clinical notes." },
+      { title: "Attached documentation", desc: "Studies, authorizations and patient documents stored and available for review." },
+      { title: "Full history", desc: "The patient's entire journey, from the first visit to the latest session, in one clear view." },
+    ],
+    forWhoHeading: "Designed for",
+    forWhoItems: [
+      "Kinesiology clinics",
+      "Rehabilitation centers",
+      "Practitioners with appointment-based schedules",
+      "Multidisciplinary health teams",
+    ],
+    finalHeading: "Want to see digital medical records in action?",
+    finalDesc: "Write to us and we'll show you how AgendixPro organizes your patients' clinical records together with your clinic's schedule.",
+    finalCta: "Contact us",
+  },
+
   // ── Terms ──
   terms: {
     heading: "Terms of Service",

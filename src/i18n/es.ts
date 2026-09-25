@@ -186,6 +186,40 @@ export const es = {
     toastErrorDesc: "No se pudo enviar el mensaje. Intentá de nuevo.",
   },
 
+  // ── Historia clínica digital ──
+  records: {
+    heading: "Historia clínica digital",
+    subtitle: "Registra la evolución de cada paciente, mantén la información clínica segura y organizada, y deja atrás el papel y las planillas sueltas.",
+    ctaPrimary: "Solicitar demo",
+    ctaSecondary: "Ver planes y precios",
+    benefitsHeading: "Beneficios para tu clínica",
+    benefits: [
+      { title: "Seguridad de los datos", desc: "Información clínica protegida con accesos por usuario y roles, conexiones cifradas y almacenamiento en servidores seguros." },
+      { title: "Evolución clínica estructurada", desc: "Cada sesión se registra con fecha, tratamiento y notas de evolución, con historial de versiones para revisar cambios." },
+      { title: "Menos papel, menos doble trabajo", desc: "Toda la información vive en la ficha del paciente: sin cuadernos, sin planillas dispersas ni carga duplicada." },
+      { title: "Acceso desde cualquier lugar", desc: "Consultá la historia clínica desde el navegador, en la clínica o a distancia, solo con el equipo que autorices." },
+      { title: "Seguimiento del tratamiento", desc: "Cada evolución se vincula al turno y al tratamiento para ver el avance del paciente sesión por sesión." },
+      { title: "Equipo coordinado", desc: "Profesionales, recepción y administración trabajan sobre la misma información, siempre actualizada." },
+    ],
+    howHeading: "¿Cómo funciona en AgendixPro?",
+    steps: [
+      { title: "Ficha del paciente", desc: "Datos de identificación, contacto, obra social y consentimientos en un solo lugar." },
+      { title: "Evolución por sesión", desc: "El profesional registra la evolución de cada turno con notas clínicas estructuradas." },
+      { title: "Documentación adjunta", desc: "Estudios, autorizaciones y documentos del paciente guardados y disponibles para consulta." },
+      { title: "Historial completo", desc: "Todo el recorrido del paciente, de la primera consulta a la última sesión, en una vista clara." },
+    ],
+    forWhoHeading: "Pensada para",
+    forWhoItems: [
+      "Clínicas de kinesiología",
+      "Centros de rehabilitación",
+      "Profesionales con agenda por turnos",
+      "Equipos de salud multidisciplinarios",
+    ],
+    finalHeading: "¿Querés ver la historia clínica digital en acción?",
+    finalDesc: "Escribinos y te mostramos cómo AgendixPro organiza la evolución clínica de tus pacientes junto con la agenda de tu clínica.",
+    finalCta: "Contactarnos",
+  },
+
   // ── Terms ──
   terms: {
     heading: "Términos del Servicio",
