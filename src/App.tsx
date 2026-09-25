@@ -49,6 +49,7 @@ const CancellationPolicy = lazy(() => import("@/pages/CancellationPolicy"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const SessionExpired = lazy(() => import("@/pages/SessionExpired"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const DigitalRecords = lazy(() => import("@/pages/DigitalRecords"));
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
                   <Route path="/pricing" element={<PublicRouteGuard><Pricing /></PublicRouteGuard>} />
                   <Route path="/cancellation-policy" element={<PublicRouteGuard><CancellationPolicy /></PublicRouteGuard>} />
                   <Route path="/contact" element={<PublicRouteGuard><Contact /></PublicRouteGuard>} />
+                  <Route path="/historia-clinica-digital" element={<PublicRouteGuard><DigitalRecords /></PublicRouteGuard>} />
                   <Route path="/terms" element={<PublicRouteGuard><Terms /></PublicRouteGuard>} />
                   <Route path="/privacy" element={<PublicRouteGuard><Privacy /></PublicRouteGuard>} />
                   <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
