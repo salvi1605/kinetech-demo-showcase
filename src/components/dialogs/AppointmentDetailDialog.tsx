@@ -140,6 +140,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       form.setValue('treatmentType', treatmentLabel[appointment.treatmentType || 'fkt'] || appointment.treatmentType || 'FKT');
       form.setValue('notes', appointment.notes || '');
       setIsEditing(false);
+      setSelectedSubSlot(undefined);
     }
   }, [appointment, open, form]);
 

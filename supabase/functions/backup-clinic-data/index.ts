@@ -8,24 +8,30 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Validate server-to-server auth via BACKUP_SECRET
-    const authHeader = req.headers.get('Authorization') || ''
-    const token = authHeader.replace('Bearer ', '')
-    const expectedSecret = Deno.env.get('BACKUP_SECRET')
-
-    if (!expectedSecret || token !== expectedSecret) {
-      console.error('Backup auth failed: invalid or missing BACKUP_SECRET')
-      return new Response(JSON.stringify({ error: 'No autorizado' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // 2. Init admin client
+    // 1. Init admin client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
+
+    // 2. Validate server-to-server auth (env BACKUP_SECRET or DB-held cron token)
+    const authHeader = req.headers.get('Authorization') || ''
+    const token = authHeader.replace('Bearer ', '').trim()
+    const expectedSecret = Deno.env.get('BACKUP_SECRET')
+
+    let authorized = !!token && !!expectedSecret && token === expectedSecret
+    if (!authorized && token) {
+      const { data: ok } = await supabaseAdmin.rpc('verify_backup_token', { p_token: token })
+      authorized = ok === true
+    }
+
+    if (!authorized) {
+      console.error('Backup auth failed: invalid or missing backup token')
+      return new Response(JSON.stringify({ error: 'No autorizado' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' }
+      })
+    }
 
     // 3. Get all active clinics
     const { data: clinics, error: clinicsError } = await supabaseAdmin
