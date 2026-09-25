@@ -23,6 +23,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   const navLinks = [
     { to: "/home", label: t.nav.home },
     { to: "/pricing", label: t.nav.pricing },
+    { to: "/historia-clinica-digital", label: t.nav.records },
     { to: "/contact", label: t.nav.contact },
     { to: "/terms", label: t.nav.terms },
     { to: "/privacy", label: t.nav.privacy },

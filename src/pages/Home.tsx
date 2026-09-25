@@ -13,7 +13,12 @@ import {
   HeadsetIcon,
   
   Target,
+  ShieldCheck,
+  FileText,
+  XCircle,
 } from "lucide-react";
+import { FaqSection } from "@/components/public/FaqSection";
+import { CtaBand } from "@/components/public/CtaBand";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
@@ -23,6 +28,7 @@ import previewPaciente from "@/assets/preview-paciente.jpg";
 import previewHistorial from "@/assets/preview-historial.jpg";
 
 const featureIcons = [CalendarCheck, Users, Clock, Activity];
+const benefitIcons = [CalendarCheck, Clock, Activity, ShieldCheck];
 const previewImages = [previewAgenda, previewPaciente, previewHistorial];
 
 export default function Home() {
@@ -31,8 +37,8 @@ export default function Home() {
   return (
     <PublicLayout>
       <SeoHead
-        title="AgendixPro — Agenda y gestión para clínicas de salud"
-        description="Software profesional de agenda, turnos e historia clínica para clínicas y profesionales de la salud. Organizá pacientes, profesionales y horarios en un solo lugar."
+        title="Software para kinesiólogos y clínicas — Sistema de turnos | AgendixPro"
+        description="Software de agenda y sistema de turnos online para clínicas de kinesiología y consultorios. Historia clínica digital, pacientes y profesionales en un solo lugar. Pedí tu demo."
         path="/"
       />
       {/* ── Hero ── */}
@@ -59,20 +65,47 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Problem ── */}
+      {/* ── Problem → Solution ── */}
       <section className="container py-12 md:py-16">
-        <div className="mx-auto max-w-xl text-center">
-          <h2 className="mb-8 text-3xl font-bold">{t.home.problem.heading}</h2>
-          <ul className="space-y-3 text-left">
-            {t.home.problem.items.map((item, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                <span className="text-muted-foreground">{item}</span>
-              </li>
-            ))}
-          </ul>
+        <h2 className="mb-10 text-center text-3xl font-bold">{t.home.problem.heading}</h2>
+        <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2">
+          {t.home.problem.items.map((item, i) => (
+            <div key={i} className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+              <p className="flex items-start gap-2 font-medium">
+                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden="true" />
+                {item.pain}
+              </p>
+              <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                {item.solution}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
+
+      <Separator />
+
+      {/* ── Benefits ── */}
+      <section className="container py-16 md:py-20">
+        <h2 className="mb-12 text-center text-3xl font-bold">{t.home.benefits.heading}</h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {t.home.benefits.items.map((b, i) => {
+            const Icon = benefitIcons[i];
+            return (
+              <div key={i} className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                </div>
+                <h3 className="text-lg font-semibold">{b.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{b.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <CtaBand />
 
       <Separator />
 
@@ -127,6 +160,53 @@ export default function Home() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Records promo ── */}
+      <section className="container py-12 md:py-16">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-xl border border-border/60 bg-card p-8 text-center shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <FileText className="h-6 w-6 text-primary" aria-hidden="true" />
+          </div>
+          <h2 className="text-2xl font-bold">{t.home.recordsPromo.heading}</h2>
+          <p className="text-muted-foreground">{t.home.recordsPromo.desc}</p>
+          <Button asChild variant="outline">
+            <Link to="/historia-clinica-digital">
+              {t.home.recordsPromo.cta}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Steps ── */}
+      <section className="bg-muted/30 py-16 md:py-20">
+        <div className="container">
+          <h2 className="mb-12 text-center text-3xl font-bold">{t.home.steps.heading}</h2>
+          <ol className="mx-auto grid max-w-3xl gap-10 md:grid-cols-3">
+            {t.home.steps.items.map((st, i) => (
+              <li key={i} className="flex flex-col items-center text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground" aria-hidden="true">
+                  {i + 1}
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">{st.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{st.desc}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-10 text-center">
+            <Button asChild size="lg">
+              <Link to="/contact">
+                {t.home.steps.cta}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -225,6 +305,12 @@ export default function Home() {
       </section>
 
       <Separator />
+
+      <Separator />
+
+      <FaqSection />
+
+      <CtaBand />
 
       {/* ── Contact ── */}
       <section id="contacto" className="container py-16 md:py-20">

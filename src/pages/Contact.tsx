@@ -54,7 +54,7 @@ export default function Contact() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Contacto — AgendixPro"
+        title="Contacto y demo del software para clínicas — AgendixPro"
         description="Hablá con el equipo de AgendixPro por WhatsApp, email o el formulario. Respondemos consultas sobre el software de agenda y gestión para clínicas."
         path="/contact"
       />
@@ -101,6 +101,14 @@ export default function Contact() {
                 <p className="font-medium">{t.contact.commitment}</p>
                 <p className="text-sm text-muted-foreground">{t.contact.commitmentDesc}</p>
               </div>
+            </div>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <h2 className="font-semibold">{t.contact.nextStepsHeading}</h2>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                {t.contact.nextSteps.map((st, i) => (
+                  <li key={i}>{st}</li>
+                ))}
+              </ol>
             </div>
           </div>
         </div>
