@@ -1,3 +1,4 @@
+import { SeoHead } from '@/components/shared/SeoHead';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Clock, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ const SessionExpired = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <SeoHead title="Sesión cerrada — AgendixPro" description="Tu sesión de AgendixPro se cerró por seguridad. Volvé a iniciar sesión para continuar." path="/session-expired" />
       <Card className="w-full max-w-md text-center shadow-lg">
         <CardHeader className="pb-2 flex flex-col items-center gap-3">
           <div className="rounded-full bg-muted p-4">
