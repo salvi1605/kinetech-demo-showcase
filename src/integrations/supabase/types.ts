@@ -1499,6 +1499,7 @@ export type Database = {
         }
         Returns: Json
       }
+      verify_backup_token: { Args: { p_token: string }; Returns: boolean }
     }
     Enums: {
       appointment_mode: "in_person" | "virtual" | "home_visit"
