@@ -290,7 +290,7 @@ export const en: Translations = {
     s3title: "3. Pricing and billing",
     s3body: "AgendixPro offers monthly subscription plans. The prices in effect at the time of contracting are:",
     s3items: [
-      "Starter Plan: USD 500 per month, plus a one-time implementation fee (setup).",
+      "Early Adopters Plan: USD 250 per month, plus a one-time implementation fee (USD 250 – 500 depending on catalog size and requirements).",
       "FOUNDER PLAN: USD 120 per month (limited offer for clinics in early adoption stage).",
       "All prices are expressed in US dollars (USD).",
       "Billing is monthly and recurring. The subscription renews automatically unless previously cancelled.",
