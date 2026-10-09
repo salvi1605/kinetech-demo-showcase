@@ -3,6 +3,8 @@
 
 import * as React from 'npm:react@18.3.1'
 import { template as appointmentInfo } from './appointment-info.tsx'
+import { template as appointmentReminder } from './appointment-reminder.tsx'
+import { template as upcomingAppointments } from './upcoming-appointments.tsx'
 
 export interface TemplateEntry {
   // React Email component used to render the email body.
@@ -19,4 +21,6 @@ export interface TemplateEntry {
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'appointment-info': appointmentInfo,
+  'appointment-reminder': appointmentReminder,
+  'upcoming-appointments': upcomingAppointments,
 }

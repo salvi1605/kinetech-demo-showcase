@@ -1,0 +1,218 @@
+/// <reference types="npm:@types/react@18.3.1" />
+
+import * as React from 'npm:react@18.3.1'
+import {
+  Body,
+  Container,
+  Head,
+  Heading,
+  Hr,
+  Html,
+  Preview,
+  Section,
+  Text,
+} from 'npm:@react-email/components@0.0.22'
+import type { TemplateEntry } from './registry.ts'
+
+interface AppointmentReminderProps {
+  patientName?: string
+  appointmentDate?: string
+  appointmentTime?: string
+  practitionerName?: string
+  treatmentName?: string
+  clinicName?: string
+  clinicAddress?: string
+  clinicPhone?: string
+  appointmentInstructions?: string
+  customMessage?: string
+  notes?: string
+}
+
+const AppointmentReminderEmail = ({
+  patientName,
+  appointmentDate,
+  appointmentTime,
+  practitionerName,
+  treatmentName,
+  clinicName,
+  clinicAddress,
+  clinicPhone,
+  appointmentInstructions,
+  customMessage,
+  notes,
+}: AppointmentReminderProps) => {
+  const greetingName = patientName?.trim() || 'Paciente'
+  const clinic = clinicName?.trim() || 'AgendixPro'
+
+  return (
+    <Html lang="es" dir="ltr">
+      <Head />
+      <Preview>
+        {`Recordatorio de tu turno${appointmentDate ? ` para el ${appointmentDate}` : ''}`}
+      </Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Heading style={h1}>Recordatorio de tu turno</Heading>
+          <Text style={text}>Hola {greetingName},</Text>
+          <Text style={text}>
+            Te recordamos que tenés un turno programado en <strong>{clinic}</strong>:
+          </Text>
+
+          {customMessage && (
+            <Section style={messageBox}>
+              <Text style={messageText}>{customMessage}</Text>
+            </Section>
+          )}
+
+          <Section style={card}>
+            {appointmentDate && (
+              <Row label="Fecha" value={appointmentDate} />
+            )}
+            {appointmentTime && (
+              <Row label="Hora" value={appointmentTime} />
+            )}
+            {practitionerName && (
+              <Row label="Profesional" value={practitionerName} />
+            )}
+            {treatmentName && (
+              <Row label="Tratamiento" value={treatmentName} />
+            )}
+            {clinicAddress && (
+              <Row label="Dirección" value={clinicAddress} />
+            )}
+            {clinicPhone && (
+              <Row label="Teléfono" value={clinicPhone} />
+            )}
+          </Section>
+
+          {appointmentInstructions && (
+            <>
+              <Text style={label}>Instrucciones</Text>
+              <Text style={notesText}>{appointmentInstructions}</Text>
+            </>
+          )}
+
+          {notes && (
+            <>
+              <Text style={label}>Notas del turno</Text>
+              <Text style={notesText}>{notes}</Text>
+            </>
+          )}
+
+          <Hr style={hr} />
+          <Text style={footer}>
+            Si no reconocés este turno o necesitás reprogramarlo, comunicate con
+            la clínica{clinicPhone ? ` al ${clinicPhone}` : ''}.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  )
+}
+
+const Row = ({ label: l, value }: { label: string; value: string }) => (
+  <table style={rowTable}>
+    <tbody>
+      <tr>
+        <td style={rowLabel}>{l}</td>
+        <td style={rowValue}>{value}</td>
+      </tr>
+    </tbody>
+  </table>
+)
+
+export const template = {
+  component: AppointmentReminderEmail,
+  subject: (data: Record<string, any>) => {
+    // Permite override de asunto por clínica
+    if (data?.subjectOverride && typeof data.subjectOverride === 'string' && data.subjectOverride.trim()) {
+      return data.subjectOverride.trim()
+    }
+    return data?.appointmentDate
+      ? `Recordatorio de tu turno - ${data.appointmentDate}`
+      : 'Recordatorio de tu turno'
+  },
+  displayName: 'Recordatorio del turno',
+  previewData: {
+    patientName: 'María Pérez',
+    appointmentDate: 'martes 7 de octubre de 2026',
+    appointmentTime: '10:30',
+    practitionerName: 'Lic. Juan Gómez',
+    treatmentName: 'FKT',
+    clinicName: 'AgendixPro Demo',
+    clinicAddress: 'Av. Siempre Viva 123, Buenos Aires',
+    clinicPhone: '+54 11 1234-5678',
+    appointmentInstructions: 'Llegá 10 minutos antes con ropa cómoda.',
+    customMessage: 'Recordá traer tu orden médica actualizada.',
+    notes: 'Sesión de control post-quirúrgico.',
+  },
+} satisfies TemplateEntry
+
+export default AppointmentReminderEmail
+
+const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, Arial, sans-serif' }
+const container = { padding: '24px 28px', maxWidth: '560px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#0f172a',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#475569',
+  lineHeight: '1.6',
+  margin: '0 0 16px',
+}
+const label = {
+  fontSize: '12px',
+  color: '#64748b',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.04em',
+  margin: '20px 0 6px',
+  fontWeight: '600' as const,
+}
+const notesText = {
+  fontSize: '14px',
+  color: '#0f172a',
+  lineHeight: '1.6',
+  margin: '0 0 8px',
+  whiteSpace: 'pre-wrap' as const,
+}
+const messageBox = {
+  borderLeft: '3px solid #3B82F6',
+  padding: '10px 14px',
+  margin: '0 0 16px',
+  backgroundColor: '#eff6ff',
+  borderRadius: '4px',
+}
+const messageText = {
+  fontSize: '14px',
+  color: '#0f172a',
+  lineHeight: '1.6',
+  margin: '0',
+  whiteSpace: 'pre-wrap' as const,
+}
+const card = {
+  border: '1px solid #e2e8f0',
+  borderRadius: '10px',
+  padding: '16px 20px',
+  margin: '8px 0 8px',
+  backgroundColor: '#f8fafc',
+}
+const rowTable = { width: '100%', borderCollapse: 'collapse' as const, margin: '4px 0' }
+const rowLabel = {
+  fontSize: '13px',
+  color: '#64748b',
+  padding: '4px 8px 4px 0',
+  width: '40%',
+  verticalAlign: 'top' as const,
+}
+const rowValue = {
+  fontSize: '14px',
+  color: '#0f172a',
+  padding: '4px 0',
+  fontWeight: '500' as const,
+}
+const hr = { borderColor: '#e2e8f0', margin: '28px 0 16px' }
+const footer = { fontSize: '12px', color: '#94a3b8', margin: '0' }
