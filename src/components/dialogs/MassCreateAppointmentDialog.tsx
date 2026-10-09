@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useApp, Appointment } from '@/contexts/AppContext';
+import { useApp, Appointment, type Patient } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel, formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2, UserPlus } from 'lucide-react';
@@ -46,6 +46,11 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
   
   const [patientId, setPatientId] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [showUpcomingDialog, setShowUpcomingDialog] = useState(false);
+  const [emailPromptData, setEmailPromptData] = useState<UpcomingAppointmentEmailItem[] | null>(null);
+  const [emailPromptPatient, setEmailPromptPatient] = useState<Patient | null>(null);
+  const [emailPromptCount, setEmailPromptCount] = useState(0);
   const [patientSearch, setPatientSearch] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [showFailureDialog, setShowFailureDialog] = useState(false);
