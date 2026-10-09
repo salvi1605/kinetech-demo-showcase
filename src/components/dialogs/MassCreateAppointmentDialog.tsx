@@ -245,6 +245,10 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
         const createdPatient = state.patients.find(p => p.id === patientId) || null;
 
         if (futureItems.length > 0 && roleAllowsEmail && createdPatient) {
+          toast({
+            title: 'Citas creadas exitosamente',
+            description: `Se crearon ${createdCount} citas para ${formatPatientFullName(createdPatient)}`,
+          });
           setEmailPromptPatient(createdPatient);
           setEmailPromptData(futureItems);
           setEmailPromptCount(createdCount);
@@ -314,13 +318,14 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
     });
   };
 
-  if (selectedSlotKeys.length === 0) {
-    return null;
-  }
+  // Importante: no hacer early return cuando la selección queda vacía.
+  // Tras crear las citas se limpia la selección, y los diálogos posteriores
+  // (fallos, aviso de email, envío) deben seguir montados para mostrarse.
+  const hasSelection = selectedSlotKeys.length > 0;
 
   return (
     <>
-      <Dialog open={open} onOpenChange={handleCancel}>
+      <Dialog open={open && hasSelection} onOpenChange={handleCancel}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
