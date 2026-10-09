@@ -1101,7 +1101,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
         <SendUpcomingAppointmentsDialog
           open={sendUpcomingOpen}
           onOpenChange={setSendUpcomingOpen}
-          patient={patient}
+          patient={patient ?? null}
           appointments={upcomingEmailItems}
         />
       </DialogContent>

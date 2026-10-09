@@ -16,6 +16,9 @@ import type { TreatmentType } from '@/types/appointments';
 import { treatmentLabel, formatPatientFullName, matchesPatientSearch } from '@/utils/formatters';
 import { Search, User, Clock, AlertCircle, Copy, AlertTriangle, Loader2, UserPlus } from 'lucide-react';
 import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
+import { SendUpcomingAppointmentsDialog, type UpcomingAppointmentEmailItem } from '@/components/dialogs/SendUpcomingAppointmentsDialog';
+import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/utils/dateUtils';
 import { format, parse } from 'date-fns';
 import { displaySelectedLabel, parseSlotKey, byDateTime, addMinutesStr, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { createAppointmentsBatchRpc, type RpcBatchResult, type BatchAppointmentInput } from '@/lib/appointmentService';
@@ -219,12 +222,38 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           });
         }
       } else {
-        toast({
-          title: 'Citas creadas exitosamente',
-          description: `Se crearon ${createdCount} citas para ${state.patients.find(p => p.id === patientId)?.name}`,
-        });
-        onOpenChange(false);
-        resetForm();
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const futureItems: UpcomingAppointmentEmailItem[] = batchInput
+          .filter((b) => b.date >= todayStr)
+          .sort((a, b) => (a.date + a.start_time).localeCompare(b.date + b.start_time))
+          .map((b) => ({
+            date: format(parseLocalDate(b.date), "EEEE d 'de' MMMM", { locale: es }),
+            time: (b.start_time || '').slice(0, 5),
+            practitionerName: state.practitioners.find((p) => p.id === b.practitioner_id)?.name,
+            treatmentName: b.treatment_type_key
+              ? (treatmentLabel[b.treatment_type_key as keyof typeof treatmentLabel] || b.treatment_type_key)
+              : undefined,
+          }));
+        const effectiveIsSuperAdmin = state.userRole === 'super_admin' && !state.isImpersonatingRole;
+        const roleAllowsEmail = effectiveIsSuperAdmin ||
+          ['admin_clinic', 'receptionist', 'tenant_owner'].includes(state.userRole);
+        const createdPatient = state.patients.find(p => p.id === patientId) || null;
+
+        if (futureItems.length > 0 && roleAllowsEmail && createdPatient) {
+          setEmailPromptPatient(createdPatient);
+          setEmailPromptData(futureItems);
+          setEmailPromptCount(createdCount);
+          onOpenChange(false);
+          resetForm();
+          setShowEmailPrompt(true);
+        } else {
+          toast({
+            title: 'Citas creadas exitosamente',
+            description: `Se crearon ${createdCount} citas para ${createdPatient?.name}`,
+          });
+          onOpenChange(false);
+          resetForm();
+        }
       }
     } catch (error: any) {
       console.error('Error creating appointments:', error);
@@ -526,6 +555,35 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={showEmailPrompt} onOpenChange={setShowEmailPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Citas creadas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se crearon {emailPromptCount} citas para {emailPromptPatient ? formatPatientFullName(emailPromptPatient) : 'el paciente'}. ¿Querés enviar las citas futuras por email?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowEmailPrompt(false)}>Ahora no</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowEmailPrompt(false);
+                setShowUpcomingDialog(true);
+              }}
+            >
+              Enviar por email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <SendUpcomingAppointmentsDialog
+        open={showUpcomingDialog}
+        onOpenChange={setShowUpcomingDialog}
+        patient={emailPromptPatient}
+        appointments={emailPromptData || []}
+      />
 
       <NewPatientDialogV2
         open={showNewPatientDialog}
