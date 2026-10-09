@@ -71,7 +71,6 @@ export const es = {
     comingSoon: {
       heading: "Próximamente",
       items: [
-        "Recordatorios automáticos a pacientes",
         "Confirmación de turnos",
         "Herramientas para reducir ausencias",
       ],
@@ -107,6 +106,7 @@ export const es = {
         "Agenda semanal por profesional",
         "Registro completo de pacientes",
         "Gestión de disponibilidad",
+        "Recordatorios de citas por email",
         "Control de asistencia y no-shows",
         "Reportes operativos",
         "Acceso web para todo el equipo",
