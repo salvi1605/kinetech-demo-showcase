@@ -73,7 +73,6 @@ export const en: Translations = {
     comingSoon: {
       heading: "Coming soon",
       items: [
-        "Automatic patient reminders",
         "Appointment confirmations",
         "Tools to reduce no-shows",
       ],
@@ -109,6 +108,7 @@ export const en: Translations = {
         "Per-practitioner weekly schedule",
         "Complete patient records",
         "Availability management",
+        "Appointment reminders by email",
         "Attendance & no-show tracking",
         "Operational reports",
         "Web access for the entire team",
