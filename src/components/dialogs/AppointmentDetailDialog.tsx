@@ -48,6 +48,7 @@ import { displaySubSlot } from '@/utils/slotUtils';
 import { ClinicalHistoryDialog } from '@/components/patients/ClinicalHistoryDialog';
 import { RescheduleSlotPicker } from '@/components/shared/RescheduleSlotPicker';
 import { SendAppointmentInfoDialog } from '@/components/dialogs/SendAppointmentInfoDialog';
+import { SendUpcomingAppointmentsDialog } from '@/components/dialogs/SendUpcomingAppointmentsDialog';
 
 import { checkPractitionerAvailability } from '@/utils/appointments/checkPractitionerAvailability';
 import { updateAppointment as updateAppointmentInDb, deleteAppointment as deleteAppointmentInDb, updateAppointmentRpc } from '@/lib/appointmentService';
@@ -84,6 +85,8 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const [isSavingTreatment, setIsSavingTreatment] = useState(false);
   const [currentPractitionerId, setCurrentPractitionerId] = useState<string | undefined>();
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
+  const [sendReminderOpen, setSendReminderOpen] = useState(false);
+  const [sendUpcomingOpen, setSendUpcomingOpen] = useState(false);
   const { settings: clinicSettings } = useClinicSettings();
 
   // Resolve current practitioner ID for health_pro permission check
@@ -153,6 +156,28 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   // Check if appointment is in past day
   const appointmentDateISO = appointment.date.length === 10 ? appointment.date : format(parseISO(appointment.date), 'yyyy-MM-dd');
   const isPast = isPastDay(appointmentDateISO);
+  const appointmentDateTime = (() => {
+    const d = parseLocalDate(appointmentDateISO);
+    const [hh, mm] = (appointment.startTime || '00:00').split(':').map(Number);
+    d.setHours(hh || 0, mm || 0, 0, 0);
+    return d;
+  })();
+  const msUntilAppointment = appointmentDateTime.getTime() - Date.now();
+  const isWithin24h = msUntilAppointment > 0 && msUntilAppointment <= 24 * 60 * 60 * 1000;
+  const upcomingEmailItems = futuras
+    .filter((apt) => apt.status === 'scheduled')
+    .map((apt) => {
+      const d = apt.date.length === 10 ? parseLocalDate(apt.date) : parseISO(apt.date);
+      return {
+        id: apt.id,
+        date: format(d, "EEEE d 'de' MMMM", { locale: es }),
+        time: (apt.startTime || '').slice(0, 5),
+        practitionerName: state.practitioners.find((p) => p.id === apt.practitionerId)?.name,
+        treatmentName: apt.treatmentType
+          ? (treatmentLabel[apt.treatmentType as keyof typeof treatmentLabel] || apt.treatmentType)
+          : undefined,
+      };
+    });
   const canEdit = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || !isPast;
 
   // Calcular duración estándar (30 min)
@@ -494,6 +519,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               <div className="bg-muted/30 p-4 rounded-lg">
                 <p className="font-medium">
                   {format(appointmentDate, 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
+                  {isWithin24h && <Badge variant="secondary" className="ml-2">Dentro de 24 h</Badge>}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {appointment.startTime} - {endTime} ({durationLabel})
@@ -613,6 +639,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <Calendar className="h-4 w-4" />
                   Citas del Paciente
                 </Label>
+                <div className="flex items-center gap-2 flex-wrap">
                 <Button 
                   size="sm" 
                   onClick={handleCopyAllPatientAppointments}
@@ -621,6 +648,18 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <Copy className="h-4 w-4" />
                   Copiar Horarios
                 </Button>
+                <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSendUpcomingOpen(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Enviar citas futuras
+                  </Button>
+                </RoleGuard>
+                </div>
               </div>
               <div className="bg-muted/30 p-4 rounded-lg max-h-96 overflow-auto">
                 {/* Citas Futuras */}
@@ -760,6 +799,16 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                     <Send className="h-4 w-4" />
                     Enviar información del turno
                   </Button>
+                  <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSendReminderOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      Enviar recordatorio
+                    </Button>
+                  </RoleGuard>
                 </div>
               </div>
             )}
@@ -1039,6 +1088,22 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
             practitionerName={practitioner?.name}
           />
         )}
+        {appointment && (
+          <SendAppointmentInfoDialog
+            open={sendReminderOpen}
+            onOpenChange={setSendReminderOpen}
+            appointment={appointment}
+            patient={patient}
+            practitionerName={practitioner?.name}
+            templateName="appointment-reminder"
+          />
+        )}
+        <SendUpcomingAppointmentsDialog
+          open={sendUpcomingOpen}
+          onOpenChange={setSendUpcomingOpen}
+          patient={patient}
+          appointments={upcomingEmailItems}
+        />
       </DialogContent>
     </Dialog>
   );

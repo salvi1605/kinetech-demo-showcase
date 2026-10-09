@@ -42,6 +42,7 @@ interface Props {
   appointment: Appointment | null;
   patient: Patient | null;
   practitionerName?: string;
+  templateName?: 'appointment-info' | 'appointment-reminder';
 }
 
 export const SendAppointmentInfoDialog = ({
@@ -50,7 +51,9 @@ export const SendAppointmentInfoDialog = ({
   appointment,
   patient,
   practitionerName,
+  templateName = 'appointment-info',
 }: Props) => {
+  const isReminder = templateName === 'appointment-reminder';
   const { state } = useApp();
   const { toast } = useToast();
   const { settings: clinicSettings } = useClinicSettings();
@@ -143,9 +146,9 @@ export const SendAppointmentInfoDialog = ({
 
       const { data, error } = await supabase.functions.invoke('send-transactional-email', {
         body: {
-          templateName: 'appointment-info',
+          templateName,
           recipientEmail: recipient,
-          idempotencyKey: `appointment-info-${appointment.id}-${Date.now()}`,
+          idempotencyKey: `${templateName}-${appointment.id}-${Date.now()}`,
           fromLabel,
           templateData: {
             patientName: patient ? formatPatientFullName(patient) : undefined,
@@ -181,7 +184,7 @@ export const SendAppointmentInfoDialog = ({
         await supabase.rpc('log_appointment_email_sent', {
           p_appointment_id: appointment.id,
           p_recipient_email: recipient,
-          p_template_name: 'appointment-info',
+          p_template_name: templateName,
           p_was_test: hasOverride,
         });
       } catch (auditErr) {
@@ -189,7 +192,7 @@ export const SendAppointmentInfoDialog = ({
       }
 
       toast({
-        title: 'Información enviada',
+        title: isReminder ? 'Recordatorio enviado' : 'Información enviada',
         description: `Se envió el email a ${recipient}.`,
       });
 
@@ -212,7 +215,7 @@ export const SendAppointmentInfoDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            Enviar información del turno
+            {isReminder ? 'Enviar recordatorio del turno' : 'Enviar información del turno'}
           </DialogTitle>
           <DialogDescription>
             Revisá los datos antes de enviar. Este es un envío manual único.
@@ -237,7 +240,7 @@ export const SendAppointmentInfoDialog = ({
               <Info className="h-4 w-4" />
               <AlertDescription className="space-y-1">
                 <p className="text-sm">
-                  <strong>Ya se envió información de este turno</strong> el{' '}
+                  <strong>Ya se envió un correo de este turno</strong> el{' '}
                   {format(new Date(lastSend.sent_at), "d/MM/yyyy 'a las' HH:mm", { locale: es })}
                   {' '}a <span className="font-mono">{lastSend.recipient_email}</span>
                   {lastSend.user_full_name ? ` (por ${lastSend.user_full_name})` : ''}.
@@ -376,7 +379,9 @@ export const SendAppointmentInfoDialog = ({
           </Button>
           <Button onClick={handleSend} disabled={!canSend}>
             <Send className="h-4 w-4 mr-2" />
-            {isSending ? 'Enviando…' : lastSend ? 'Reenviar información' : 'Enviar información'}
+            {isSending ? 'Enviando…' : isReminder
+              ? (lastSend ? 'Reenviar recordatorio' : 'Enviar recordatorio')
+              : (lastSend ? 'Reenviar información' : 'Enviar información')}
           </Button>
         </DialogFooter>
       </DialogContent>
