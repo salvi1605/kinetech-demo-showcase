@@ -1,28 +1,22 @@
-# Carga de datos demo enriquecidos — "Clínica Demo (Ventas)"
+# Llenar la semana 19–23/10/2026 — "Clínica Demo (Ventas)"
 
-## Diagnóstico (estado actual, solo este tenant)
-- 2 profesionales (Lic. Martín Demo, Lic. Carolina Prueba), ambos con el mismo color (#FADADD) y horario Lun–Vie 08:00–12:00.
-- 5 pacientes, 9 turnos (todos `scheduled`, entre 09/10 y 26/10), 9 notas de evolución vacías (las crea un trigger automático).
-- Configuración de la clínica: 08:00–19:00. Envío manual de emails habilitado (no se toca; la carga no envía nada).
-- Restricciones de la base que condicionan la carga:
-  - Un solo turno activo por clínica + fecha + hora + sub-turno (los turnos simultáneos de distintos profesionales deben usar sub-turnos distintos).
-  - Al insertar un turno no cancelado, un trigger crea automáticamente su nota de evolución vacía (1 por turno). Las evoluciones se completan actualizando esa nota, no insertando otra.
-  - Pacientes: DNI, fecha de nacimiento y teléfono obligatorios; DNI único por clínica.
+## Diagnóstico (solo este tenant)
+- Hoy hay 18 turnos esa semana (Lun 4, Mar 6, Mié 2, Jue 2, Vie 4). Sin feriados ni excepciones cargadas.
+- Horarios: Martín y Carolina 08:00–12:00 (8 turnos/día), Tomás 09:00–17:00 (16/día), Sofía 13:00–19:30 (13/día). Hay lugar de sobra.
+- La agenda muestra 5 sub-turnos por bloque de 30 min; algunos turnos existentes usan sub-turnos 6–8.
+- Masaje, Drenaje linfático y Drenaje + Ultrasonido son exclusivos (1 por bloque): si los uso, el calendario muestra candado y bloquea el bloque. FKT, ATM, Vestibular y Otro admiten hasta 2 por bloque.
 
-## Qué voy a cargar (todo con `clinic_id` = Clínica Demo (Ventas))
-1. **Profesionales (+2, total 4):** "Lic. Sofía Herrera" y "Lic. Tomás Ibarra", con colores distintos, especialidad, email @example.com y teléfono ficticio. Disponibilidad Lun–Vie: Sofía 13:00–19:30, Tomás 09:00–17:00. Tratamientos asignados (FKT, Masaje, ATM, etc.).
-   - Supuesto: también cambio el color de los 2 profesionales existentes (hoy idénticos) para que la agenda se vea diferenciada. Es el único ajuste a registros existentes; si preferís no tocarlos, lo omito.
-2. **Pacientes (+22, total 27):** nombres argentinos ficticios con los 4 campos de nombre, DNI ficticio único (serie 40.000.xxx), fecha de nacimiento, email `nombre.apellido@example.com`, teléfono `+54 11 5555-xxxx`, contacto de emergencia, obra social "Particular", consentimiento de email aceptado, preferencia de recordatorio email. Datos clínicos básicos como nota clínica inicial (motivo de consulta, antecedentes, dolor 0–10).
-3. **Turnos (+~95, total ~104):** últimas 8 semanas y próximas 3, solo días hábiles y dentro del horario de cada profesional, con tratamiento asignado.
-   - Pasados: ~80% `completed`, ~10% `no_show`, ~10% `cancelled`. Futuros: todos `scheduled`.
-   - Historial de estados en `appointment_status_history` (scheduled → estado final) para los pasados.
-   - Los 9 turnos existentes no se modifican ni se borran; se evitan choques de horario con ellos.
-4. **Historia clínica:** en ~60% de los turnos `completed` completo la nota de evolución con un texto breve y profesional (y la marco completa); el resto queda pendiente, lo que también muestra los avisos de "evoluciones pendientes" en la demo.
+## Qué voy a cargar
+- **55 turnos `scheduled`**, 11 por día (Lun–Vie), repartidos así por día: Martín 2, Carolina 3, Tomás 3, Sofía 3 (total semana: Martín 10, Carolina 15, Tomás 15, Sofía 15).
+- Horarios distintos dentro de la franja de cada profesional, cubriendo toda la jornada 08:00–19:00 para que la grilla se vea llena.
+- Tratamientos: FKT, ATM, Vestibular y Otro, rotando (nunca más de 2 del mismo tratamiento por bloque, contando los existentes). Masajes y drenajes no se usan para no generar candados.
+- Pacientes: los 27 existentes, rotando; un paciente no se repite el mismo día.
+- Sub-turnos 1–5 libres, sin chocar con los existentes ni con otros profesionales en el mismo horario.
 
 ## Garantías
-- No se toca "Clínica Demo", "Kinesiología Demo", CTAK ni otro tenant: cada sentencia filtra o fija el `clinic_id` del tenant de ventas.
-- No se envían emails ni se disparan colas, crons o funciones; no se publica nada.
-- Todo en una sola transacción: si algo falla, no queda nada a medias.
+- Los 18 turnos existentes no se tocan. Ningún otro tenant se toca.
+- El trigger de la base crea la nota de evolución vacía de cada turno (comportamiento normal). Sin emails, colas ni publicación.
+- Una sola transacción: si algo falla, no queda nada.
 
-## Verificación final (queries)
-Conteos de profesionales, pacientes, turnos por estado y por semana, notas completadas, y comprobación de que los otros tenants quedaron con los mismos conteos que antes.
+## Verificación
+Conteo por día y por profesional de la semana, total semanal (esperado: 73) y chequeo de que no hay duplicados de horario/sub-turno.
