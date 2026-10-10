@@ -100,13 +100,29 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
     return slots;
   }, [clinicSettings]);
 
-  // Actualizar formulario cuando cambia selectedSlot
+  // Actualizar formulario cuando cambia selectedSlot.
+  // Si la agenda pasó el sub-turno tocado (fila "+"), lo pre-selecciona;
+  // si no vino ninguno (FAB "+ Nuevo turno"), arranca vacío como siempre.
+  const maxSubSlots = clinicSettings?.sub_slots_per_block ?? 5;
+  const preselectKey = useMemo(() => {
+    if (!selectedSlot || !open) return null;
+    return `${format(selectedSlot.date, 'yyyy-MM-dd')}|${selectedSlot.time}|${selectedSlot.subSlot ?? 'none'}|${maxSubSlots}`;
+  }, [selectedSlot, open, maxSubSlots]);
+  const preselectedRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (selectedSlot && open) {
-      form.setValue('date', format(selectedSlot.date, 'yyyy-MM-dd'));
-      form.setValue('startTime', selectedSlot.time);
+    if (!selectedSlot || !open) {
+      preselectedRef.current = null;
+      return;
     }
-  }, [selectedSlot, open, form]);
+    form.setValue('date', format(selectedSlot.date, 'yyyy-MM-dd'));
+    form.setValue('startTime', selectedSlot.time);
+    // No pisar una elección manual: solo pre-selecciona al abrir o al cambiar de fila.
+    if (preselectedRef.current === preselectKey) return;
+    const requested = selectedSlot.subSlot ?? null;
+    setSelectedSubSlot(requested !== null && requested <= maxSubSlots ? requested : null);
+    preselectedRef.current = preselectKey;
+  }, [selectedSlot, open, form, preselectKey, maxSubSlots]);
 
   // Pre-seleccionar paciente cuando viene desde otra vista
   useEffect(() => {
