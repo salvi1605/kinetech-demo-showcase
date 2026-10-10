@@ -86,6 +86,8 @@ export const Calendar = () => {
   
   // Cargar configuración dinámica de la clínica
   const { settings: clinicSettings, isLoading: loadingSettings } = useClinicSettings();
+  // Filas por bloque = ajuste de la clínica (1–10); 5 por defecto.
+  const SUB_ROWS = Math.min(10, Math.max(1, clinicSettings?.sub_slots_per_block ?? 5));
   
   // Cargar profesionales de la clínica desde BD y sincronizar con AppContext
   const { practitioners: dbPractitioners, loading: loadingPractitioners } = usePractitioners(state.currentClinicId);
@@ -748,7 +750,7 @@ export const Calendar = () => {
     const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
     
     // Obtener citas usando el índice de sub-slots
-    const slotAppointments = Array.from({ length: 5 }, (_, subIndex) => {
+    const slotAppointments = Array.from({ length: SUB_ROWS }, (_, subIndex) => {
       const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
       return appointmentsBySlotKey.get(key);
     });
@@ -757,7 +759,7 @@ export const Calendar = () => {
 
     // Si hay citas, mostrar sub-slots
     // Alturas uniformes: 60px para todos los sub-slots
-    const rowHeights = 'repeat(5, 60px)';
+    const rowHeights = `repeat(${SUB_ROWS}, 60px)`;
 
     // Helper para obtener el badge de estado
     const getStatusBadge = (status: string) => {
@@ -780,7 +782,7 @@ export const Calendar = () => {
       return (
         <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-400 grid gap-1"
              style={{ gridTemplateRows: rowHeights }}>
-          {Array.from({ length: 5 }).map((_, subIndex) => {
+          {Array.from({ length: SUB_ROWS }).map((_, subIndex) => {
               const appointment = slotAppointments[subIndex];
             
             if (appointment) {
@@ -944,8 +946,8 @@ export const Calendar = () => {
     // Slot completamente vacío - mostrar todos los sub-slots disponibles (60px cada uno)
     return (
       <div key={`${dayIndex}-${time}`} className="p-1 border border-gray-400 grid gap-1" 
-           style={{ gridTemplateRows: 'repeat(5, 60px)' }}>
-         {Array.from({ length: 5 }).map((_, subIndex) => {
+           style={{ gridTemplateRows: `repeat(${SUB_ROWS}, 60px)` }}>
+         {Array.from({ length: SUB_ROWS }).map((_, subIndex) => {
            if (subIndex >= capacity) {
              return <div key={`${dayIndex}-${time}-${subIndex}`} className="bg-gray-100" />;
            }
@@ -1391,7 +1393,7 @@ export const Calendar = () => {
                             const dateISO = format(weekDates[dayIndex], 'yyyy-MM-dd');
                             
                             // Obtener citas usando el índice de sub-slots
-                            const slotAppointments = Array.from({ length: 5 }, (_, subIndex) => {
+                            const slotAppointments = Array.from({ length: SUB_ROWS }, (_, subIndex) => {
                               const key = getSlotKey({ dateISO, hour: time, subSlot: subIndex });
                               return appointmentsBySlotKey.get(key);
                             });
