@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useClinicSettings } from '@/hooks/useClinicSettings';
 import { useToast } from '@/hooks/use-toast';
 import { useApp, Appointment, type Patient } from '@/contexts/AppContext';
 import type { TreatmentType } from '@/types/appointments';
@@ -43,6 +44,8 @@ interface SlotInfo {
 export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKeys, preselectedPatientId }: MassCreateAppointmentDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
+  const { settings: clinicSettings } = useClinicSettings();
+  const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
   
   const [patientId, setPatientId] = useState<string>('');
   const [notes, setNotes] = useState('');
@@ -244,7 +247,10 @@ export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKe
           ['admin_clinic', 'receptionist', 'tenant_owner'].includes(state.userRole);
         const createdPatient = state.patients.find(p => p.id === patientId) || null;
 
-        if (futureItems.length > 0 && roleAllowsEmail && createdPatient) {
+        const patientCanReceiveEmail = !!createdPatient?.email?.trim() &&
+          !!createdPatient?.seguro?.contactAuth?.email;
+
+        if (futureItems.length > 0 && roleAllowsEmail && emailRemindersEnabled && patientCanReceiveEmail && createdPatient) {
           toast({
             title: 'Citas creadas exitosamente',
             description: `Se crearon ${createdCount} citas para ${formatPatientFullName(createdPatient)}`,

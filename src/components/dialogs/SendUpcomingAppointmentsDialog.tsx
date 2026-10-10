@@ -64,11 +64,12 @@ export const SendUpcomingAppointmentsDialog = ({ open, onOpenChange, patient, ap
         .maybeSingle();
       if (mounted && data) setClinicInfo(data as ClinicInfo);
     })();
-    setEmailOverride('');
+    // Pre-cargar con el email registrado del paciente (editable solo para este envío)
+    setEmailOverride(patient?.email?.trim() || '');
     return () => {
       mounted = false;
     };
-  }, [open, state.currentClinicId]);
+  }, [open, state.currentClinicId, patient?.email]);
 
   const trimmedOverride = emailOverride.trim();
   const recipient = trimmedOverride || patientEmail;
@@ -198,14 +199,14 @@ export const SendUpcomingAppointmentsDialog = ({ open, onOpenChange, patient, ap
               autoComplete="off"
               disabled={blockedByConsent}
             />
-            {!emailOverride && patientEmail && (
+            {patientEmail && !hasOverride && trimmedOverride && (
               <p className="text-xs text-muted-foreground">
-                Se enviará al email registrado del paciente: <span className="font-mono">{patientEmail}</span>
+                Es el email registrado en la ficha del paciente.
               </p>
             )}
-            {!emailOverride && !patientEmail && !blockedByConsent && (
+            {!trimmedOverride && !blockedByConsent && (
               <p className="text-xs text-destructive">
-                El paciente no tiene email registrado. Ingresá uno para este envío.
+                {patientEmail ? 'Ingresá un email para este envío.' : 'El paciente no tiene email registrado. Ingresá uno para este envío.'}
               </p>
             )}
             {hasOverride && (
