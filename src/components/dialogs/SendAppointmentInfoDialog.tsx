@@ -104,13 +104,14 @@ export const SendAppointmentInfoDialog = ({
       });
 
     // Reset UI state
-    setEmailOverride('');
+    // Pre-cargar con el email registrado del paciente (editable solo para este envío)
+    setEmailOverride(patient?.email?.trim() || '');
     setConfirmResend(false);
 
     return () => {
       mounted = false;
     };
-  }, [open, appointment, state.currentClinicId]);
+  }, [open, appointment, state.currentClinicId, patient?.email]);
 
   if (!appointment) return null;
 
@@ -350,14 +351,14 @@ export const SendAppointmentInfoDialog = ({
               autoComplete="off"
               disabled={blockedByConsent}
             />
-            {!emailOverride && patientEmail && (
+            {patientEmail && !hasOverride && trimmedOverride && (
               <p className="text-xs text-muted-foreground">
-                Se enviará al email registrado del paciente: <span className="font-mono">{patientEmail}</span>
+                Es el email registrado en la ficha del paciente.
               </p>
             )}
-            {!emailOverride && !patientEmail && !blockedByConsent && (
+            {!trimmedOverride && !blockedByConsent && (
               <p className="text-xs text-destructive">
-                El paciente no tiene email registrado. Ingresá uno para este envío.
+                {patientEmail ? 'Ingresá un email para este envío.' : 'El paciente no tiene email registrado. Ingresá uno para este envío.'}
               </p>
             )}
             {hasOverride && (
