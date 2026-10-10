@@ -30,6 +30,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePatientDocuments } from '@/hooks/usePatientDocuments';
 import { RoleGuard } from '@/components/shared/RoleGuard';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
+import { SendUpcomingAppointmentsDialog, type UpcomingAppointmentEmailItem } from '@/components/dialogs/SendUpcomingAppointmentsDialog';
+import { useClinicSettings } from '@/hooks/useClinicSettings';
+import { useTreatments } from '@/hooks/useTreatments';
+import { es } from 'date-fns/locale';
 
 export const PatientDetailTabs = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +51,9 @@ export const PatientDetailTabs = () => {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [showAppointmentDetail, setShowAppointmentDetail] = useState(false);
   const [docToDelete, setDocToDelete] = useState<{ id: string; url: string; name: string } | null>(null);
+  const [sendUpcomingOpen, setSendUpcomingOpen] = useState(false);
+  const { settings: clinicSettings } = useClinicSettings();
+  const { treatments } = useTreatments();
 
   const handleOpenAppointment = useCallback((apt: Appointment) => {
     // Inject into global store so AppointmentDetailDialog can find it
@@ -94,6 +101,7 @@ export const PatientDetailTabs = () => {
         notes: apt.notes || '',
         type: 'consultation' as const,
         treatmentType: 'fkt' as const,
+        treatmentTypeId: apt.treatment_type_id || undefined,
       }));
 
       setPatientAppointments(mapped);
@@ -275,6 +283,34 @@ export const PatientDetailTabs = () => {
     return !canEdit(section);
   };
 
+  // Envío manual de citas futuras por email (misma lógica que el detalle del turno)
+  const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
+  const patientHasEmail = !!patient.email?.trim();
+  const patientEmailConsent = !!patient.seguro?.contactAuth?.email;
+  const nowRef = new Date();
+  const todayISO = format(nowRef, 'yyyy-MM-dd');
+  const nowHHmm = format(nowRef, 'HH:mm');
+  const upcomingEmailItems: UpcomingAppointmentEmailItem[] = patientAppointments
+    .filter((apt) => apt.status === 'scheduled')
+    .filter((apt) => apt.date > todayISO || (apt.date === todayISO && apt.startTime >= nowHHmm))
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))
+    .map((apt) => ({
+      id: apt.id,
+      date: format(parseLocalDate(apt.date), "EEEE d 'de' MMMM", { locale: es }),
+      time: apt.startTime.slice(0, 5),
+      practitionerName: state.practitioners.find((p) => p.id === apt.practitionerId)?.name,
+      treatmentName: apt.treatmentTypeId ? treatments.find((t) => t.id === apt.treatmentTypeId)?.name : undefined,
+    }));
+  const upcomingBlockedReason = !emailRemindersEnabled
+    ? 'El envío de emails está desactivado en la configuración de la clínica.'
+    : !patientEmailConsent
+      ? 'El paciente no autorizó recibir emails. Habilitalo desde su ficha.'
+      : !patientHasEmail
+        ? 'El paciente no tiene email registrado. Cargalo desde su ficha.'
+        : upcomingEmailItems.length === 0
+          ? 'El paciente no tiene turnos futuros para enviar.'
+          : null;
+
   return (
     <div className="p-6 space-y-6 pb-20 lg:pb-6">
       {/* Header */}
@@ -294,6 +330,18 @@ export const PatientDetailTabs = () => {
               <CalendarPlus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Crear cita</span>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSendUpcomingOpen(true)}
+              disabled={!!upcomingBlockedReason}
+              title={upcomingBlockedReason ?? 'Enviar citas futuras por email'}
+              aria-label="Enviar citas futuras"
+              aria-describedby={upcomingBlockedReason ? 'upcoming-blocked-reason' : undefined}
+            >
+              <Mail className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Enviar citas futuras</span>
+            </Button>
           </RoleGuard>
           <Button size="sm" onClick={() => setShowWizard(true)}>
             <Edit className="h-4 w-4 sm:mr-2" />
@@ -301,6 +349,14 @@ export const PatientDetailTabs = () => {
           </Button>
         </div>
       </div>
+
+      <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
+        {upcomingBlockedReason && (
+          <p id="upcoming-blocked-reason" className="text-sm text-destructive sm:text-right -mt-3">
+            Enviar citas futuras: {upcomingBlockedReason}
+          </p>
+        )}
+      </RoleGuard>
 
       {/* Patient Header Card */}
       <Card>
@@ -912,6 +968,13 @@ export const PatientDetailTabs = () => {
         onAppointmentChange={() => {
           fetchPatientAppointments();
         }}
+      />
+
+      <SendUpcomingAppointmentsDialog
+        open={sendUpcomingOpen}
+        onOpenChange={setSendUpcomingOpen}
+        patient={patient}
+        appointments={upcomingEmailItems}
       />
 
       <AlertDialog open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
