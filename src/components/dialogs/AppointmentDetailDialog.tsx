@@ -439,6 +439,14 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
     state.userRole === 'tenant_owner' ||
     state.userRole === 'receptionist';
   const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
+  // Requisitos del paciente para cualquier envío por email
+  const patientHasEmail = !!patient?.email?.trim();
+  const patientEmailConsent = !!patient?.seguro?.contactAuth?.email;
+  const emailBlockedReason = !patientEmailConsent
+    ? 'El paciente no autorizó recibir emails. Habilitalo desde su ficha.'
+    : !patientHasEmail
+      ? 'El paciente no tiene email registrado. Cargalo desde su ficha.'
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -648,17 +656,22 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <Copy className="h-4 w-4" />
                   Copiar Horarios
                 </Button>
-                <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSendUpcomingOpen(true)}
-                    className="flex items-center gap-1"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Enviar citas futuras
-                  </Button>
-                </RoleGuard>
+                {emailRemindersEnabled && (
+                  <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSendUpcomingOpen(true)}
+                      disabled={!!emailBlockedReason || upcomingEmailItems.length === 0}
+                      title={emailBlockedReason ?? (upcomingEmailItems.length === 0 ? 'No hay turnos futuros para enviar.' : undefined)}
+                      aria-describedby={emailBlockedReason ? 'email-blocked-reason' : undefined}
+                      className="flex items-center gap-1"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Enviar citas futuras
+                    </Button>
+                  </RoleGuard>
+                )}
                 </div>
               </div>
               <div className="bg-muted/30 p-4 rounded-lg max-h-96 overflow-auto">
@@ -794,6 +807,8 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   </p>
                   <Button
                     onClick={() => setSendEmailOpen(true)}
+                    disabled={!!emailBlockedReason}
+                    aria-describedby={emailBlockedReason ? 'email-blocked-reason' : undefined}
                     className="flex items-center gap-2"
                   >
                     <Send className="h-4 w-4" />
@@ -803,12 +818,20 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                     <Button
                       variant="outline"
                       onClick={() => setSendReminderOpen(true)}
+                      disabled={!!emailBlockedReason}
+                      aria-describedby={emailBlockedReason ? 'email-blocked-reason' : undefined}
                       className="flex items-center gap-2"
                     >
                       <Send className="h-4 w-4" />
                       Enviar recordatorio
                     </Button>
                   </RoleGuard>
+                  {emailBlockedReason && (
+                    <p id="email-blocked-reason" role="note" className="w-full flex items-center gap-1 text-xs text-destructive">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      {emailBlockedReason}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
