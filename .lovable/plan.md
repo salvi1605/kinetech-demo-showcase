@@ -1,24 +1,29 @@
-# Agenda compacta (1–2 sub-turnos) — "Clínica Demo (Ventas)"
+# Revert del selector "Sub-turno disponible" en "Nuevo Turno"
 
-## Respuesta a la pregunta 1 (diagnóstico)
-- La agenda semanal **no usa el ajuste de la clínica ni el sub-turno más alto cargado**. Dibuja siempre **5 filas fijas** por bloque de 30 min, porque el 5 está escrito en el código de la agenda (vista semanal y vista por día).
-- El ajuste de la clínica "sub-turnos por bloque" (hoy 5) existe, pero solo lo usan el selector de sub-turno al crear un turno y la grilla de reprogramación. No cambia la altura de la agenda.
-- Problema adicional: los turnos con sub-turno 6, 7 u 8 **no aparecen en la agenda**, porque solo se dibujan las filas 1 a 5. Hoy hay turnos de este tipo en esta clínica, así que la demo muestra menos turnos de los que tiene.
-- Conclusión: solo con cambiar los datos y el ajuste a 2, cada bloque **seguiría ocupando 5 filas**, con 3 vacías. Para que se vea compacta hay que hacer también un cambio chico en la agenda.
+## Diagnóstico
+En `NewAppointmentDialog.tsx` hoy conviven tres piezas agregadas recientemente:
+1. Selector visible `SubSlotPicker` (líneas ~360–370) dentro del bloque de fecha/hora.
+2. Lógica de precarga con `preselectKey` + `preselectedRef` (líneas ~103–125) que copia `selectedSlot.subSlot` al estado, pero deja `null` cuando no viene fila (FAB / "Crear cita" desde ficha).
+3. Botón "Confirmar turno" con `disabled={isSubmitting || !selectedSubSlot}` (línea ~563): si el estado es `null`, el botón queda bloqueado. Esa es la regresión que siente el usuario.
 
-## Qué propongo
-1. **Datos (solo este tenant, una transacción):**
-   - Paso todos los turnos activos a sub-turno 1 o 2. Si hay choque (misma fecha, hora y sub-turno), el turno pasa al primer horario libre del mismo día dentro de la disponibilidad de su profesional, y si no hay lugar, a un día cercano de la misma semana. Uso la misma regla para los turnos pasados, así el historial queda coherente.
-   - También respeto el límite por tratamiento en cada bloque (máximo 2 para FKT/ATM/Vestibular/Otro, 1 para masaje y drenajes).
-   - Los turnos cancelados no ocupan lugar: solo bajo su sub-turno a 1–2 cuando está libre. Si no, los dejo como están.
-2. **Ajuste de la clínica:** "sub-turnos por bloque" de 5 → 2 (solo Clínica Demo (Ventas)).
-3. **Agenda (cambio de código, afecta a todas las clínicas de forma segura):** la cantidad de filas por bloque pasa a ser el ajuste de la clínica (con 5 como valor por defecto, que es el que tienen hoy las demás clínicas: para ellas no cambia nada). Así Ventas se ve con 2 filas por bloque. No se publica.
+El envío ya tiene el fallback histórico: `const subSlot = selectedSubSlot ?? 1` (línea 183). La agenda (`Calendar.tsx`) ya pasa `selectedSlot.subSlot` 1-based cuando se toca una fila. No hace falta tocar la base ni el RPC: `create_appointment` sigue validando choques y rango (1..sub_slots_per_block) y devuelve error claro si la posición está ocupada.
+
+## Cambios (solo `src/components/dialogs/NewAppointmentDialog.tsx`)
+1. Quitar el render del `SubSlotPicker` y su `import`.
+2. Eliminar el estado `selectedSubSlot`, `maxSubSlots`, `preselectKey`, `preselectedRef` y simplificar el efecto de `selectedSlot` a lo que hacía antes: setear `date` y `startTime`.
+3. En `createAppointment`, deducir el sub-turno así:
+   - Si vino fila desde la agenda: `selectedSlot.subSlot` (si está dentro de `1..sub_slots_per_block`).
+   - Si no vino fila: `1` (comportamiento anterior).
+4. Botón "Confirmar turno": volver a `disabled={isSubmitting}`.
+5. Si el RPC rechaza por posición ocupada, se mantiene el toast de error existente (sin cambios).
+
+## Fuera de alcance
+- No se borra `src/components/shared/SubSlotPicker.tsx` (queda sin uso, por si se reutiliza; se puede eliminar aparte si lo prefieren).
+- No se toca la agenda, el RPC, datos, emails ni se publica.
+- No se cambia el comportamiento de selección múltiple por rol en la agenda.
 
 ## Verificación
-- Cero choques de fecha + hora + sub-turno entre turnos activos.
-- Semana 19–23/10 con 73 turnos. Total del tenant sin cambios (160), y conteo por estado igual.
-- Todos los turnos dentro del horario de su profesional.
-- Las demás clínicas siguen con 5 sub-turnos y la agenda igual que antes (lo reviso en pantalla).
-
-## Decisión pendiente
-Si preferís no tocar el código, hago solo los puntos 1 y 2. En ese caso, la agenda seguirá mostrando 5 filas por bloque.
+- Build sin errores.
+- Preview: abrir "Nuevo Turno" desde el FAB → sin selector, botón habilitado al completar paciente y profesional.
+- Abrir desde "Crear cita" en la ficha → mismo resultado.
+- Desde una fila (rol Kinesiólogo) → sin selector; el turno se crea en la fila tocada (verificación visual sin crear turnos reales en CTAK; solo en tenants demo si me lo autorizan).
