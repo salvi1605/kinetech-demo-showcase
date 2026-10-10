@@ -44,6 +44,8 @@ interface SlotInfo {
 export const MassCreateAppointmentDialog = ({ open, onOpenChange, selectedSlotKeys, preselectedPatientId }: MassCreateAppointmentDialogProps) => {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
+  const { settings: clinicSettings } = useClinicSettings();
+  const emailRemindersEnabled = clinicSettings?.email_reminders_enabled ?? false;
   
   const [patientId, setPatientId] = useState<string>('');
   const [notes, setNotes] = useState('');
