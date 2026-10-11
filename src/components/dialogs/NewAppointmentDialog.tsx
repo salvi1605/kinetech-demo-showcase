@@ -23,7 +23,6 @@ import { createAppointmentRpc, type RpcAppointmentResult } from '@/lib/appointme
 import { usePractitionerTreatments } from '@/hooks/useTreatments';
 import { DynamicTreatmentSelect } from '@/components/shared/DynamicTreatmentSelect';
 import { useClinicSettings, generateTimeSlots as generateClinicTimeSlots, formatTimeShort } from '@/hooks/useClinicSettings';
-import { SubSlotPicker } from '@/components/shared/SubSlotPicker';
 import { NewPatientDialogV2 } from '@/components/patients/NewPatientDialogV2';
 
 const newAppointmentSchema = z.object({
@@ -56,7 +55,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedSubSlot, setSelectedSubSlot] = useState<number | null>(null);
   
   const practitionerSelectRef = useRef<HTMLButtonElement>(null);
   const patientSearchRef = useRef<HTMLInputElement>(null);
@@ -101,28 +99,31 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
   }, [clinicSettings]);
 
   // Actualizar formulario cuando cambia selectedSlot.
-  // Si la agenda pasó el sub-turno tocado (fila "+"), lo pre-selecciona;
-  // si no vino ninguno (FAB "+ Nuevo turno"), arranca vacío como siempre.
+  // El sub-turno no se elige en pantalla: se deduce al confirmar.
   const maxSubSlots = clinicSettings?.sub_slots_per_block ?? 5;
-  const preselectKey = useMemo(() => {
-    if (!selectedSlot || !open) return null;
-    return `${format(selectedSlot.date, 'yyyy-MM-dd')}|${selectedSlot.time}|${selectedSlot.subSlot ?? 'none'}|${maxSubSlots}`;
-  }, [selectedSlot, open, maxSubSlots]);
-  const preselectedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!selectedSlot || !open) {
-      preselectedRef.current = null;
-      return;
-    }
+    if (!selectedSlot || !open) return;
     form.setValue('date', format(selectedSlot.date, 'yyyy-MM-dd'));
     form.setValue('startTime', selectedSlot.time);
-    // No pisar una elección manual: solo pre-selecciona al abrir o al cambiar de fila.
-    if (preselectedRef.current === preselectKey) return;
-    const requested = selectedSlot.subSlot ?? null;
-    setSelectedSubSlot(requested !== null && requested <= maxSubSlots ? requested : null);
-    preselectedRef.current = preselectKey;
-  }, [selectedSlot, open, form, preselectKey, maxSubSlots]);
+  }, [selectedSlot, open, form]);
+
+  // Sub-turno a usar: la fila tocada en la agenda; sin fila, el primero libre del bloque.
+  const resolveSubSlot = async (date: string, startTime: string): Promise<number | null> => {
+    const requested = selectedSlot?.subSlot;
+    if (requested && requested >= 1 && requested <= maxSubSlots) return requested;
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('sub_slot')
+      .eq('clinic_id', state.currentClinicId!)
+      .eq('date', date)
+      .eq('start_time', startTime)
+      .neq('status', 'cancelled');
+    if (error) throw error;
+    const occupied = new Set((data || []).map(r => r.sub_slot));
+    return Array.from({ length: maxSubSlots }, (_, i) => i + 1).find(s => !occupied.has(s)) ?? null;
+  };
 
   // Pre-seleccionar paciente cuando viene desde otra vista
   useEffect(() => {
@@ -180,9 +181,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
     }
 
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
-    const subSlot = selectedSubSlot ?? 1;
 
     try {
+      const subSlot = await resolveSubSlot(appointmentDate, data.startTime);
+      if (subSlot === null) {
+        toast({
+          title: "Horario completo",
+          description: "No quedan sub-turnos libres en ese horario. Elegí otro horario.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const result: RpcAppointmentResult = await createAppointmentRpc({
         clinicId: state.currentClinicId,
         patientId: data.patientId!,
@@ -356,18 +367,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                 />
 
               </div>
-
-              {/* Sub-slot picker */}
-              {state.currentClinicId && form.watch('practitionerId') && form.watch('startTime') && selectedSlot && (
-                <SubSlotPicker
-                  clinicId={state.currentClinicId}
-                  practitionerId={form.watch('practitionerId')}
-                  date={format(selectedSlot.date, 'yyyy-MM-dd')}
-                  startTime={form.watch('startTime')}
-                  selectedSubSlot={selectedSubSlot}
-                  onSelect={setSelectedSubSlot}
-                />
-              )}
             </div>
 
             {/* Selección de kinesiólogo */}
@@ -560,7 +559,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || !selectedSubSlot}>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Guardando…' : 'Confirmar turno'}
               </Button>
             </DialogFooter>
