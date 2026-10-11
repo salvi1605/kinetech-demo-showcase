@@ -181,9 +181,19 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
     }
 
     const appointmentDate = format(selectedSlot.date, 'yyyy-MM-dd');
-    const subSlot = selectedSubSlot ?? 1;
 
     try {
+      const subSlot = await resolveSubSlot(appointmentDate, data.startTime);
+      if (subSlot === null) {
+        toast({
+          title: "Horario completo",
+          description: "No quedan sub-turnos libres en ese horario. Elegí otro horario.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const result: RpcAppointmentResult = await createAppointmentRpc({
         clinicId: state.currentClinicId,
         patientId: data.patientId!,
@@ -357,18 +367,6 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
                 />
 
               </div>
-
-              {/* Sub-slot picker */}
-              {state.currentClinicId && form.watch('practitionerId') && form.watch('startTime') && selectedSlot && (
-                <SubSlotPicker
-                  clinicId={state.currentClinicId}
-                  practitionerId={form.watch('practitionerId')}
-                  date={format(selectedSlot.date, 'yyyy-MM-dd')}
-                  startTime={form.watch('startTime')}
-                  selectedSubSlot={selectedSubSlot}
-                  onSelect={setSelectedSubSlot}
-                />
-              )}
             </div>
 
             {/* Selección de kinesiólogo */}
@@ -561,7 +559,7 @@ export const NewAppointmentDialog = ({ open, onOpenChange, selectedSlot, presele
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || !selectedSubSlot}>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Guardando…' : 'Confirmar turno'}
               </Button>
             </DialogFooter>
