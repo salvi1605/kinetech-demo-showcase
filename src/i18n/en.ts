@@ -290,7 +290,8 @@ export const en: Translations = {
     s3title: "3. Pricing and billing",
     s3body: "AgendixPro offers monthly subscription plans. The prices in effect at the time of contracting are:",
     s3items: [
-      "Early Adopters Plan: USD 250 per month, plus a one-time implementation fee (USD 250 – 500 depending on catalog size and requirements).",
+      "Early Adopters Plan: USD 250 per month, including up to 6 professionals with an active schedule, plus USD 30 per month for each additional professional with an active schedule. A \"professional with an active schedule\" is any person who has an enabled schedule on the platform during the billed month, regardless of profession or workload; the volume of appointments does not change the count. In clinics with several locations, professionals are counted across all locations.",
+      "One-time implementation fee: from USD 250, calculated as a USD 250 base (one location and up to 6 professionals), plus USD 150 for each additional location and USD 25 for each additional professional. The exact scope is defined at the time of contracting.",
       "FOUNDER PLAN: USD 120 per month (limited offer for clinics in early adoption stage).",
       "All prices are expressed in US dollars (USD).",
       "Billing is monthly and recurring. The subscription renews automatically unless previously cancelled.",

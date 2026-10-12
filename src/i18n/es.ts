@@ -288,7 +288,8 @@ export const es = {
     s3title: "3. Precios y facturación",
     s3body: "AgendixPro ofrece planes de suscripción mensual. Los precios vigentes al momento de la contratación son:",
     s3items: [
-      "Plan Primeros Clientes: USD 250 por mes, más un cargo único de implementación inicial (USD 250 – 500 según el tamaño del catálogo y los requerimientos).",
+      "Plan Primeros Clientes: USD 250 por mes, que incluye hasta 6 profesionales con agenda activa, más USD 30 por mes por cada profesional adicional con agenda activa. Se considera \"profesional con agenda activa\" a toda persona que tenga agenda habilitada en la plataforma durante el mes facturado, sin distinción de profesión ni de carga horaria; el volumen de citas no modifica el conteo. En clínicas con varias sedes, los profesionales se cuentan entre todas las sedes.",
+      "Cargo único de implementación: desde USD 250, calculado como USD 250 base (una sede y hasta 6 profesionales), más USD 150 por cada sede adicional y USD 25 por cada profesional adicional. El alcance exacto se define al momento de la contratación.",
       "PLAN FUNDADOR: USD 120 por mes (oferta limitada para clínicas en etapa de adopción temprana).",
       "Todos los precios están expresados en dólares estadounidenses (USD).",
       "La facturación es mensual y recurrente. La suscripción se renueva automáticamente salvo cancelación previa.",
