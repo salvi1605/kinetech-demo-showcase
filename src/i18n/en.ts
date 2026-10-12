@@ -234,7 +234,7 @@ export const en: Translations = {
       { q: "Do I need to install anything?", a: "No. AgendixPro runs in the browser on computer, tablet or phone. You only need an internet connection." },
       { q: "Is it suitable for my physiotherapy clinic or practice?", a: "Yes. It's built for physiotherapy clinics, rehabilitation centers and practitioners who work by appointment, with one or several practitioners." },
       { q: "Is my data and my patients' data secure?", a: "Each user signs in with their own account and role, and only sees their clinic's information. Data is backed up automatically." },
-      { q: "How much does it cost?", a: "The monthly plan is USD 250 and includes support and updates. Initial implementation is a one-time fee (USD 250 – 500)." },
+      { q: "How much does it cost?", a: "The monthly plan is USD 250 and includes support and updates. Initial implementation is from USD 250 (one-time): USD 250 base + USD 150 per additional location + USD 25 per additional professional." },
       { q: "How long does it take to get started?", a: "It depends on the clinic's size. We set up practitioners and hours with your team and support you during the first days." },
       { q: "Do you offer support?", a: "Yes. The service includes support for questions, maintenance and adjustments to your clinic's needs." },
     ],
