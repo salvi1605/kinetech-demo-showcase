@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { SearchX, Home, ArrowRight, CalendarDays, Users, ShieldCheck, FileText, Mail, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Helmet } from "react-helmet-async";
 
 const NotFound = () => {
   const location = useLocation();
@@ -26,6 +27,10 @@ const NotFound = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background px-4 py-12">
       <div className="w-full max-w-md text-center">
+        <Helmet>
+          <title>{t.seo.notFound.title}</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
         {/* Icon */}
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
           <SearchX className="h-10 w-10 text-primary" aria-hidden="true" />
