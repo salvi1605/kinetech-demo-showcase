@@ -43,7 +43,7 @@ export default function Contact() {
       console.error("Contact form error:", err);
       toast({
         title: t.contact.toastErrorTitle ?? "Error",
-        description: t.contact.toastErrorDesc ?? "No se pudo enviar el mensaje. Intentá de nuevo.",
+        description: t.contact.toastErrorDesc ?? "No se pudo enviar el mensaje. Intenta de nuevo.",
         variant: "destructive",
       });
     } finally {
