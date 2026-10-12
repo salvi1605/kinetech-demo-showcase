@@ -232,7 +232,7 @@ export const es = {
       { q: "¿Tengo que instalar algo?", a: "No. AgendixPro funciona desde el navegador en computadora, tablet o celular. Solo necesitas conexión a internet." },
       { q: "¿Sirve para mi clínica de kinesiología o consultorio?", a: "Sí. Está pensado para clínicas de kinesiología, centros de rehabilitación y profesionales que trabajan con agenda por turnos, con uno o varios profesionales." },
       { q: "¿Mis datos y los de mis pacientes están seguros?", a: "Cada usuario entra con su cuenta y su rol, y solo ve la información de su clínica. Los datos se respaldan automáticamente." },
-      { q: "¿Cuánto cuesta?", a: "El plan mensual es de USD 250 e incluye soporte y actualizaciones. La implementación inicial se cobra una sola vez (USD 250 – 500)." },
+      { q: "¿Cuánto cuesta?", a: "El plan mensual es de USD 250 e incluye soporte y actualizaciones. La implementación inicial es desde USD 250 (pago único): USD 250 base + USD 150 por sede adicional + USD 25 por profesional adicional." },
       { q: "¿Cuánto tarda empezar a usarlo?", a: "Depende del tamaño de la clínica. Configuramos profesionales y horarios con tu equipo y los acompañamos en los primeros días de uso." },
       { q: "¿Tienen soporte?", a: "Sí. El servicio incluye soporte para resolver dudas, mantenimiento y ajustes según las necesidades de la clínica." },
     ],
