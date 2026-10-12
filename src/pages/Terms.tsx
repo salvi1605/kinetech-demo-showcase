@@ -13,8 +13,8 @@ export function Terms() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Términos y Condiciones — AgendixPro"
-        description="Términos y condiciones de uso del software AgendixPro para clínicas y profesionales de la salud."
+        title={t.seo.terms.title}
+        description={t.seo.terms.description}
         path="/terms"
       />
       <div className="container max-w-3xl py-12 md:py-16">

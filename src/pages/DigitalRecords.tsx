@@ -23,8 +23,8 @@ export default function DigitalRecords() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Historia clínica digital — AgendixPro"
-        description="Historia clínica digital para clínicas y consultorios: evolución clínica por sesión, datos seguros y seguimiento de tratamientos en un solo sistema. Solicitá una demo de AgendixPro."
+        title={t.seo.digitalRecords.title}
+        description={t.seo.digitalRecords.description}
         path="/historia-clinica-digital"
       />
 

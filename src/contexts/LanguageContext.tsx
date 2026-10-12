@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { es, en } from "@/i18n";
 import type { Translations } from "@/i18n";
 
@@ -12,10 +12,30 @@ interface LanguageContextValue {
 
 const dictionaries: Record<Locale, Translations> = { es, en };
 
+const STORAGE_KEY = "agendixpro.locale";
+
+function readStoredLocale(): Locale {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored === "en" || stored === "es" ? stored : "es";
+  } catch {
+    return "es";
+  }
+}
+
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>("es");
+  const [locale, setLocale] = useState<Locale>(readStoredLocale);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, locale);
+    } catch {
+      // Storage unavailable (private mode): keep in-memory preference only.
+    }
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   const toggleLocale = useCallback(() => {
     setLocale((prev) => (prev === "es" ? "en" : "es"));

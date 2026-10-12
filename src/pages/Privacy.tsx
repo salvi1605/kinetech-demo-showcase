@@ -13,8 +13,8 @@ export function Privacy() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Política de Privacidad — AgendixPro"
-        description="Política de privacidad y tratamiento de datos personales en AgendixPro, software de agenda y gestión clínica."
+        title={t.seo.privacy.title}
+        description={t.seo.privacy.description}
         path="/privacy"
       />
       <div className="container max-w-3xl py-12 md:py-16">

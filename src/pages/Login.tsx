@@ -221,7 +221,7 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
-      <SeoHead title="Iniciar sesión — AgendixPro" description="Accedé a AgendixPro para gestionar la agenda, pacientes y profesionales de tu clínica de kinesiología." path="/login" />
+      <SeoHead title="Iniciar sesión — AgendixPro" description="Accede a AgendixPro para gestionar la agenda, pacientes y profesionales de tu clínica de kinesiología." path="/login" />
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
          <div className="text-center">

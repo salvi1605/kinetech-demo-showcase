@@ -13,8 +13,8 @@ export default function CancellationPolicy() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Política de Cancelación — AgendixPro"
-        description="Condiciones de cancelación y reembolso de los planes de AgendixPro."
+        title={t.seo.cancellation.title}
+        description={t.seo.cancellation.description}
         path="/cancellation-policy"
       />
       <div className="container max-w-3xl py-12 md:py-16">
