@@ -21,8 +21,8 @@ export default function ProductivityReport({ dateFrom, dateTo }: Props) {
   const handleExportCSV = () => {
     if (!data) return;
     exportToCSV('reporte-productividad',
-      ['Profesional', 'Atendidos', 'No-Shows', '% No-Show', 'Prom/Día', 'Hs Efectivas', 'Hs Disponibles'],
-      data.map(p => [p.name, p.attended, p.noShows, p.noShowPct, p.avgPerDay, p.effectiveHours, p.availableHours])
+      ['Profesional', 'Agendados', 'Completados', 'No-shows', '% No-show', 'Completados por día', 'Hs completadas', 'Hs disponibles'],
+      data.map(p => [p.name, p.booked, p.completed, p.noShows, p.noShowPct, p.avgPerDay, p.effectiveHours, p.availableHours])
     );
   };
 
@@ -38,7 +38,7 @@ export default function ProductivityReport({ dateFrom, dateTo }: Props) {
     <div className="report-printable space-y-6">
       {/* Bar Chart */}
       <div className="bg-card rounded-lg border p-4">
-        <h3 className="font-semibold mb-4 text-foreground">Pacientes Atendidos por Profesional</h3>
+        <h3 className="font-semibold mb-4 text-foreground">Turnos por Profesional</h3>
         <ResponsiveContainer width="100%" height={Math.max(300, data.length * 50)}>
           <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -46,11 +46,12 @@ export default function ProductivityReport({ dateFrom, dateTo }: Props) {
             <YAxis type="category" dataKey="name" width={90} className="text-xs" />
             <Tooltip />
             <Legend />
-            <Bar dataKey="attended" name="Atendidos" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="booked" name="Agendados" radius={[0, 4, 4, 0]}>
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}
             </Bar>
+            <Bar dataKey="completed" name="Completados" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
             <Bar dataKey="noShows" name="No-Shows" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -68,11 +69,12 @@ export default function ProductivityReport({ dateFrom, dateTo }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Profesional</TableHead>
-              <TableHead className="text-right">Atendidos</TableHead>
+              <TableHead className="text-right">Agendados</TableHead>
+              <TableHead className="text-right">Completados</TableHead>
               <TableHead className="text-right">No-Shows</TableHead>
               <TableHead className="text-right">% No-Show</TableHead>
-              <TableHead className="text-right">Prom/Día</TableHead>
-              <TableHead className="text-right">Hs Efectivas</TableHead>
+              <TableHead className="text-right">Completados/Día</TableHead>
+              <TableHead className="text-right">Hs Completadas</TableHead>
               <TableHead className="text-right">Hs Disponibles</TableHead>
             </TableRow>
           </TableHeader>
@@ -80,7 +82,8 @@ export default function ProductivityReport({ dateFrom, dateTo }: Props) {
             {data.map((p, i) => (
               <TableRow key={i}>
                 <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell className="text-right">{p.attended}</TableCell>
+                <TableCell className="text-right">{p.booked}</TableCell>
+                <TableCell className="text-right text-accent">{p.completed}</TableCell>
                 <TableCell className="text-right text-destructive">{p.noShows}</TableCell>
                 <TableCell className="text-right">{p.noShowPct}%</TableCell>
                 <TableCell className="text-right">{p.avgPerDay}</TableCell>

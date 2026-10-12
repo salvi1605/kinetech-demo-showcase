@@ -51,7 +51,7 @@ export default function ComplianceReport({ dateFrom, dateTo }: Props) {
               {data.map((entry, i) => (
                 <Cell
                   key={i}
-                  fill={entry.compliancePct >= 80 ? 'hsl(var(--primary))' : entry.compliancePct >= 50 ? '#f59e0b' : 'hsl(var(--destructive))'}
+                  fill={entry.compliancePct >= 80 ? 'hsl(var(--primary))' : entry.compliancePct >= 50 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))'}
                 />
               ))}
             </Bar>

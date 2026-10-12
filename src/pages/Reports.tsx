@@ -9,13 +9,23 @@ import { RoleGuard } from '@/components/shared/RoleGuard';
 import { Printer, BarChart3 } from 'lucide-react';
 import { exportToPDF } from '@/utils/reportExport';
 import { useReportPractitioners } from '@/hooks/useReportData';
-import { isPreviewEnv } from '@/lib/envFlags';
 import OperationalReport from '@/components/reports/OperationalReport';
 import ProductivityReport from '@/components/reports/ProductivityReport';
 import TreatmentReport from '@/components/reports/TreatmentReport';
 import ComplianceReport from '@/components/reports/ComplianceReport';
 
 export default function Reports() {
+  return (
+    <RoleGuard
+      allowedRoles={['admin_clinic', 'tenant_owner']}
+      fallback={<p className="p-8 text-muted-foreground">No tienes acceso a esta sección.</p>}
+    >
+      <ReportsContent />
+    </RoleGuard>
+  );
+}
+
+function ReportsContent() {
   const now = new Date();
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(subMonths(now, 2)), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
@@ -32,21 +42,8 @@ export default function Reports() {
     compliance: 'Cumplimiento Historias Clínicas',
   };
 
-  if (!isPreviewEnv()) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] p-8">
-        <div className="text-center space-y-2">
-          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto" />
-          <h2 className="text-xl font-semibold text-foreground">Reportes no disponible</h2>
-          <p className="text-muted-foreground">Esta funcionalidad no está habilitada en esta versión.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']} fallback={<p className="p-8 text-muted-foreground">No tenés acceso a esta sección.</p>}>
-      <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto min-w-0">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -134,6 +131,5 @@ export default function Reports() {
           </TabsContent>
         </Tabs>
       </div>
-    </RoleGuard>
   );
 }

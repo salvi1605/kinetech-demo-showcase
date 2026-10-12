@@ -42,10 +42,11 @@ export default function TreatmentReport({ dateFrom, dateTo, practitionerId }: Pr
     <div className="report-printable space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Pie Chart */}
-        <div className="bg-card rounded-lg border p-4">
+        <div className="bg-card rounded-lg border p-4 min-w-0">
           <h3 className="font-semibold mb-4 text-foreground">Distribución por Tratamiento</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
+          <div className="h-[300px] w-full min-w-0">
+          <ResponsiveContainer width="100%" height="100%" debounce={50}>
+            <PieChart key={data.byTreatment.map(t => `${t.name}:${t.count}`).join('|')}>
               <Pie
                 data={data.byTreatment}
                 dataKey="count"
@@ -53,6 +54,8 @@ export default function TreatmentReport({ dateFrom, dateTo, practitionerId }: Pr
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
+                innerRadius={58}
+                isAnimationActive={false}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
                 {data.byTreatment.map((t, i) => (
@@ -62,6 +65,7 @@ export default function TreatmentReport({ dateFrom, dateTo, practitionerId }: Pr
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Table */}
