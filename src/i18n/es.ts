@@ -181,7 +181,7 @@ export const es = {
     },
     howToStart: "¿Cómo empezar?",
     steps: [
-      { title: "Contacto inicial", desc: "Escribinos por WhatsApp o email para contarnos las necesidades de tu clínica." },
+      { title: "Contacto inicial", desc: "Escríbenos por WhatsApp o email para contarnos las necesidades de tu clínica." },
       { title: "Confirmación del alcance", desc: "Definimos juntos el alcance del servicio, funcionalidades incluidas y condiciones." },
       { title: "Activación de la plataforma", desc: "Activamos la plataforma y comienza el servicio con facturación mensual en USD." },
     ],
@@ -199,7 +199,7 @@ export const es = {
     responseTime: "Tiempo de respuesta",
     responseTimeDesc: "Respondemos dentro de las 24 horas hábiles.",
     commitment: "Compromiso",
-    commitmentDesc: "Sin compromisos iniciales. Consultá libremente sobre el servicio.",
+    commitmentDesc: "Sin compromisos iniciales. Consulta libremente sobre el servicio.",
     nextStepsHeading: "Qué pasa después de escribirnos",
     nextSteps: [
       "Te respondemos dentro de las 24 horas hábiles.",
@@ -207,7 +207,7 @@ export const es = {
       "Te enviamos alcance y condiciones, sin compromiso.",
     ],
     formTitle: "Enviar mensaje",
-    formSubtitle: "Completá el formulario y te responderemos a la brevedad.",
+    formSubtitle: "Completa el formulario y te responderemos a la brevedad.",
     name: "Nombre",
     namePlaceholder: "Tu nombre",
     clinic: "Clínica / Consultorio",
@@ -222,7 +222,7 @@ export const es = {
     toastTitle: "Mensaje enviado",
     toastDesc: "Nos pondremos en contacto a la brevedad.",
     toastErrorTitle: "Error al enviar",
-    toastErrorDesc: "No se pudo enviar el mensaje. Intentá de nuevo.",
+    toastErrorDesc: "No se pudo enviar el mensaje. Intenta de nuevo.",
   },
 
   // ── Preguntas frecuentes ──
@@ -249,7 +249,7 @@ export const es = {
       { title: "Seguridad de los datos", desc: "Información clínica protegida con accesos por usuario y roles, conexiones cifradas y almacenamiento en servidores seguros." },
       { title: "Evolución clínica estructurada", desc: "Cada sesión se registra con fecha, tratamiento y notas de evolución, con historial de versiones para revisar cambios." },
       { title: "Menos papel, menos doble trabajo", desc: "Toda la información vive en la ficha del paciente: sin cuadernos, sin planillas dispersas ni carga duplicada." },
-      { title: "Acceso desde cualquier lugar", desc: "Consultá la historia clínica desde el navegador, en la clínica o a distancia, solo con el equipo que autorices." },
+      { title: "Acceso desde cualquier lugar", desc: "Consulta la historia clínica desde el navegador, en la clínica o a distancia, solo con el equipo que autorices." },
       { title: "Seguimiento del tratamiento", desc: "Cada evolución se vincula al turno y al tratamiento para ver el avance del paciente sesión por sesión." },
       { title: "Equipo coordinado", desc: "Profesionales, recepción y administración trabajan sobre la misma información, siempre actualizada." },
     ],
@@ -267,8 +267,8 @@ export const es = {
       "Profesionales con agenda por turnos",
       "Equipos de salud multidisciplinarios",
     ],
-    finalHeading: "¿Querés ver la historia clínica digital en acción?",
-    finalDesc: "Escribinos y te mostramos cómo AgendixPro organiza la evolución clínica de tus pacientes junto con la agenda de tu clínica.",
+    finalHeading: "¿Quieres ver la historia clínica digital en acción?",
+    finalDesc: "Escríbenos y te mostramos cómo AgendixPro organiza la evolución clínica de tus pacientes junto con la agenda de tu clínica.",
     finalCta: "Contactarnos",
   },
 
@@ -384,9 +384,9 @@ export const es = {
   // ── 404 ──
   notFound: {
     title: "Página no encontrada",
-    message: "La página que buscás no existe o fue movida.",
+    message: "La página que buscas no existe o fue movida.",
     backHome: "Volver al inicio",
-    linksTitle: "¿Buscás alguna de estas secciones?",
+    linksTitle: "¿Buscas alguna de estas secciones?",
     links: {
       home: "Inicio",
       pricing: "Precios",
@@ -394,6 +394,17 @@ export const es = {
       terms: "Términos del servicio",
       privacy: "Política de privacidad",
     },
+  },
+  // ── SEO (títulos y descripciones por página) ──
+  seo: {
+    home: { title: "Software para kinesiólogos y clínicas — Sistema de turnos | AgendixPro", description: "Software de agenda y sistema de turnos online para clínicas de kinesiología y consultorios. Historia clínica digital, pacientes y profesionales en un solo lugar. Solicita tu demo." },
+    pricing: { title: "Precios del software para clínicas y kinesiólogos — AgendixPro", description: "Planes de AgendixPro: sistema de turnos, agenda para consultorio e historia clínica digital desde USD 250/mes con soporte incluido. Solicita información." },
+    contact: { title: "Contacto y demo del software para clínicas — AgendixPro", description: "Habla con el equipo de AgendixPro por WhatsApp, email o el formulario. Respondemos consultas sobre el software de agenda y gestión para clínicas." },
+    digitalRecords: { title: "Historia clínica digital — AgendixPro", description: "Historia clínica digital para clínicas y consultorios: evolución clínica por sesión, datos seguros y seguimiento de tratamientos en un solo sistema. Solicita una demo de AgendixPro." },
+    terms: { title: "Términos y Condiciones — AgendixPro", description: "Términos y condiciones de uso del software AgendixPro para clínicas y profesionales de la salud." },
+    privacy: { title: "Política de Privacidad — AgendixPro", description: "Política de privacidad y tratamiento de datos personales en AgendixPro, software de agenda y gestión clínica." },
+    cancellation: { title: "Política de Cancelación — AgendixPro", description: "Condiciones de cancelación y reembolso de los planes de AgendixPro." },
+    notFound: { title: "Página no encontrada — AgendixPro" },
   },
 };
 

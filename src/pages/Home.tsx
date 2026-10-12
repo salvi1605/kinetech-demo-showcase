@@ -37,8 +37,8 @@ export default function Home() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Software para kinesiólogos y clínicas — Sistema de turnos | AgendixPro"
-        description="Software de agenda y sistema de turnos online para clínicas de kinesiología y consultorios. Historia clínica digital, pacientes y profesionales en un solo lugar. Pedí tu demo."
+        title={t.seo.home.title}
+        description={t.seo.home.description}
         path="/"
       />
       {/* ── Hero ── */}

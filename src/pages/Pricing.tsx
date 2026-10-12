@@ -14,8 +14,8 @@ export default function Pricing() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Precios del software para clínicas y kinesiólogos — AgendixPro"
-        description="Planes de AgendixPro: sistema de turnos, agenda para consultorio e historia clínica digital desde USD 250/mes con soporte incluido. Solicitá información."
+        title={t.seo.pricing.title}
+        description={t.seo.pricing.description}
         path="/pricing"
       />
       {/* Hero */}

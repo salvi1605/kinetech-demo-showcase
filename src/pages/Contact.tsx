@@ -54,8 +54,8 @@ export default function Contact() {
   return (
     <PublicLayout>
       <SeoHead
-        title="Contacto y demo del software para clínicas — AgendixPro"
-        description="Hablá con el equipo de AgendixPro por WhatsApp, email o el formulario. Respondemos consultas sobre el software de agenda y gestión para clínicas."
+        title={t.seo.contact.title}
+        description={t.seo.contact.description}
         path="/contact"
       />
       <section className="container py-16 md:py-20 text-center">

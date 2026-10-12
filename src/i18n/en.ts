@@ -397,4 +397,15 @@ export const en: Translations = {
       privacy: "Privacy Policy",
     },
   },
+
+  seo: {
+    home: { title: "Software for physiotherapists and clinics — Appointment system | AgendixPro", description: "Online scheduling and appointment software for physiotherapy clinics and practices. Digital clinical records, patients and practitioners in one place. Request your demo." },
+    pricing: { title: "Pricing for clinic and physiotherapy software — AgendixPro", description: "AgendixPro plans: appointment system, practice scheduling and digital clinical records from USD 250/month with support included. Request information." },
+    contact: { title: "Contact and demo of clinic software — AgendixPro", description: "Talk to the AgendixPro team via WhatsApp, email or the form. We answer questions about our scheduling and clinic management software." },
+    digitalRecords: { title: "Digital clinical records — AgendixPro", description: "Digital clinical records for clinics and practices: session-by-session progress notes, secure data and treatment tracking in one system. Request an AgendixPro demo." },
+    terms: { title: "Terms and Conditions — AgendixPro", description: "Terms and conditions of use for the AgendixPro software for clinics and healthcare professionals." },
+    privacy: { title: "Privacy Policy — AgendixPro", description: "Privacy policy and personal data processing at AgendixPro, scheduling and clinic management software." },
+    cancellation: { title: "Cancellation Policy — AgendixPro", description: "Cancellation and refund terms for AgendixPro plans." },
+    notFound: { title: "Page not found — AgendixPro" },
+  },
 };
