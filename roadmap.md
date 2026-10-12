@@ -1,6 +1,6 @@
 # Reportes — solo preview
 
-- [ ] Aprobar el plan de correcciones.
+- [x] Aprobar el plan de correcciones.
 - [ ] Quitar gates de entorno en página y navegación; impedir consultas para roles sin acceso.
 - [ ] Unificar terminología y conciliar desglose, tablas y CSV.
 - [ ] Reproducir y corregir la inconsistencia del gráfico de distribución existente.
