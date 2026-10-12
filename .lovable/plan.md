@@ -1,29 +1,42 @@
-# Revert del selector "Sub-turno disponible" en "Nuevo Turno"
+# Corregir Reportes — solo preview
 
-## Diagnóstico
-En `NewAppointmentDialog.tsx` hoy conviven tres piezas agregadas recientemente:
-1. Selector visible `SubSlotPicker` (líneas ~360–370) dentro del bloque de fecha/hora.
-2. Lógica de precarga con `preselectKey` + `preselectedRef` (líneas ~103–125) que copia `selectedSlot.subSlot` al estado, pero deja `null` cuando no viene fila (FAB / "Crear cita" desde ficha).
-3. Botón "Confirmar turno" con `disabled={isSubmitting || !selectedSubSlot}` (línea ~563): si el estado es `null`, el botón queda bloqueado. Esa es la regresión que siente el usuario.
+## Diagnóstico técnico
+- **Acceso:** existen gates de `isPreviewEnv()` en `Reports.tsx`, `AppSidebar.tsx` y también `BottomNav.tsx`. Este último mantendría el bloqueo en la navegación móvil. `RoleGuard` ya contempla la herencia de super_admin, pero la consulta de profesionales se ejecuta antes del guard.
+- **Métricas:** Operativo cuenta `completed` como «Asistieron» y todos los no cancelados como «Agendados». Productividad cuenta `completed + confirmed + scheduled` como «Atendidos»: **no incluye no-shows**, contrario a la descripción del pedido. Cambiar solo la etiqueta no resolvería esa diferencia.
+- **Desglose:** no se calcula el número de programados. Además, `scheduled/confirmed` puede corresponder a hoy o a fechas pasadas, no únicamente al futuro.
+- **Gráfico:** Cumplimiento tiene barras y tabla, **no una dona**. El único gráfico circular de distribución está en Tratamientos. La intermitencia aún no está reproducida; se comprobará antes de atribuirla a una causa.
+- **Texto:** «No tenés acceso…» sí está presente. «Clínicas» y «Período» están correctamente codificados en los archivos revisados; falta contrastarlos con el texto visible.
 
-El envío ya tiene el fallback histórico: `const subSlot = selectedSubSlot ?? 1` (línea 183). La agenda (`Calendar.tsx`) ya pasa `selectedSlot.subSlot` 1-based cuando se toca una fila. No hace falta tocar la base ni el RPC: `create_appointment` sigue validando choques y rango (1..sub_slots_per_block) y devuelve error claro si la posición está ocupada.
+## Implementación paso a paso
+1. **Acceso administrativo**
+   - Quitar los gates de entorno de la página, menú lateral y navegación móvil.
+   - Mantener acceso exclusivo de admin_clinic, tenant_owner y super_admin, respetando la simulación de rol existente; negar health_pro y receptionist también por URL directa.
+   - Ejecutar las consultas de Reportes únicamente dentro del contenido autorizado.
+2. **Terminología consistente**
+   - Usar «Completados» exclusivamente para completed, «No-shows» para no_show y «Total agendados» para todos los no cancelados.
+   - En Productividad, mostrar Agendados y Completados por separado; actualizar títulos, leyendas, tabla y CSV.
+   - Conservar las fórmulas de horas y promedios, pero nombrarlas según los estados que realmente incluyen; no presentar horas programadas como horas efectivamente trabajadas.
+   - Unificar el porcentaje de no-shows sobre el total no cancelado y nombrar el porcentaje de completados explícitamente.
+3. **Desglose conciliado**
+   - Mostrar resumen, detalle por período y CSV con completados, no-shows y programados.
+   - Separar «Programados (futuros)» de «Programados pendientes» si existen citas de hoy o pasadas, considerando fecha/hora de Buenos Aires.
+   - Garantizar: **Completados + No-shows + Programados futuros + Programados pendientes = Total agendados**. Cancelados quedan fuera.
+4. **Renderizado consistente**
+   - Reproducir con sesión real las recargas, carga inicial y cambios de pestaña; revisar dimensiones del contenedor, montaje, animaciones y errores del gráfico circular existente.
+   - Corregir la causa demostrada, asegurando dimensiones estables y estados claros de carga, vacío y error.
+   - **Supuesto para validar:** el gráfico mencionado es el de distribución en Tratamientos; no agregar una dona nueva a Cumplimiento ni reemplazar sus barras. Si se trata de otro gráfico, una captura permitirá identificarlo.
+5. **Texto y presentación**
+   - Cambiar a «No tienes acceso a esta sección».
+   - Corregir cadenas UTF-8 rotas que se detecten en Reportes o su navegación, sin reemplazos indiscriminados sobre datos de pacientes o clínicas.
+   - Verificar escritorio, tablet y móvil de 360 px, preservando el diseño existente.
 
-## Cambios (solo `src/components/dialogs/NewAppointmentDialog.tsx`)
-1. Quitar el render del `SubSlotPicker` y su `import`.
-2. Eliminar el estado `selectedSubSlot`, `maxSubSlots`, `preselectKey`, `preselectedRef` y simplificar el efecto de `selectedSlot` a lo que hacía antes: setear `date` y `startTime`.
-3. En `createAppointment`, deducir el sub-turno así:
-   - Si vino fila desde la agenda: `selectedSlot.subSlot` (si está dentro de `1..sub_slots_per_block`).
-   - Si no vino fila: `1` (comportamiento anterior).
-4. Botón "Confirmar turno": volver a `disabled={isSubmitting}`.
-5. Si el RPC rechaza por posición ocupada, se mantiene el toast de error existente (sin cambios).
+## Detalles técnicos y verificación
+- Mantener React Query, componentes shadcn y consultas filtradas por clinic_id.
+- Revisar políticas de lectura existentes sin modificarlas ni ampliar permisos: la protección de pantalla no sustituye RLS.
+- Probar las métricas con casos controlados: 426 completados + 18 no-shows + 556 futuros = 1000, además de cancelados y programados pasados.
+- Validar el flujo autenticado, filtros, recargas, cambio de pestañas y CSV; comprobar errores de compilación y navegador.
+- La simulación de rol verifica visibilidad UI, no demuestra restricciones de base de datos; separar ambas comprobaciones y explicitar cualquier prueba no disponible.
 
 ## Fuera de alcance
-- No se borra `src/components/shared/SubSlotPicker.tsx` (queda sin uso, por si se reutiliza; se puede eliminar aparte si lo prefieren).
-- No se toca la agenda, el RPC, datos, emails ni se publica.
-- No se cambia el comportamiento de selección múltiple por rol en la agenda.
-
-## Verificación
-- Build sin errores.
-- Preview: abrir "Nuevo Turno" desde el FAB → sin selector, botón habilitado al completar paciente y profesional.
-- Abrir desde "Crear cita" en la ficha → mismo resultado.
-- Desde una fila (rol Kinesiólogo) → sin selector; el turno se crea en la fila tocada (verificación visual sin crear turnos reales en CTAK; solo en tenants demo si me lo autorizan).
+- **Nada a producción:** el código quedará preparado para una futura publicación, pero no se publicará ahora.
+- No modificar datos, estados de turnos, políticas de base, emails, recordatorios ni otras páginas.
