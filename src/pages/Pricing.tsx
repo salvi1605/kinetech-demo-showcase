@@ -51,6 +51,10 @@ export default function Pricing() {
                 <span className="text-muted-foreground">{t.pricing.perMonth}</span>
               </div>
 
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                {t.pricing.early.priceNote}
+              </p>
+
               <p className="mt-4 text-sm text-muted-foreground">
                 {t.pricing.early.desc}
               </p>
@@ -71,6 +75,7 @@ export default function Pricing() {
                   <span className="text-lg font-bold">{t.pricing.early.setupPrice}</span>
                   <span className="text-xs text-muted-foreground">{t.pricing.early.setupOneTime}</span>
                 </div>
+                <p className="text-sm text-muted-foreground">{t.pricing.early.setupBreakdown}</p>
                 <ul className="space-y-1">
                   {t.pricing.early.setupItems.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">

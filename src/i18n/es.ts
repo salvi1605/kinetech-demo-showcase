@@ -145,6 +145,7 @@ export const es = {
       name: "PLAN PRIMEROS CLIENTES",
       badge: "Plan activo",
       price: "USD 250",
+      priceNote: "USD 250/mes hasta 6 profesionales con agenda, más USD 30/mes por cada profesional adicional. Un profesional = una persona con agenda activa en el mes. En clínicas con varias sedes, los profesionales se cuentan entre todas las sedes.",
       desc: "Plan para clínicas que buscan organizar su operación diaria con un sistema simple y confiable.",
       included: [
         "Agenda clínica multi-profesional",
@@ -156,8 +157,9 @@ export const es = {
         "Actualizaciones continuas",
       ],
       setupTitle: "Implementación y onboarding",
-      setupPrice: "USD 250 – 500",
+      setupPrice: "Desde USD 250",
       setupOneTime: "(pago único)",
+      setupBreakdown: "USD 250 base + USD 150 por sede adicional + USD 25 por profesional adicional.",
       setupItems: [
         "Implementación personalizada",
         "Onboarding guiado para tu equipo",

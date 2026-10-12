@@ -147,6 +147,7 @@ export const en: Translations = {
       name: "EARLY ADOPTERS PLAN",
       badge: "Active plan",
       price: "USD 250",
+      priceNote: "USD 250/month covers up to 6 professionals with a schedule, plus USD 30/month for each additional professional. One professional = one person with an active schedule in the month. In clinics with several locations, professionals are counted across all locations.",
       desc: "A plan for clinics looking to organize their daily operations with a simple and reliable system.",
       included: [
         "Multi-practitioner clinical schedule",
@@ -158,8 +159,9 @@ export const en: Translations = {
         "Continuous updates",
       ],
       setupTitle: "Implementation & onboarding",
-      setupPrice: "USD 250 – 500",
+      setupPrice: "From USD 250",
       setupOneTime: "(one-time payment)",
+      setupBreakdown: "USD 250 base + USD 150 per additional location + USD 25 per additional professional.",
       setupItems: [
         "Custom implementation",
         "Guided onboarding for your team",
