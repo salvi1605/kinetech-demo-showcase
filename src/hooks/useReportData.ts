@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { format, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calculateAppointmentBreakdown } from '@/utils/reportMetrics';
 
 /** Parse 'YYYY-MM-DD' as local date (avoids UTC shift from new Date(string)) */
 function parseLocalDate(dateStr: string): Date {
@@ -124,10 +125,7 @@ export function useOperationalReport(filters: ReportFilters) {
         const pEndStr = format(pEnd, 'yyyy-MM-dd');
 
         const periodAppts = (appointments || []).filter(a => a.date >= pStartStr && a.date <= pEndStr);
-        const noShows = periodAppts.filter(a => a.status === 'no_show').length;
-        const attended = periodAppts.filter(a => a.status === 'completed').length;
-        // Agendados = todo menos cancelados (scheduled + confirmed + completed + no_show)
-        const booked = periodAppts.filter(a => a.status !== 'cancelled').length;
+        const breakdown = calculateAppointmentBreakdown(periodAppts);
 
         // Estimate capacity: sum practitioner slots per day, excluding closed days
         let capacity = 0;
@@ -156,12 +154,14 @@ export function useOperationalReport(filters: ReportFilters) {
         return {
           label,
           capacity,
-          booked,
-          attended,
-          noShows,
-          occupancyPct: capacity > 0 ? Math.round((booked / capacity) * 100) : 0,
-          noShowPct: booked > 0 ? Math.round((noShows / booked) * 100) : 0,
-          attendancePct: booked > 0 ? Math.round((attended / booked) * 100) : 0,
+          booked: breakdown.totalBooked,
+          completed: breakdown.completed,
+          noShows: breakdown.noShows,
+          scheduledFuture: breakdown.scheduledFuture,
+          scheduledPending: breakdown.scheduledPending,
+          occupancyPct: capacity > 0 ? Math.round((breakdown.totalBooked / capacity) * 100) : 0,
+          noShowPct: breakdown.totalBooked > 0 ? Math.round((breakdown.noShows / breakdown.totalBooked) * 100) : 0,
+          completionPct: breakdown.totalBooked > 0 ? Math.round((breakdown.completed / breakdown.totalBooked) * 100) : 0,
         };
       });
 
@@ -169,10 +169,12 @@ export function useOperationalReport(filters: ReportFilters) {
         (acc, d) => ({
           capacity: acc.capacity + d.capacity,
           booked: acc.booked + d.booked,
-          attended: acc.attended + d.attended,
+          completed: acc.completed + d.completed,
           noShows: acc.noShows + d.noShows,
+          scheduledFuture: acc.scheduledFuture + d.scheduledFuture,
+          scheduledPending: acc.scheduledPending + d.scheduledPending,
         }),
-        { capacity: 0, booked: 0, attended: 0, noShows: 0 }
+        { capacity: 0, booked: 0, completed: 0, noShows: 0, scheduledFuture: 0, scheduledPending: 0 }
       );
 
       return { periods: data, totals };
@@ -214,7 +216,7 @@ export function useProductivityReport(filters: ReportFilters) {
       const practMap = new Map<string, {
         name: string;
         color: string;
-        attended: number;
+        completed: number;
         noShows: number;
         cancelled: number;
         totalAppts: number;
@@ -240,7 +242,7 @@ export function useProductivityReport(filters: ReportFilters) {
         practMap.set(p.id, {
           name: p.display_name,
           color: p.color || '#6366f1',
-          attended: 0,
+          completed: 0,
           noShows: 0,
           cancelled: 0,
           totalAppts: 0,
@@ -253,9 +255,9 @@ export function useProductivityReport(filters: ReportFilters) {
       (appointments || []).forEach(a => {
         const entry = practMap.get(a.practitioner_id);
         if (!entry) return;
-        entry.totalAppts++;
-        if (a.status === 'completed' || a.status === 'confirmed' || a.status === 'scheduled') {
-          entry.attended++;
+        if (a.status !== 'cancelled') entry.totalAppts++;
+        if (a.status === 'completed') {
+          entry.completed++;
           entry.effectiveMinutes += a.duration_minutes;
           entry.workDays.add(a.date);
         }
@@ -266,11 +268,12 @@ export function useProductivityReport(filters: ReportFilters) {
       return Array.from(practMap.values()).map(e => ({
         name: e.name,
         color: e.color,
-        attended: e.attended,
+        booked: e.totalAppts,
+        completed: e.completed,
         noShows: e.noShows,
         cancelled: e.cancelled,
         noShowPct: e.totalAppts > 0 ? Math.round((e.noShows / e.totalAppts) * 100) : 0,
-        avgPerDay: e.workDays.size > 0 ? +(e.attended / e.workDays.size).toFixed(1) : 0,
+        avgPerDay: e.workDays.size > 0 ? +(e.completed / e.workDays.size).toFixed(1) : 0,
         effectiveHours: +(e.effectiveMinutes / 60).toFixed(1),
         availableHours: e.availableHours,
       }));

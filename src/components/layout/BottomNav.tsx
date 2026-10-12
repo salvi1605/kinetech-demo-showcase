@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useApp, type UserRole } from '@/contexts/AppContext';
 import { isDevToolsEnabled } from '@/lib/devTools';
-import { isPreviewEnv } from '@/lib/envFlags';
 
 const primaryNavItems = [
   {
@@ -72,12 +71,12 @@ const moreNavItems = [
     icon: Building2,
     roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
   },
-  ...(isPreviewEnv() ? [{
+  {
     title: 'Reportes',
     url: '/reports',
     icon: BarChart3,
     roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
-  }] : []),
+  },
 ];
 
 export const BottomNav = () => {
