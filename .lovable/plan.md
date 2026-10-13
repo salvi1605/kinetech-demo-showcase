@@ -1,42 +1,35 @@
-# Corregir Reportes — solo preview
+# Botón de WhatsApp para recordatorios manuales (solo preview)
 
-## Diagnóstico técnico
-- **Acceso:** existen gates de `isPreviewEnv()` en `Reports.tsx`, `AppSidebar.tsx` y también `BottomNav.tsx`. Este último mantendría el bloqueo en la navegación móvil. `RoleGuard` ya contempla la herencia de super_admin, pero la consulta de profesionales se ejecuta antes del guard.
-- **Métricas:** Operativo cuenta `completed` como «Asistieron» y todos los no cancelados como «Agendados». Productividad cuenta `completed + confirmed + scheduled` como «Atendidos»: **no incluye no-shows**, contrario a la descripción del pedido. Cambiar solo la etiqueta no resolvería esa diferencia.
-- **Desglose:** no se calcula el número de programados. Además, `scheduled/confirmed` puede corresponder a hoy o a fechas pasadas, no únicamente al futuro.
-- **Gráfico:** Cumplimiento tiene barras y tabla, **no una dona**. El único gráfico circular de distribución está en Tratamientos. La intermitencia aún no está reproducida; se comprobará antes de atribuirla a una causa.
-- **Texto:** «No tenés acceso…» sí está presente. «Clínicas» y «Período» están correctamente codificados en los archivos revisados; falta contrastarlos con el texto visible.
+## Diagnóstico
+- **Detalle del turno:** los botones de email («Enviar información del turno» / «Enviar recordatorio») están en un bloque visible solo si el rol puede enviar (super_admin sin impersonar, admin_clinic, tenant_owner, receptionist) **y** la clínica tiene los emails activados. El recordatorio usa además `RoleGuard` (admin_clinic, receptionist, tenant_owner; super_admin heredado).
+- **Ficha del paciente:** el botón «Enviar citas futuras» (email) está en el encabezado, dentro de `RoleGuard` (admin_clinic, tenant_owner, receptionist), con un motivo de bloqueo visible debajo.
+- La ficha ya guarda el consentimiento **«Autoriza WhatsApp»** (`contactAuth.whatsapp`), igual que el de email. Las reglas del proyecto exigen respetar los consentimientos de contacto.
+- Hoy no hay ninguna función para pasar teléfonos a formato internacional.
 
-## Implementación paso a paso
-1. **Acceso administrativo**
-   - Quitar los gates de entorno de la página, menú lateral y navegación móvil.
-   - Mantener acceso exclusivo de admin_clinic, tenant_owner y super_admin, respetando la simulación de rol existente; negar health_pro y receptionist también por URL directa.
-   - Ejecutar las consultas de Reportes únicamente dentro del contenido autorizado.
-2. **Terminología consistente**
-   - Usar «Completados» exclusivamente para completed, «No-shows» para no_show y «Total agendados» para todos los no cancelados.
-   - En Productividad, mostrar Agendados y Completados por separado; actualizar títulos, leyendas, tabla y CSV.
-   - Conservar las fórmulas de horas y promedios, pero nombrarlas según los estados que realmente incluyen; no presentar horas programadas como horas efectivamente trabajadas.
-   - Unificar el porcentaje de no-shows sobre el total no cancelado y nombrar el porcentaje de completados explícitamente.
-3. **Desglose conciliado**
-   - Mostrar resumen, detalle por período y CSV con completados, no-shows y programados.
-   - Separar «Programados (futuros)» de «Programados pendientes» si existen citas de hoy o pasadas, considerando fecha/hora de Buenos Aires.
-   - Garantizar: **Completados + No-shows + Programados futuros + Programados pendientes = Total agendados**. Cancelados quedan fuera.
-4. **Renderizado consistente**
-   - Reproducir con sesión real las recargas, carga inicial y cambios de pestaña; revisar dimensiones del contenedor, montaje, animaciones y errores del gráfico circular existente.
-   - Corregir la causa demostrada, asegurando dimensiones estables y estados claros de carga, vacío y error.
-   - **Supuesto para validar:** el gráfico mencionado es el de distribución en Tratamientos; no agregar una dona nueva a Cumplimiento ni reemplazar sus barras. Si se trata de otro gráfico, una captura permitirá identificarlo.
-5. **Texto y presentación**
-   - Cambiar a «No tienes acceso a esta sección».
-   - Corregir cadenas UTF-8 rotas que se detecten en Reportes o su navegación, sin reemplazos indiscriminados sobre datos de pacientes o clínicas.
-   - Verificar escritorio, tablet y móvil de 360 px, preservando el diseño existente.
+## Qué se va a construir
+1. **Botón verde «WhatsApp»** con ícono, que abre `https://wa.me/<tel>?text=<mensaje>` en una pestaña nueva (`noopener,noreferrer`). No envía nada: el usuario revisa y envía desde WhatsApp.
+2. **Detalle del turno:** el botón va al lado de «Enviar recordatorio», con los mismos roles. Va en su propio bloque «Recordatorio por WhatsApp», así se ve **aunque los emails de la clínica estén desactivados** (WhatsApp no depende de esa configuración).
+3. **Ficha del paciente:** el botón va al lado de «Enviar citas futuras», con los mismos roles. Usa el **próximo turno programado** del paciente.
+4. **Se desactiva, mostrando el motivo** (mismo patrón que el email), cuando:
+   - el paciente no autorizó WhatsApp → «El paciente no autorizó recibir WhatsApp. Habilítalo desde su ficha.»
+   - no tiene teléfono o el número no es válido → «El paciente no tiene un teléfono válido. Cárgalo desde su ficha.»
+   - (solo en la ficha) no tiene turnos futuros.
+   - el turno está cancelado o ya pasó (solo en el detalle).
+5. **Mensaje** (texto rioplatense, como en tu ejemplo):
+   «Hola {nombre}, te recordamos tu turno en {clínica} {hoy/mañana/el} {día} {DD/MM} a las {HH:mm} con {profesional}. Por favor confirmanos tu asistencia. ¡Gracias!»
+   - Nombre: nombre preferido o primer nombre del paciente.
+   - «hoy» / «mañana» se calcula en hora de Argentina; si no, «el martes 13/10».
+   - El profesional se muestra tal cual está cargado (ej. «Lic. Telma Ayastuy»); no se agrega título.
+   - Si falta el profesional, se omite «con …».
 
-## Detalles técnicos y verificación
-- Mantener React Query, componentes shadcn y consultas filtradas por clinic_id.
-- Revisar políticas de lectura existentes sin modificarlas ni ampliar permisos: la protección de pantalla no sustituye RLS.
-- Probar las métricas con casos controlados: 426 completados + 18 no-shows + 556 futuros = 1000, además de cancelados y programados pasados.
-- Validar el flujo autenticado, filtros, recargas, cambio de pestañas y CSV; comprobar errores de compilación y navegador.
-- La simulación de rol verifica visibilidad UI, no demuestra restricciones de base de datos; separar ambas comprobaciones y explicitar cualquier prueba no disponible.
+## Supuestos a validar
+- **Consentimiento:** se bloquea si el paciente no tiene marcado «Autoriza WhatsApp». Si prefieres no exigirlo, se quita esa condición.
+- **Sin registro de envíos:** como no podemos saber si el usuario realmente lo mandó, no se guarda historial. Se puede agregar luego si lo quieres.
+- **Normalización de teléfono (Argentina):** se quitan espacios, guiones y paréntesis; se quita el `0` de larga distancia y el `15` de celular tras el código de área; se antepone `549` (formato que exige WhatsApp para celulares argentinos). Si el número ya empieza con `+` u otro código de país, se respeta. Menos de 10 dígitos locales = inválido.
 
-## Fuera de alcance
-- **Nada a producción:** el código quedará preparado para una futura publicación, pero no se publicará ahora.
-- No modificar datos, estados de turnos, políticas de base, emails, recordatorios ni otras páginas.
+## Detalles técnicos
+- Nuevo `src/utils/whatsapp.ts`: `normalizeArPhoneForWhatsApp(phone)` (devuelve dígitos o `null`), `buildWhatsAppReminderMessage({...})` y `buildWhatsAppUrl(phone, text)` con `encodeURIComponent`. Fechas con `parseLocalDate` y formato DD/MM, horas HH:mm.
+- Nuevo componente reutilizable `src/components/shared/WhatsAppReminderButton.tsx` (recibe teléfono, consentimiento, datos del turno; calcula el motivo de bloqueo; altura táctil ≥44px; `aria-describedby` al motivo).
+- Color verde mediante un token semántico nuevo `--whatsapp` en `src/index.css` / `tailwind.config.ts` (sin colores fijos en el componente). Ícono: `MessageCircle` de lucide (lucide no tiene logo de WhatsApp).
+- Integración en `AppointmentDetailDialog.tsx` y `PatientDetailTabs.tsx`; nombre de la clínica desde `state.currentClinicName`.
+- Sin cambios en base de datos, funciones del servidor ni emails. Verificación con pruebas unitarias del normalizador/URL y Playwright en preview. Nada se publica.
