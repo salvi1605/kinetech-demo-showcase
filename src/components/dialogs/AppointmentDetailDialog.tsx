@@ -29,6 +29,9 @@ import {
 } from 'lucide-react';
 import { FreeAppointmentDialog } from './FreeAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
+import { WhatsAppReminderButton } from '@/components/shared/WhatsAppReminderButton';
+import { MessageCircle } from 'lucide-react';
+import { getPatientFirstName } from '@/utils/whatsapp';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -835,6 +838,39 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 </div>
               </div>
             )}
+
+            {/* Recordatorio manual por WhatsApp (link wa.me, sin envío automático) */}
+            <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
+              <div className="space-y-3 pt-2">
+                <Label className="flex items-center gap-2 text-base font-medium">
+                  <MessageCircle className="h-4 w-4" />
+                  Recordatorio por WhatsApp
+                </Label>
+                <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-xs text-muted-foreground">
+                    Teléfono:{' '}
+                    <span className="font-medium text-foreground">
+                      {patient?.phone || '— sin teléfono —'}
+                    </span>
+                  </p>
+                  <WhatsAppReminderButton
+                    phone={patient?.phone}
+                    whatsappConsent={!!patient?.seguro?.contactAuth?.whatsapp}
+                    patientFirstName={patient ? getPatientFirstName(patient) : undefined}
+                    clinicName={state.currentClinicName}
+                    practitionerName={practitioner?.name}
+                    appointment={{ date: appointment.date, startTime: appointment.startTime }}
+                    extraBlockedReason={
+                      appointment.status === 'cancelled'
+                        ? 'El turno está cancelado.'
+                        : isPast
+                          ? 'El turno ya pasó.'
+                          : null
+                    }
+                  />
+                </div>
+              </div>
+            </RoleGuard>
 
 
 

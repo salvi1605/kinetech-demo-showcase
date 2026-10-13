@@ -74,6 +74,8 @@ All colors MUST be HSL. Professional medical interface.
   }
 
   .dark {
+    --whatsapp: 142 65% 36%;
+    --whatsapp-foreground: 0 0% 100%;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
