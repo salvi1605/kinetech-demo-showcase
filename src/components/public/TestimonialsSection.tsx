@@ -20,7 +20,7 @@ export function TestimonialsSection() {
               key={i}
               className={cn(
                 "flex flex-col rounded-xl border border-border/60 bg-card p-8 shadow-sm",
-                item.wide && "md:col-span-2",
+                item.wide && "md:col-span-2 md:mx-auto md:w-full md:max-w-xl",
               )}
             >
               <Badge variant="secondary" className="w-fit">
