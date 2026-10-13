@@ -83,6 +83,22 @@ export const es = {
         { title: "Historial clínico", desc: "Registra sesiones, evolución y seguimiento de tratamientos de forma estructurada." },
       ],
     },
+    testimonials: {
+      heading: "Una clínica real, seis meses de uso",
+      intro: "CTAK es una clínica de kinesiología y clienta de AgendixPro desde abril de 2026. Esto fue lo que nos contó su dueña, Telma Ayastuy, en dos momentos.",
+      items: [
+        {
+          period: "Abril de 2026 · primer mes",
+          quote: "Excelente, excelente, el cambio excelente. Al principio nos costó adaptarnos, pero logramos estructurar las sesiones: ahora van agendadas por bloques según la prescripción médica, y sabemos el día que viene cada paciente y el que no. La verdad, más relajada. Excelente todo.",
+        },
+        {
+          period: "Octubre de 2026 · 6 meses después",
+          quote: "Pasamos del papel a AgendixPro y nos agilizó notablemente los tiempos: control de asistencias e inasistencias, y 100% de eficacia en el envío de turnos — antes, al pasar del papel al WhatsApp, los errores de tipeo nos generaban inconvenientes. El historial de cada paciente lo tenemos en el teléfono y cualquiera de las tres kinesiólogas puede ver al instante el tratamiento que tiene que recibir. Lo recomiendo 100%.",
+        },
+      ],
+      author: "Telma, dueña de CTAK",
+      note: "Testimonio publicado con la autorización de la clienta.",
+    },
     features: {
       heading: "Lo que puedes gestionar con AgendixPro",
       items: [
