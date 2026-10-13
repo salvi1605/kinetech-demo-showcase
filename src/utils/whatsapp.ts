@@ -1,8 +1,6 @@
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { parseLocalDate } from '@/utils/dateUtils';
-
-const CLINIC_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 /** Nombre corto para el saludo: preferido > primer nombre > primera palabra del nombre completo. */
 export const getPatientFirstName = (p: {
@@ -52,22 +50,20 @@ export const normalizeArPhoneForWhatsApp = (phone?: string | null): string | nul
   return `549${digits}`;
 };
 
-const ymdInClinicTz = (d: Date): string =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: CLINIC_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d);
-
 export interface WhatsAppReminderInput {
   patientFirstName?: string | null;
   clinicName?: string | null;
   date: string; // YYYY-MM-DD
   startTime: string; // HH:mm[:ss]
   practitionerName?: string | null;
-  now?: Date;
 }
+
+const greetingFor = (name?: string | null) => (name?.trim() ? `Hola ${name.trim()}` : 'Hola');
+const dayDDMM = (ymd: string) => {
+  const d = parseLocalDate(ymd);
+  return `${format(d, 'EEEE', { locale: es })} ${format(d, 'dd/MM')}`;
+};
+const hhmm = (t?: string | null) => (t || '').slice(0, 5);
 
 export const buildWhatsAppReminderMessage = ({
   patientFirstName,
@@ -75,27 +71,61 @@ export const buildWhatsAppReminderMessage = ({
   date,
   startTime,
   practitionerName,
-  now = new Date(),
 }: WhatsAppReminderInput): string => {
-  const aptDate = parseLocalDate(date);
-  const dayName = format(aptDate, 'EEEE', { locale: es });
-  const ddmm = format(aptDate, 'dd/MM');
-  const time = (startTime || '').slice(0, 5);
-
-  const todayYmd = ymdInClinicTz(now);
-  const tomorrowYmd = format(addDays(parseLocalDate(todayYmd), 1), 'yyyy-MM-dd');
-  const when =
-    date === todayYmd
-      ? `hoy ${dayName} ${ddmm}`
-      : date === tomorrowYmd
-        ? `mañana ${dayName} ${ddmm}`
-        : `el ${dayName} ${ddmm}`;
-
-  const greeting = patientFirstName?.trim() ? `Hola ${patientFirstName.trim()}` : 'Hola';
   const place = clinicName?.trim() ? ` en ${clinicName.trim()}` : '';
   const withPro = practitionerName?.trim() ? ` con ${practitionerName.trim()}` : '';
+  return `${greetingFor(patientFirstName)}, te recordamos tu turno${place} el ${dayDDMM(date)} a las ${hhmm(startTime)}${withPro}. Por favor confirmanos tu asistencia. ¡Gracias!`;
+};
 
-  return `${greeting}, te recordamos tu turno${place} ${when} a las ${time}${withPro}. Por favor confirmanos tu asistencia. ¡Gracias!`;
+export interface WhatsAppInfoInput extends WhatsAppReminderInput {
+  endTime?: string | null;
+  treatmentName?: string | null;
+  clinicAddress?: string | null;
+}
+
+export const buildWhatsAppAppointmentInfoMessage = (i: WhatsAppInfoInput): string => {
+  const d = parseLocalDate(i.date);
+  const time = i.endTime ? `${hhmm(i.startTime)} a ${hhmm(i.endTime)}` : hhmm(i.startTime);
+  const clinic = [i.clinicName?.trim(), i.clinicAddress?.trim()].filter(Boolean).join(', ');
+  const lines = [
+    `${greetingFor(i.patientFirstName)}, te compartimos los datos de tu turno:`,
+    `📅 Fecha: ${format(d, 'EEEE', { locale: es })} ${format(d, 'dd/MM/yyyy')}`,
+    `🕐 Hora: ${time}`,
+    i.practitionerName?.trim() ? `👤 Profesional: ${i.practitionerName.trim()}` : null,
+    i.treatmentName?.trim() ? `🩺 Tratamiento: ${i.treatmentName.trim()}` : null,
+    clinic ? `📍 Clínica: ${clinic}` : null,
+    '',
+    'Ante cualquier consulta, respondé este mensaje. ¡Gracias!',
+  ];
+  return lines.filter((l) => l !== null).join('\n');
+};
+
+export interface WhatsAppUpcomingItem {
+  date: string; // YYYY-MM-DD
+  startTime: string;
+  practitionerName?: string | null;
+}
+
+export const WHATSAPP_UPCOMING_MAX = 10;
+
+export const buildWhatsAppUpcomingMessage = ({
+  patientFirstName,
+  clinicName,
+  items,
+}: {
+  patientFirstName?: string | null;
+  clinicName?: string | null;
+  items: WhatsAppUpcomingItem[];
+}): string => {
+  const place = clinicName?.trim() ? ` en ${clinicName.trim()}` : '';
+  const shown = items.slice(0, WHATSAPP_UPCOMING_MAX);
+  const lines = shown.map((a) => {
+    const pro = a.practitionerName?.trim() ? ` – ${a.practitionerName.trim()}` : '';
+    return `• ${dayDDMM(a.date)} ${hhmm(a.startTime)}${pro}`;
+  });
+  const extra = items.length - shown.length;
+  if (extra > 0) lines.push(`y ${extra} ${extra === 1 ? 'turno más' : 'turnos más'}.`);
+  return [`${greetingFor(patientFirstName)}, estos son tus próximos turnos${place}:`, ...lines, '', 'Ante cualquier consulta, respondé este mensaje. ¡Gracias!'].join('\n');
 };
 
 export const buildWhatsAppUrl = (normalizedPhone: string, text: string): string =>
