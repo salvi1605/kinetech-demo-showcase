@@ -1,6 +1,7 @@
 import { Quote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
 
 export function TestimonialsSection() {
   const { t } = useLanguage();
@@ -17,7 +18,10 @@ export function TestimonialsSection() {
           {t.home.testimonials.items.map((item, i) => (
             <figure
               key={i}
-              className="flex flex-col rounded-xl border border-border/60 bg-card p-8 shadow-sm"
+              className={cn(
+                "flex flex-col rounded-xl border border-border/60 bg-card p-8 shadow-sm",
+                item.wide && "md:col-span-2",
+              )}
             >
               <Badge variant="secondary" className="w-fit">
                 {item.period}
@@ -27,7 +31,7 @@ export function TestimonialsSection() {
                 {item.quote}
               </blockquote>
               <figcaption className="mt-6 border-t border-border/60 pt-4 text-sm font-medium text-muted-foreground">
-                {t.home.testimonials.author}
+                {item.author}
               </figcaption>
             </figure>
           ))}

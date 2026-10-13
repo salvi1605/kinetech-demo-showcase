@@ -87,19 +87,28 @@ export const en: Translations = {
     },
     testimonials: {
       heading: "One real clinic, six months of use",
-      intro: "CTAK is a physiotherapy clinic and an AgendixPro customer since April 2026. This is what its owner, Telma Ayastuy, told us at two moments.",
+      intro: "CTAK is a physiotherapy clinic and an AgendixPro customer since April 2026. This is what its owner, Telma Ayastuy, and its administrator, Gerardo Villar, told us.",
       items: [
         {
           period: "April 2026 · first month",
           quote: "Excellent, excellent, the change has been excellent. At first it took us a while to adapt, but we managed to structure the sessions: now they are booked in blocks according to the medical prescription, and we know which day each patient comes and which one doesn't. Honestly, much more relaxed. Everything excellent.",
+          author: "Telma, owner of CTAK",
+          wide: false,
         },
         {
           period: "October 2026 · six months later",
           quote: "We moved from paper to AgendixPro and it noticeably sped up our times: attendance and no-show tracking, and 100% accuracy in sending appointments — before, when we moved from paper to WhatsApp, typing mistakes caused problems. We have each patient's history on the phone and any of the three kinesiologists can instantly see the treatment the patient needs. I recommend it 100%.",
+          author: "Telma, owner of CTAK",
+          wide: false,
+        },
+        {
+          period: "CTAK · administration",
+          quote: "The system works very, very well. If we don't bother you, it's because there are no problems with the administrative system.",
+          author: "Gerardo Villar, administrator of CTAK",
+          wide: true,
         },
       ],
-      author: "Telma, owner of CTAK",
-      note: "Testimonial published with the customer's authorization.",
+      note: "Testimonials published with each person's authorization.",
     },
     features: {
       heading: "What you can manage with AgendixPro",
