@@ -145,7 +145,7 @@ export const SendAppointmentInfoDialog = ({
       const clinicNameForEmail = clinicInfo?.name || state.currentClinicName || 'AgendixPro';
       const fromLabel = `${clinicNameForEmail} | AgendixPro`;
 
-      const { data, error } = await supabase.functions.invoke('send-transactional-email', {
+      const { data, error } = await supabase.functions.invoke('send-appointment-email', {
         body: {
           templateName,
           recipientEmail: recipient,
