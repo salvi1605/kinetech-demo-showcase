@@ -66,7 +66,7 @@ const moreNavItems = [
     roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
   },
   {
-    title: 'Clínicas',
+    title: 'Configuración de clínica',
     url: '/clinics',
     icon: Building2,
     roles: ['admin_clinic', 'tenant_owner', 'super_admin'] as UserRole[],
