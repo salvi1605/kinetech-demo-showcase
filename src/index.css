@@ -47,6 +47,8 @@ All colors MUST be HSL. Professional medical interface.
     /* Medical Warning Orange */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --whatsapp: 142 70% 29%;
+    --whatsapp-foreground: 0 0% 100%;
 
     /* Medical Info Blue */
     --info: 210 85% 65%;
