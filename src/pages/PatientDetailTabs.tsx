@@ -29,7 +29,8 @@ import { PatientUploadDocumentDialog, type PatientDocument } from '@/components/
 import { supabase } from '@/integrations/supabase/client';
 import { usePatientDocuments } from '@/hooks/usePatientDocuments';
 import { RoleGuard } from '@/components/shared/RoleGuard';
-import { WhatsAppReminderButton, getWhatsAppBlockedReason } from '@/components/shared/WhatsAppReminderButton';
+import { ReminderActions } from '@/components/shared/ReminderActions';
+import { SendAppointmentInfoDialog } from '@/components/dialogs/SendAppointmentInfoDialog';
 import { getPatientFirstName } from '@/utils/whatsapp';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { SendUpcomingAppointmentsDialog, type UpcomingAppointmentEmailItem } from '@/components/dialogs/SendUpcomingAppointmentsDialog';
@@ -54,6 +55,8 @@ export const PatientDetailTabs = () => {
   const [showAppointmentDetail, setShowAppointmentDetail] = useState(false);
   const [docToDelete, setDocToDelete] = useState<{ id: string; url: string; name: string } | null>(null);
   const [sendUpcomingOpen, setSendUpcomingOpen] = useState(false);
+  const [sendInfoOpen, setSendInfoOpen] = useState(false);
+  const [sendReminderOpen, setSendReminderOpen] = useState(false);
   const { settings: clinicSettings } = useClinicSettings();
   const { treatments } = useTreatments();
 
@@ -1004,6 +1007,21 @@ export const PatientDetailTabs = () => {
         onOpenChange={setSendUpcomingOpen}
         patient={patient}
         appointments={upcomingEmailItems}
+      />
+      <SendAppointmentInfoDialog
+        open={sendInfoOpen}
+        onOpenChange={setSendInfoOpen}
+        appointment={(nextAppointment as any) ?? null}
+        patient={patient}
+        practitionerName={practitionerNameOf(nextAppointment?.practitionerId)}
+      />
+      <SendAppointmentInfoDialog
+        open={sendReminderOpen}
+        onOpenChange={setSendReminderOpen}
+        appointment={(nextAppointment as any) ?? null}
+        patient={patient}
+        practitionerName={practitionerNameOf(nextAppointment?.practitionerId)}
+        templateName="appointment-reminder"
       />
 
       <AlertDialog open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
