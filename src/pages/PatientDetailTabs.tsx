@@ -303,22 +303,24 @@ export const PatientDetailTabs = () => {
       practitionerName: state.practitioners.find((p) => p.id === apt.practitionerId)?.name,
       treatmentName: apt.treatmentTypeId ? treatments.find((t) => t.id === apt.treatmentTypeId)?.name : undefined,
     }));
-  const upcomingBlockedReason = !emailRemindersEnabled
+  const emailChannelBlockedReason = !emailRemindersEnabled
     ? 'El envío de emails está desactivado en la configuración de la clínica.'
     : !patientEmailConsent
       ? 'El paciente no autorizó recibir emails. Habilitalo desde su ficha.'
       : !patientHasEmail
         ? 'El paciente no tiene email registrado. Cargalo desde su ficha.'
-        : upcomingEmailItems.length === 0
-          ? 'El paciente no tiene turnos futuros para enviar.'
-          : null;
-  const nextAppointment = patientAppointments
+        : null;
+  const futureScheduled = patientAppointments
     .filter((apt) => apt.status === 'scheduled')
     .filter((apt) => apt.date > todayISO || (apt.date === todayISO && apt.startTime >= nowHHmm))
-    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))[0];
-  const whatsappBlockedReason =
-    getWhatsAppBlockedReason(patient.phone, !!patient.seguro?.contactAuth?.whatsapp) ||
-    (!nextAppointment ? 'El paciente no tiene turnos futuros.' : null);
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
+  const nextAppointment = futureScheduled[0];
+  const practitionerNameOf = (id?: string) => state.practitioners.find((p) => p.id === id)?.name;
+  const nextTreatmentName = nextAppointment
+    ? (nextAppointment.treatmentTypeId
+        ? treatments.find((t) => t.id === nextAppointment.treatmentTypeId)?.name
+        : undefined)
+    : undefined;
 
   return (
     <div className="p-6 space-y-6 pb-20 lg:pb-6">
@@ -339,29 +341,6 @@ export const PatientDetailTabs = () => {
               <CalendarPlus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Crear cita</span>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSendUpcomingOpen(true)}
-              disabled={!!upcomingBlockedReason}
-              title={upcomingBlockedReason ?? 'Enviar citas futuras por email'}
-              aria-label="Enviar citas futuras"
-              aria-describedby={upcomingBlockedReason ? 'upcoming-blocked-reason' : undefined}
-            >
-              <Mail className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Enviar citas futuras</span>
-            </Button>
-            <WhatsAppReminderButton
-              size="sm"
-              showReason={false}
-              phone={patient.phone}
-              whatsappConsent={!!patient.seguro?.contactAuth?.whatsapp}
-              patientFirstName={getPatientFirstName(patient)}
-              clinicName={state.currentClinicName}
-              practitionerName={nextAppointment ? state.practitioners.find((p) => p.id === nextAppointment.practitionerId)?.name : undefined}
-              appointment={nextAppointment ? { date: nextAppointment.date, startTime: nextAppointment.startTime } : null}
-              extraBlockedReason={!nextAppointment ? 'El paciente no tiene turnos futuros.' : null}
-            />
           </RoleGuard>
           <Button size="sm" onClick={() => setShowWizard(true)}>
             <Edit className="h-4 w-4 sm:mr-2" />
@@ -371,16 +350,41 @@ export const PatientDetailTabs = () => {
       </div>
 
       <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
-        {upcomingBlockedReason && (
-          <p id="upcoming-blocked-reason" className="text-sm text-destructive sm:text-right -mt-3">
-            Enviar citas futuras: {upcomingBlockedReason}
-          </p>
-        )}
-        {whatsappBlockedReason && (
-          <p className="text-sm text-destructive sm:text-right -mt-3">
-            WhatsApp: {whatsappBlockedReason}
-          </p>
-        )}
+        <section aria-labelledby="reminders-title" className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <h2 id="reminders-title" className="text-sm font-medium">
+            Recordatorios{nextAppointment ? ' · próximo turno' : ''}
+          </h2>
+          <ReminderActions
+            patientFirstName={getPatientFirstName(patient)}
+            patientPhone={patient.phone}
+            whatsappConsent={!!patient.seguro?.contactAuth?.whatsapp}
+            emailBlockedReason={emailChannelBlockedReason}
+            appointment={
+              nextAppointment
+                ? {
+                    date: nextAppointment.date,
+                    startTime: nextAppointment.startTime,
+                    endTime: (nextAppointment as { endTime?: string }).endTime,
+                    practitionerName: practitionerNameOf(nextAppointment.practitionerId),
+                    treatmentName: nextTreatmentName,
+                  }
+                : null
+            }
+            appointmentBlockedReason={!nextAppointment ? 'El paciente no tiene turnos futuros.' : null}
+            upcoming={futureScheduled.map((a) => ({
+              date: a.date,
+              startTime: a.startTime,
+              practitionerName: practitionerNameOf(a.practitionerId),
+            }))}
+            onEmail={(a) =>
+              a === 'reminder'
+                ? setSendReminderOpen(true)
+                : a === 'info'
+                  ? setSendInfoOpen(true)
+                  : setSendUpcomingOpen(true)
+            }
+          />
+        </section>
       </RoleGuard>
 
       {/* Patient Header Card */}
