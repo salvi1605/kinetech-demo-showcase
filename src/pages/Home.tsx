@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { FaqSection } from "@/components/public/FaqSection";
 import { CtaBand } from "@/components/public/CtaBand";
+import { TestimonialsSection } from "@/components/public/TestimonialsSection";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { SeoHead } from "@/components/shared/SeoHead";
 import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
@@ -136,6 +137,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <TestimonialsSection />
 
       <Separator />
 
