@@ -83,7 +83,7 @@ export const SendUpcomingAppointmentsDialog = ({ open, onOpenChange, patient, ap
     setIsSending(true);
     try {
       const clinicName = clinicInfo?.name || state.currentClinicName || 'AgendixPro';
-      const { data, error } = await supabase.functions.invoke('send-transactional-email', {
+      const { data, error } = await supabase.functions.invoke('send-appointment-email', {
         body: {
           templateName: 'upcoming-appointments',
           recipientEmail: recipient,
