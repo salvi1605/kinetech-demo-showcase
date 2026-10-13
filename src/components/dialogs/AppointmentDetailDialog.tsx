@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { FreeAppointmentDialog } from './FreeAppointmentDialog';
 import { RoleGuard } from '@/components/shared/RoleGuard';
-import { WhatsAppReminderButton } from '@/components/shared/WhatsAppReminderButton';
+import { ReminderActions } from '@/components/shared/ReminderActions';
 import { MessageCircle } from 'lucide-react';
 import { getPatientFirstName } from '@/utils/whatsapp';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -181,6 +181,13 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
           : undefined,
       };
     });
+  const upcomingWaItems = futuras
+    .filter((apt) => apt.status === 'scheduled')
+    .map((apt) => ({
+      date: apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd'),
+      startTime: apt.startTime,
+      practitionerName: state.practitioners.find((p) => p.id === apt.practitionerId)?.name,
+    }));
   const canEdit = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || !isPast;
 
   // Calcular duración estándar (30 min)
@@ -659,22 +666,6 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <Copy className="h-4 w-4" />
                   Copiar Horarios
                 </Button>
-                {emailRemindersEnabled && (
-                  <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSendUpcomingOpen(true)}
-                      disabled={!!emailBlockedReason || upcomingEmailItems.length === 0}
-                      title={emailBlockedReason ?? (upcomingEmailItems.length === 0 ? 'No hay turnos futuros para enviar.' : undefined)}
-                      aria-describedby={emailBlockedReason ? 'email-blocked-reason' : undefined}
-                      className="flex items-center gap-1"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Enviar citas futuras
-                    </Button>
-                  </RoleGuard>
-                )}
                 </div>
               </div>
               <div className="bg-muted/30 p-4 rounded-lg max-h-96 overflow-auto">
@@ -794,83 +785,53 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
               </div>
             )}
 
-            {/* Envío manual de información del turno por correo (MVP) */}
-            {canSendEmail && emailRemindersEnabled && (
-              <div className="space-y-3 pt-2">
-                <Label className="flex items-center gap-2 text-base font-medium">
-                  <Mail className="h-4 w-4" />
-                  Información del turno por correo
-                </Label>
-                <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between gap-2 flex-wrap">
-                  <p className="text-xs text-muted-foreground">
-                    Destinatario predeterminado:{' '}
-                    <span className="font-medium text-foreground">
-                      {patient?.email || '— sin correo —'}
-                    </span>
-                  </p>
-                  <Button
-                    onClick={() => setSendEmailOpen(true)}
-                    disabled={!!emailBlockedReason}
-                    aria-describedby={emailBlockedReason ? 'email-blocked-reason' : undefined}
-                    className="flex items-center gap-2"
-                  >
-                    <Send className="h-4 w-4" />
-                    Enviar información del turno
-                  </Button>
-                  <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
-                    <Button
-                      variant="outline"
-                      onClick={() => setSendReminderOpen(true)}
-                      disabled={!!emailBlockedReason}
-                      aria-describedby={emailBlockedReason ? 'email-blocked-reason' : undefined}
-                      className="flex items-center gap-2"
-                    >
-                      <Send className="h-4 w-4" />
-                      Enviar recordatorio
-                    </Button>
-                  </RoleGuard>
-                  {emailBlockedReason && (
-                    <p id="email-blocked-reason" role="note" className="w-full flex items-center gap-1 text-xs text-destructive">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      {emailBlockedReason}
-                    </p>
-                  )}
+            {/* Recordatorios manuales: canal (WhatsApp / Email / Ambos) + acción */}
+            {canSendEmail && (
+              <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
+                <div className="space-y-3 pt-2">
+                  <Label className="flex items-center gap-2 text-base font-medium">
+                    <MessageCircle className="h-4 w-4" />
+                    Recordatorios
+                  </Label>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <ReminderActions
+                      patientFirstName={patient ? getPatientFirstName(patient) : undefined}
+                      patientPhone={patient?.phone}
+                      whatsappConsent={!!patient?.seguro?.contactAuth?.whatsapp}
+                      emailBlockedReason={
+                        !emailRemindersEnabled
+                          ? 'El envío de emails está desactivado en la configuración de la clínica.'
+                          : emailBlockedReason
+                      }
+                      appointment={{
+                        date: appointmentDateISO,
+                        startTime: appointment.startTime,
+                        endTime,
+                        practitionerName: practitioner?.name,
+                        treatmentName: appointment.treatmentType
+                          ? (treatmentLabel[appointment.treatmentType as keyof typeof treatmentLabel] || appointment.treatmentType)
+                          : undefined,
+                      }}
+                      appointmentBlockedReason={
+                        appointment.status === 'cancelled'
+                          ? 'El turno está cancelado.'
+                          : isPast
+                            ? 'El turno ya pasó.'
+                            : null
+                      }
+                      upcoming={upcomingWaItems}
+                      onEmail={(a) =>
+                        a === 'reminder'
+                          ? setSendReminderOpen(true)
+                          : a === 'info'
+                            ? setSendEmailOpen(true)
+                            : setSendUpcomingOpen(true)
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
+              </RoleGuard>
             )}
-
-            {/* Recordatorio manual por WhatsApp (link wa.me, sin envío automático) */}
-            <RoleGuard allowedRoles={['admin_clinic', 'receptionist', 'tenant_owner']}>
-              <div className="space-y-3 pt-2">
-                <Label className="flex items-center gap-2 text-base font-medium">
-                  <MessageCircle className="h-4 w-4" />
-                  Recordatorio por WhatsApp
-                </Label>
-                <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between gap-2 flex-wrap">
-                  <p className="text-xs text-muted-foreground">
-                    Teléfono:{' '}
-                    <span className="font-medium text-foreground">
-                      {patient?.phone || '— sin teléfono —'}
-                    </span>
-                  </p>
-                  <WhatsAppReminderButton
-                    phone={patient?.phone}
-                    whatsappConsent={!!patient?.seguro?.contactAuth?.whatsapp}
-                    patientFirstName={patient ? getPatientFirstName(patient) : undefined}
-                    clinicName={state.currentClinicName}
-                    practitionerName={practitioner?.name}
-                    appointment={{ date: appointment.date, startTime: appointment.startTime }}
-                    extraBlockedReason={
-                      appointment.status === 'cancelled'
-                        ? 'El turno está cancelado.'
-                        : isPast
-                          ? 'El turno ya pasó.'
-                          : null
-                    }
-                  />
-                </div>
-              </div>
-            </RoleGuard>
 
 
 
