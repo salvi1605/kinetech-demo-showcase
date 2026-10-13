@@ -29,6 +29,8 @@ import { PatientUploadDocumentDialog, type PatientDocument } from '@/components/
 import { supabase } from '@/integrations/supabase/client';
 import { usePatientDocuments } from '@/hooks/usePatientDocuments';
 import { RoleGuard } from '@/components/shared/RoleGuard';
+import { WhatsAppReminderButton, getWhatsAppBlockedReason } from '@/components/shared/WhatsAppReminderButton';
+import { getPatientFirstName } from '@/utils/whatsapp';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { SendUpcomingAppointmentsDialog, type UpcomingAppointmentEmailItem } from '@/components/dialogs/SendUpcomingAppointmentsDialog';
 import { useClinicSettings } from '@/hooks/useClinicSettings';
@@ -310,6 +312,13 @@ export const PatientDetailTabs = () => {
         : upcomingEmailItems.length === 0
           ? 'El paciente no tiene turnos futuros para enviar.'
           : null;
+  const nextAppointment = patientAppointments
+    .filter((apt) => apt.status === 'scheduled')
+    .filter((apt) => apt.date > todayISO || (apt.date === todayISO && apt.startTime >= nowHHmm))
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))[0];
+  const whatsappBlockedReason =
+    getWhatsAppBlockedReason(patient.phone, !!patient.seguro?.contactAuth?.whatsapp) ||
+    (!nextAppointment ? 'El paciente no tiene turnos futuros.' : null);
 
   return (
     <div className="p-6 space-y-6 pb-20 lg:pb-6">
@@ -324,7 +333,7 @@ export const PatientDetailTabs = () => {
             <p className="text-muted-foreground text-sm">Información completa y gestión</p>
           </div>
         </div>
-        <div className="flex gap-2 pl-10 sm:pl-0">
+        <div className="flex gap-2 pl-10 sm:pl-0 flex-wrap">
           <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner', 'receptionist']}>
             <Button variant="outline" size="sm" onClick={() => navigate(`/calendar?patientId=${patient.id}`)}>
               <CalendarPlus className="h-4 w-4 sm:mr-2" />
@@ -342,6 +351,17 @@ export const PatientDetailTabs = () => {
               <Mail className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Enviar citas futuras</span>
             </Button>
+            <WhatsAppReminderButton
+              size="sm"
+              showReason={false}
+              phone={patient.phone}
+              whatsappConsent={!!patient.seguro?.contactAuth?.whatsapp}
+              patientFirstName={getPatientFirstName(patient)}
+              clinicName={state.currentClinicName}
+              practitionerName={nextAppointment ? state.practitioners.find((p) => p.id === nextAppointment.practitionerId)?.name : undefined}
+              appointment={nextAppointment ? { date: nextAppointment.date, startTime: nextAppointment.startTime } : null}
+              extraBlockedReason={!nextAppointment ? 'El paciente no tiene turnos futuros.' : null}
+            />
           </RoleGuard>
           <Button size="sm" onClick={() => setShowWizard(true)}>
             <Edit className="h-4 w-4 sm:mr-2" />
@@ -354,6 +374,11 @@ export const PatientDetailTabs = () => {
         {upcomingBlockedReason && (
           <p id="upcoming-blocked-reason" className="text-sm text-destructive sm:text-right -mt-3">
             Enviar citas futuras: {upcomingBlockedReason}
+          </p>
+        )}
+        {whatsappBlockedReason && (
+          <p className="text-sm text-destructive sm:text-right -mt-3">
+            WhatsApp: {whatsappBlockedReason}
           </p>
         )}
       </RoleGuard>
