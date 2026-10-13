@@ -4,6 +4,17 @@ import { parseLocalDate } from '@/utils/dateUtils';
 
 const CLINIC_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
+/** Nombre corto para el saludo: preferido > primer nombre > primera palabra del nombre completo. */
+export const getPatientFirstName = (p: {
+  name?: string;
+  first_name?: string | null;
+  identificacion?: { preferredName?: string };
+}): string | undefined =>
+  p.identificacion?.preferredName?.trim() ||
+  p.first_name?.trim() ||
+  p.name?.trim().split(/\s+/)[0] ||
+  undefined;
+
 /**
  * Normaliza un teléfono al formato que exige wa.me (solo dígitos, con código de país).
  * Argentina: antepone 549, quita el 0 de larga distancia y el 15 de celular.

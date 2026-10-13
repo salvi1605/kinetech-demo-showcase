@@ -29,6 +29,8 @@ import { PatientUploadDocumentDialog, type PatientDocument } from '@/components/
 import { supabase } from '@/integrations/supabase/client';
 import { usePatientDocuments } from '@/hooks/usePatientDocuments';
 import { RoleGuard } from '@/components/shared/RoleGuard';
+import { WhatsAppReminderButton, getWhatsAppBlockedReason } from '@/components/shared/WhatsAppReminderButton';
+import { getPatientFirstName } from '@/utils/whatsapp';
 import { AppointmentDetailDialog } from '@/components/dialogs/AppointmentDetailDialog';
 import { SendUpcomingAppointmentsDialog, type UpcomingAppointmentEmailItem } from '@/components/dialogs/SendUpcomingAppointmentsDialog';
 import { useClinicSettings } from '@/hooks/useClinicSettings';
