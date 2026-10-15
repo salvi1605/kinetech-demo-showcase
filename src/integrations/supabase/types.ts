@@ -1418,6 +1418,10 @@ export type Database = {
           user_full_name: string
         }[]
       }
+      get_last_clinic_backup_at: {
+        Args: { _clinic_id: string }
+        Returns: string
+      }
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
