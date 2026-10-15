@@ -219,7 +219,7 @@ export const Settings = () => {
                       <Label htmlFor="maintenance-mode">Modo mantenimiento</Label>
                       <p className="text-sm text-muted-foreground">Solo super admin. Todavía no tiene efecto.</p>
                     </div>
-                    <Switch id="maintenance-mode" disabled aria-describedby="maintenance-mode-hint" />
+                    <Switch id="maintenance-mode" disabled />
                   </div>
                 </>
               )}
