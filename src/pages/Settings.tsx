@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, User, Shield, Database, FlaskConical, Loader2, Trash2, Upload, Download, KeyRound } from 'lucide-react';
+import { format } from 'date-fns';
+import { Settings as SettingsIcon, User, Shield, Database, Loader2, Download, KeyRound, CheckCircle2 } from 'lucide-react';
 import { ChangePasswordDialog } from '@/components/settings/ChangePasswordDialog';
 import { Button } from '@/components/ui/button';
-import { downloadSchemaAsSQL } from '@/utils/downloadSchema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -11,11 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
 import { RoleGuard } from '@/components/shared/RoleGuard';
 import { useToast } from '@/hooks/use-toast';
-import { useUserRole } from '@/hooks/useUserRole';
-import { seedDemoData, clearDemoData, getDemoClinicId } from '@/lib/demoDataService';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { UserManagementCard } from '@/components/settings/UserManagementCard';
 import {
   AlertDialog,
@@ -34,164 +30,108 @@ interface ClinicOption {
   name: string;
 }
 
+type LoadState = 'loading' | 'ready' | 'error';
+
 export const Settings = () => {
-  const { state, dispatch } = useApp();
-  const [clinics, setClinics] = useState<ClinicOption[]>([]);
+  const { state } = useApp();
   const { toast } = useToast();
-  const { isAdmin, isLoading: isLoadingRole } = useUserRole();
-  const navigate = useNavigate();
-
-  const [isSeedingDemo, setIsSeedingDemo] = useState(false);
-  const [isClearingDemo, setIsClearingDemo] = useState(false);
+  const [clinics, setClinics] = useState<ClinicOption[]>([]);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const { prefs, loading: prefsLoading, saving: prefsSaving, updatePref } = useUserPreferences();
-  
-  
-  // Estadísticas desde BD
-  const [stats, setStats] = useState({ patients: 0, practitioners: 0, appointments: 0 });
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Fetch clinics for user management
+  const isSuperAdmin = state.userRole === 'super_admin' && !state.isImpersonatingRole;
+
+  const [stats, setStats] = useState({ patients: 0, practitioners: 0, appointments: 0 });
+  const [statsState, setStatsState] = useState<LoadState>('loading');
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
+  const [backupState, setBackupState] = useState<LoadState>('loading');
+
   useEffect(() => {
     const fetchClinics = async () => {
-      const { data } = await supabase
-        .from('clinics')
-        .select('id, name')
-        .eq('is_active', true);
+      const { data } = await supabase.from('clinics').select('id, name').eq('is_active', true);
       if (data) setClinics(data);
     };
     fetchClinics();
   }, []);
 
-  // Fetch stats from DB
   useEffect(() => {
+    const clinicId = state.currentClinicId;
+    if (!clinicId) return;
+    let cancelled = false;
+
     const fetchStats = async () => {
-      if (!state.currentClinicId) return;
-
-      const [patientsRes, practitionersRes, appointmentsRes] = await Promise.all([
-        supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', state.currentClinicId).eq('is_deleted', false),
-        supabase.from('practitioners').select('id', { count: 'exact', head: true }).eq('clinic_id', state.currentClinicId).eq('is_active', true),
-        supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('clinic_id', state.currentClinicId),
+      setStatsState('loading');
+      const [p, pr, a] = await Promise.all([
+        supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId).eq('is_deleted', false),
+        supabase.from('practitioners').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId).eq('is_active', true),
+        supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId),
       ]);
-
-      setStats({
-        patients: patientsRes.count || 0,
-        practitioners: practitionersRes.count || 0,
-        appointments: appointmentsRes.count || 0,
-      });
+      if (cancelled) return;
+      if (p.error || pr.error || a.error) {
+        setStatsState('error');
+        return;
+      }
+      setStats({ patients: p.count || 0, practitioners: pr.count || 0, appointments: a.count || 0 });
+      setStatsState('ready');
     };
+
+    const fetchBackup = async () => {
+      setBackupState('loading');
+      const { data, error } = await supabase.rpc('get_last_clinic_backup_at', { _clinic_id: clinicId });
+      if (cancelled) return;
+      if (error) {
+        setBackupState('error');
+        return;
+      }
+      setLastBackupAt((data as string | null) ?? null);
+      setBackupState('ready');
+    };
+
     fetchStats();
-  }, [state.currentClinicId]);
+    if (['admin_clinic', 'tenant_owner', 'super_admin'].includes(state.userRole)) fetchBackup();
+    return () => { cancelled = true; };
+  }, [state.currentClinicId, state.userRole]);
 
   const handleExportData = async () => {
+    if (!state.currentClinicId) return;
+    setIsExporting(true);
     try {
-      const data = {
-        patients: state.patients,
-        practitioners: state.practitioners,
-        appointments: state.appointments,
-        preferences: state.preferences,
-        exportDate: new Date().toISOString()
-      };
-      
-      const dataText = JSON.stringify(data, null, 2);
-      await navigator.clipboard.writeText(dataText);
-      
-      toast({
-        title: "Datos exportados",
-        description: "Los datos del sistema han sido copiados al portapapeles en formato JSON",
+      const { data, error } = await supabase.functions.invoke('export-clinic-data', {
+        body: { clinic_id: state.currentClinicId },
       });
-    } catch (error) {
-      toast({
-        title: "Error al exportar",
-        description: "No se pudieron exportar los datos",
-        variant: "destructive",
-      });
-    }
-  };
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-  const handleClearCache = () => {
-    toast({
-      title: "Caché limpiado",
-      description: "Los datos temporales han sido eliminados",
-    });
-  };
-
-  const handleSeedDemo = async () => {
-    setIsSeedingDemo(true);
-    try {
-      const result = await seedDemoData();
-      
-      if (result.success) {
-        toast({
-          title: "Datos demo cargados",
-          description: `Creados: ${result.counts.patients} pacientes, ${result.counts.practitioners} profesionales, ${result.counts.appointments} turnos`,
-        });
-
-        // Switch to demo clinic if created
-        if (result.clinicId) {
-          dispatch({ 
-            type: 'SET_CURRENT_CLINIC', 
-            payload: { id: result.clinicId, name: 'Clínica Demo' } 
-          });
-          toast({
-            title: "Clínica cambiada",
-            description: "Ahora estás en la Clínica Demo",
-          });
-        }
-      } else {
-        toast({
-          title: "Error al cargar datos demo",
-          description: result.error || "Ocurrió un error desconocido",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos demo",
-        variant: "destructive",
-      });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = (state.currentClinicName || 'clinica')
+        .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .toLowerCase();
+      a.href = url;
+      a.download = `clinica-${safeName}-${format(new Date(), 'yyyy-MM-dd')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      toast({ title: 'Datos exportados', description: 'Se descargó el archivo con los datos de la clínica.' });
+    } catch (err: any) {
+      console.error('Export error:', err);
+      toast({ title: 'Error al exportar', description: err?.message || 'No se pudieron exportar los datos', variant: 'destructive' });
     } finally {
-      setIsSeedingDemo(false);
+      setIsExporting(false);
     }
   };
 
-  const handleClearDemo = async () => {
-    setIsClearingDemo(true);
-    try {
-      // Check if current clinic is the demo clinic
-      const demoClinicId = await getDemoClinicId();
-      const isInDemoClinic = state.currentClinicId === demoClinicId;
-
-      const result = await clearDemoData();
-      
-      if (result.success) {
-        toast({
-          title: "Datos demo eliminados",
-          description: `Eliminados: ${result.counts.appointments} turnos, ${result.counts.patients} pacientes, ${result.counts.practitioners} profesionales`,
-        });
-
-        // If user was in demo clinic, redirect to select-clinic
-        if (isInDemoClinic) {
-          dispatch({ type: 'SET_CURRENT_CLINIC', payload: { id: '', name: '' } });
-          navigate('/select-clinic');
-        }
-      } else {
-        toast({
-          title: "Error al borrar datos demo",
-          description: result.error || "Ocurrió un error desconocido",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron borrar los datos demo",
-        variant: "destructive",
-      });
-    } finally {
-      setIsClearingDemo(false);
-    }
-  };
+  const backupText =
+    backupState === 'loading'
+      ? 'Cargando…'
+      : backupState === 'error'
+        ? 'No se pudo obtener la fecha del último respaldo'
+        : lastBackupAt
+          ? `Último respaldo: ${format(new Date(lastBackupAt), 'dd/MM/yyyy HH:mm')}`
+          : 'Aún no hay respaldos registrados para esta clínica';
 
   return (
     <div className="p-6 space-y-6 pb-20 lg:pb-6">
@@ -200,82 +140,26 @@ export const Settings = () => {
           <SettingsIcon className="h-6 w-6 text-primary" />
           Configuración
         </h1>
-        <p className="text-muted-foreground">
-          Personaliza el sistema según tus necesidades
-        </p>
+        <p className="text-muted-foreground">Administra tu cuenta y la configuración de la clínica</p>
       </div>
 
       <div className="grid gap-6">
-        {/* Preferencias UI - Visible para todos */}
+        {/* Mi cuenta - todos */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Preferencias UI
+              Mi cuenta
             </CardTitle>
-            <CardDescription>
-              Personaliza tu experiencia de usuario
-            </CardDescription>
+            <CardDescription>Gestiona el acceso a tu cuenta</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <Label>Notificaciones por email</Label>
-                <p className="text-sm text-muted-foreground">Recibe notificaciones de citas</p>
-              </div>
-              <Switch
-                checked={prefs.email_notifications}
-                disabled={prefsLoading || prefsSaving}
-                onCheckedChange={(v) => updatePref('email_notifications', v)}
-              />
-            </div>
-            <Separator />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <Label>Notificaciones push</Label>
-                <p className="text-sm text-muted-foreground">Alertas en tiempo real</p>
-              </div>
-              <Switch
-                checked={prefs.push_notifications}
-                disabled={prefsLoading || prefsSaving}
-                onCheckedChange={(v) => updatePref('push_notifications', v)}
-              />
-            </div>
-            <Separator />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <Label>Tema oscuro</Label>
-                <p className="text-sm text-muted-foreground">Cambiar a modo oscuro</p>
-              </div>
-              <Switch
-                checked={prefs.dark_theme}
-                disabled={prefsLoading || prefsSaving}
-                onCheckedChange={(v) => updatePref('dark_theme', v)}
-              />
-            </div>
-            <Separator />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <Label>Vista compacta</Label>
-                <p className="text-sm text-muted-foreground">Usar interfaz más compacta</p>
-              </div>
-              <Switch
-                checked={prefs.compact_view}
-                disabled={prefsLoading || prefsSaving}
-                onCheckedChange={(v) => updatePref('compact_view', v)}
-              />
-            </div>
-            <Separator />
+          <CardContent>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <Label>Cambiar contraseña</Label>
                 <p className="text-sm text-muted-foreground">Actualiza tu contraseña de acceso</p>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowChangePassword(true)}
-              >
+              <Button variant="outline" size="sm" className="self-start sm:self-auto min-h-[44px] sm:min-h-0" onClick={() => setShowChangePassword(true)}>
                 <KeyRound className="h-4 w-4 mr-2" />
                 Cambiar
               </Button>
@@ -283,12 +167,8 @@ export const Settings = () => {
           </CardContent>
         </Card>
 
-        <ChangePasswordDialog 
-          open={showChangePassword} 
-          onOpenChange={setShowChangePassword} 
-        />
+        <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
 
-        {/* Gestión de Usuarios - Solo Admin */}
         <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
           {state.currentClinicId && (
             <UserManagementCard
@@ -299,220 +179,112 @@ export const Settings = () => {
           )}
         </RoleGuard>
 
-        {/* Configuración del Sistema - Solo Admin */}
+        {/* Seguridad y respaldos */}
         <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Configuración del Sistema
+                Seguridad y respaldos
               </CardTitle>
-              <CardDescription>
-                Opciones administrativas y de seguridad
-              </CardDescription>
+              <CardDescription>Estado de los respaldos y del registro de cambios de esta clínica</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <Label>Modo mantenimiento</Label>
-                  <p className="text-sm text-muted-foreground">Activar para realizar actualizaciones</p>
+                  <Label>Respaldos automáticos</Label>
+                  <p className="text-sm text-muted-foreground">Se genera un respaldo diario de los datos. {backupText}</p>
                 </div>
-                <Switch />
+                <Badge variant="secondary" className="self-start sm:self-auto gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Activo
+                </Badge>
               </div>
               <Separator />
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <Label>Backups automáticos</Label>
-                  <p className="text-sm text-muted-foreground">Respaldar datos diariamente</p>
+                  <Label>Registro de auditoría</Label>
+                  <p className="text-sm text-muted-foreground">Los cambios en turnos quedan registrados con usuario y fecha. No se puede desactivar.</p>
                 </div>
-                <Switch defaultChecked />
+                <Badge variant="secondary" className="self-start sm:self-auto gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Siempre activo
+                </Badge>
               </div>
-              <Separator />
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <Label>Logs de auditoría</Label>
-                  <p className="text-sm text-muted-foreground">Registrar acciones del sistema</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
+              {isSuperAdmin && (
+                <>
+                  <Separator />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <Label htmlFor="maintenance-mode">Modo mantenimiento</Label>
+                      <p className="text-sm text-muted-foreground">Solo super admin. Todavía no tiene efecto.</p>
+                    </div>
+                    <Switch id="maintenance-mode" disabled />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </RoleGuard>
 
-        {/* Gestión de Datos - Solo Admin */}
+        {/* Datos de la clínica */}
         <RoleGuard allowedRoles={['admin_clinic', 'tenant_owner']}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Gestión de Datos
+                Datos de la clínica
               </CardTitle>
-              <CardDescription>
-                Administra los datos del sistema
-              </CardDescription>
+              <CardDescription>Resumen de la clínica activa</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {isSuperAdmin && (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <Label>Exportar datos</Label>
+                      <p className="text-sm text-muted-foreground">Descarga un archivo JSON con los datos de la clínica activa</p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="self-start sm:self-auto shrink-0 min-h-[44px] sm:min-h-0" disabled={isExporting || !state.currentClinicId}>
+                          {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                          {isExporting ? 'Exportando…' : 'Exportar'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Descargar los datos de {state.currentClinicName || 'la clínica'}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            El archivo contiene datos personales y de salud de los pacientes. Guárdalo en un lugar seguro y no lo compartas por canales no protegidos.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleExportData}>Descargar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  <Separator />
+                </>
+              )}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <Label>Descargar Schema SQL</Label>
-                  <p className="text-sm text-muted-foreground">Exportar estructura completa de la base de datos para respaldo</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={downloadSchemaAsSQL} className="self-start sm:self-auto shrink-0">
-                  <Download className="h-4 w-4 mr-2" />
-                  Descargar .sql
-                </Button>
-              </div>
-              <Separator />
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <Label>Exportar datos</Label>
-                  <p className="text-sm text-muted-foreground">Descargar backup completo en JSON</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleExportData} className="self-start sm:self-auto shrink-0">
-                  Exportar
-                </Button>
-              </div>
-              <Separator />
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <Label>Limpiar caché</Label>
-                  <p className="text-sm text-muted-foreground">Borrar datos temporales del sistema</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleClearCache} className="self-start sm:self-auto shrink-0">
-                  Limpiar
-                </Button>
-              </div>
-              <Separator />
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <Label>Estadísticas del sistema</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Pacientes: {stats.patients} | 
-                    Profesionales: {stats.practitioners} | 
-                    Turnos: {stats.appointments}
+                  <Label>Estadísticas</Label>
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                    {statsState === 'loading' && 'Cargando…'}
+                    {statsState === 'error' && 'No se pudieron cargar las estadísticas'}
+                    {statsState === 'ready' && `Pacientes: ${stats.patients} | Profesionales: ${stats.practitioners} | Turnos: ${stats.appointments}`}
                   </p>
                 </div>
-                <Badge variant="outline" className="self-start sm:self-auto">UI-Only</Badge>
+                <Badge variant="outline" className="self-start sm:self-auto">
+                  {state.currentClinicName || 'Clínica activa'}
+                </Badge>
               </div>
             </CardContent>
           </Card>
         </RoleGuard>
-
-        {/* Demo Mode - Solo tenant_owner y admin_clinic (verificado desde BD) */}
-        {!isLoadingRole && isAdmin && (
-          <Card className="border-dashed border-amber-500/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FlaskConical className="h-5 w-5 text-amber-500" />
-                Demo (interno)
-                <Badge variant="outline" className="ml-2 text-amber-600 border-amber-400">
-                  Admin Only
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Carga datos de demostración para pruebas. Los datos se almacenan en una clínica separada "Clínica Demo".
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <Label>Cargar datos demo</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Crea una Clínica Demo con 10 pacientes, 3 profesionales y 30 turnos de ejemplo
-                  </p>
-                </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="border-amber-400 text-amber-600 hover:bg-amber-50"
-                      disabled={isSeedingDemo}
-                    >
-                      {isSeedingDemo ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Cargando...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Cargar datos demo
-                        </>
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Cargar datos de demostración?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Se creará una "Clínica Demo" con pacientes, profesionales y turnos de ejemplo.
-                        Serás redirigido automáticamente a esta clínica para verla en acción.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleSeedDemo}>
-                        Cargar demo
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-              
-              <Separator />
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <Label>Borrar datos demo</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Elimina completamente la Clínica Demo y todos sus datos asociados
-                  </p>
-                </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                      disabled={isClearingDemo}
-                    >
-                      {isClearingDemo ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Borrando...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Borrar datos demo
-                        </>
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar datos de demostración?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción eliminará permanentemente la "Clínica Demo" y todos sus datos 
-                        (pacientes, profesionales, turnos). Las clínicas reales no serán afectadas.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleClearDemo}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Eliminar demo
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

@@ -15,6 +15,20 @@
       "when": 1790342711776,
       "tag": "0001_backup_token_private_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792050878669,
+      "tag": "0002_last_clinic_backup_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792050898803,
+      "tag": "0003_last_clinic_backup_at_scoped",
+      "breakpoints": true
     }
   ]
 }
