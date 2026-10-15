@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { parseLocalDate } from '@/utils/dateUtils';
+import { buildWhatsAppCancelNoticeUrl, dayDDMM, getPatientFirstName } from '@/utils/whatsapp';
 import { formatPatientFullName, treatmentLabel } from '@/utils/formatters';
 import { useClinicSettings } from '@/hooks/useClinicSettings';
 import type { Appointment, Patient } from '@/contexts/AppContext';
@@ -62,6 +63,7 @@ export const SendAppointmentInfoDialog = ({
   const [isSending, setIsSending] = useState(false);
   const [confirmResend, setConfirmResend] = useState(false);
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo | null>(null);
+  const [loadingClinic, setLoadingClinic] = useState(false);
   const [lastSend, setLastSend] = useState<LastSend | null>(null);
   const [loadingLast, setLoadingLast] = useState(false);
 
@@ -75,6 +77,8 @@ export const SendAppointmentInfoDialog = ({
   useEffect(() => {
     if (!open || !appointment || !state.currentClinicId) return;
     let mounted = true;
+    setClinicInfo(null);
+    setLoadingClinic(true);
 
     (async () => {
       // Datos de la clínica
@@ -83,7 +87,10 @@ export const SendAppointmentInfoDialog = ({
         .select('name, address, contact_phone, appointment_instructions')
         .eq('id', state.currentClinicId)
         .maybeSingle();
-      if (mounted && cData) setClinicInfo(cData as ClinicInfo);
+      if (mounted) {
+        setClinicInfo(cData as ClinicInfo | null);
+        setLoadingClinic(false);
+      }
     })();
 
     // Último envío (RPC minimal)
@@ -133,6 +140,8 @@ export const SendAppointmentInfoDialog = ({
   const canSend =
     emailFormatValid &&
     !isSending &&
+    !loadingClinic &&
+    (!isReminder || !!clinicInfo) &&
     !blockedByConsent &&
     !needsResendConfirm;
 
@@ -152,17 +161,23 @@ export const SendAppointmentInfoDialog = ({
           idempotencyKey: `${templateName}-${appointment.id}-${Date.now()}`,
           fromLabel,
           templateData: {
-            patientName: patient ? formatPatientFullName(patient) : undefined,
-            appointmentDate: formattedDate,
+            patientName: patient ? (isReminder ? getPatientFirstName(patient) : formatPatientFullName(patient)) : undefined,
+            appointmentDate: isReminder ? dayDDMM(appointment.date) : formattedDate,
             appointmentTime: startHHmm,
             practitionerName: practitionerName,
             treatmentName,
             clinicName: clinicNameForEmail,
             clinicAddress: clinicInfo?.address || undefined,
             clinicPhone: clinicInfo?.contact_phone || undefined,
+            clinicWhatsappUrl: isReminder ? buildWhatsAppCancelNoticeUrl({
+              clinicPhone: clinicInfo?.contact_phone,
+              patientFirstName: patient ? getPatientFirstName(patient) : undefined,
+              date: appointment.date,
+              startTime: startHHmm,
+            }) : undefined,
             appointmentInstructions: clinicInfo?.appointment_instructions || undefined,
             customMessage: clinicSettings?.email_custom_message || undefined,
-            subjectOverride: clinicSettings?.email_subject_override || undefined,
+            subjectOverride: isReminder ? undefined : clinicSettings?.email_subject_override || undefined,
             notes: appointment.notes || undefined,
           },
         },

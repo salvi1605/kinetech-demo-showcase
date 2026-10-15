@@ -59,7 +59,7 @@ export interface WhatsAppReminderInput {
 }
 
 const greetingFor = (name?: string | null) => (name?.trim() ? `Hola ${name.trim()}` : 'Hola');
-const dayDDMM = (ymd: string) => {
+export const dayDDMM = (ymd: string) => {
   const d = parseLocalDate(ymd);
   return `${format(d, 'EEEE', { locale: es })} ${format(d, 'dd/MM')}`;
 };
@@ -70,11 +70,9 @@ export const buildWhatsAppReminderMessage = ({
   clinicName,
   date,
   startTime,
-  practitionerName,
 }: WhatsAppReminderInput): string => {
-  const place = clinicName?.trim() ? ` en ${clinicName.trim()}` : '';
-  const withPro = practitionerName?.trim() ? ` con ${practitionerName.trim()}` : '';
-  return `${greetingFor(patientFirstName)}, te recordamos tu turno${place} el ${dayDDMM(date)} a las ${hhmm(startTime)}${withPro}. Por favor confirmanos tu asistencia. ¡Gracias!`;
+  const place = clinicName?.trim() || 'AgendixPro';
+  return `${greetingFor(patientFirstName)}, te recordamos tu turno del ${dayDDMM(date)} a las ${hhmm(startTime)} en ${place}. Si no vas a poder asistir, avísanos por acá para liberar tu lugar. ¡Te esperamos!`;
 };
 
 export interface WhatsAppInfoInput extends WhatsAppReminderInput {
@@ -130,3 +128,15 @@ export const buildWhatsAppUpcomingMessage = ({
 
 export const buildWhatsAppUrl = (normalizedPhone: string, text: string): string =>
   `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`;
+
+export const buildWhatsAppCancelNoticeUrl = ({
+  clinicPhone,
+  patientFirstName,
+  date,
+  startTime,
+}: WhatsAppReminderInput & { clinicPhone?: string | null }): string | undefined => {
+  const phone = normalizeArPhoneForWhatsApp(clinicPhone);
+  if (!phone) return undefined;
+  const introduction = patientFirstName?.trim() ? `Hola, soy ${patientFirstName.trim()}.` : 'Hola.';
+  return buildWhatsAppUrl(phone, `${introduction} No podré asistir a mi turno del ${dayDDMM(date)} a las ${hhmm(startTime)}.`);
+};
