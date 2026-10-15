@@ -60,7 +60,7 @@ export const WhatsAppMessageDialog = ({
             {title}
           </DialogTitle>
           <DialogDescription>
-            Se abre WhatsApp con el mensaje escrito. Nada se envía solo: revisalo y envialo desde WhatsApp.
+            Se abre WhatsApp con el mensaje escrito. Nada se envía solo: revísalo y envíalo desde WhatsApp.
           </DialogDescription>
         </DialogHeader>
 
@@ -81,7 +81,7 @@ export const WhatsAppMessageDialog = ({
             <div id="wa-phone-help" className="space-y-1">
               {!normalized ? (
                 <p className="text-xs text-destructive">
-                  {phone.trim() ? 'El número no es válido.' : 'El paciente no tiene teléfono. Ingresá uno para este envío.'}
+                  {phone.trim() ? 'El número no es válido.' : 'El paciente no tiene teléfono. Ingresa uno para este envío.'}
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">Se enviará a +{normalized}</p>

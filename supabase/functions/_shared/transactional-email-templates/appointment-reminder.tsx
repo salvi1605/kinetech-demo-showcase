@@ -139,8 +139,8 @@ export const template = {
     clinicAddress: 'Av. Siempre Viva 123, Buenos Aires',
     clinicPhone: '+54 11 1234-5678',
     clinicWhatsappUrl: 'https://wa.me/5491112345678?text=Hola%2C%20soy%20Mar%C3%ADa.%20No%20podr%C3%A9%20asistir%20a%20mi%20turno%20del%20mi%C3%A9rcoles%2007%2F10%20a%20las%2010%3A30.',
-    appointmentInstructions: 'Llegá 10 minutos antes con ropa cómoda.',
-    customMessage: 'Recordá traer tu orden médica actualizada.',
+    appointmentInstructions: 'Llega 10 minutos antes con ropa cómoda.',
+    customMessage: 'Recuerda traer tu orden médica actualizada.',
     notes: 'Sesión de control post-quirúrgico.',
   },
 } satisfies TemplateEntry
