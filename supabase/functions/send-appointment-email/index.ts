@@ -33,6 +33,35 @@ Deno.serve(async (req) => {
     return json({ error: 'Server configuration error' }, 500)
   }
 
+  // Caller must be an authenticated staff member (receptionist, admin_clinic,
+  // tenant_owner or super_admin) with an active role in some clinic.
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401)
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+  if (!anonKey) return json({ error: 'Server configuration error' }, 500)
+  const authClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(authHeader.slice(7))
+  const callerId = claimsData?.claims?.sub
+  if (claimsError || !callerId) return json({ error: 'Unauthorized' }, 401)
+  {
+    const admin = createClient(supabaseUrl, supabaseServiceKey)
+    const { data: roleRows, error: roleError } = await admin
+      .from('user_roles')
+      .select('role_id')
+      .eq('user_id', callerId)
+      .eq('active', true)
+      .in('role_id', ['receptionist', 'admin_clinic', 'tenant_owner', 'super_admin'])
+      .limit(1)
+    if (roleError) {
+      console.error('Role check failed', { code: roleError.code })
+      return json({ error: 'Server error' }, 500)
+    }
+    if (!roleRows || roleRows.length === 0) return json({ error: 'Forbidden' }, 403)
+  }
+
+
   let body: any
   try {
     body = await req.json()
