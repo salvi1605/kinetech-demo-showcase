@@ -57,6 +57,11 @@ Deno.serve(async (req) => {
   if (!EMAIL_RE.test(recipientEmail) || recipientEmail.length > 320) {
     return json({ error: 'Invalid recipientEmail' }, 400)
   }
+  if (templateData.clinicWhatsappUrl !== undefined &&
+      (typeof templateData.clinicWhatsappUrl !== 'string' ||
+       !/^https:\/\/wa\.me\/\d{8,15}\?text=[^\s]*$/.test(templateData.clinicWhatsappUrl))) {
+    return json({ error: 'Invalid clinicWhatsappUrl' }, 400)
+  }
 
   const template = TEMPLATES[templateName]
   const recipient = template.to || recipientEmail

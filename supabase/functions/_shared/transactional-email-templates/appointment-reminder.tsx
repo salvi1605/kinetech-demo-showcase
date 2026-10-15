@@ -8,6 +8,7 @@ import {
   Heading,
   Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -23,6 +24,7 @@ interface AppointmentReminderProps {
   clinicName?: string
   clinicAddress?: string
   clinicPhone?: string
+  clinicWhatsappUrl?: string
   appointmentInstructions?: string
   customMessage?: string
   notes?: string
@@ -37,6 +39,7 @@ const AppointmentReminderEmail = ({
   clinicName,
   clinicAddress,
   clinicPhone,
+  clinicWhatsappUrl,
   appointmentInstructions,
   customMessage,
   notes,
@@ -53,9 +56,13 @@ const AppointmentReminderEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Heading style={h1}>Recordatorio de tu turno</Heading>
-          <Text style={text}>Hola {greetingName},</Text>
           <Text style={text}>
-            Te recordamos que tenés un turno programado en <strong>{clinic}</strong>:
+            Hola {greetingName}, te recordamos tu turno del {appointmentDate} a las {appointmentTime} en {clinic}.{' '}
+            Si no vas a poder asistir, avísanos por WhatsApp para liberar tu lugar
+            {clinicWhatsappUrl && /^https:\/\/wa\.me\/\d{8,15}\?text=/.test(clinicWhatsappUrl)
+              ? <>: <Link href={clinicWhatsappUrl}>WhatsApp</Link>.</>
+              : clinicPhone?.trim() ? `: ${clinicPhone.trim()}.` : '.'}{' '}
+            ¡Te esperamos!
           </Text>
 
           {customMessage && (
@@ -99,11 +106,6 @@ const AppointmentReminderEmail = ({
             </>
           )}
 
-          <Hr style={hr} />
-          <Text style={footer}>
-            Si no reconocés este turno o necesitás reprogramarlo, comunicate con
-            la clínica{clinicPhone ? ` al ${clinicPhone}` : ''}.
-          </Text>
         </Container>
       </Body>
     </Html>
@@ -124,13 +126,7 @@ const Row = ({ label: l, value }: { label: string; value: string }) => (
 export const template = {
   component: AppointmentReminderEmail,
   subject: (data: Record<string, any>) => {
-    // Permite override de asunto por clínica
-    if (data?.subjectOverride && typeof data.subjectOverride === 'string' && data.subjectOverride.trim()) {
-      return data.subjectOverride.trim()
-    }
-    return data?.appointmentDate
-      ? `Recordatorio de tu turno - ${data.appointmentDate}`
-      : 'Recordatorio de tu turno'
+    return `Recordatorio de tu turno — ${typeof data?.clinicName === 'string' && data.clinicName.trim() ? data.clinicName.trim() : 'AgendixPro'}`
   },
   displayName: 'Recordatorio del turno',
   previewData: {
@@ -142,6 +138,7 @@ export const template = {
     clinicName: 'AgendixPro Demo',
     clinicAddress: 'Av. Siempre Viva 123, Buenos Aires',
     clinicPhone: '+54 11 1234-5678',
+    clinicWhatsappUrl: 'https://wa.me/5491112345678?text=Hola%2C%20soy%20Mar%C3%ADa.%20No%20podr%C3%A9%20asistir%20a%20mi%20turno%20del%20mi%C3%A9rcoles%2007%2F10%20a%20las%2010%3A30.',
     appointmentInstructions: 'Llegá 10 minutos antes con ropa cómoda.',
     customMessage: 'Recordá traer tu orden médica actualizada.',
     notes: 'Sesión de control post-quirúrgico.',
