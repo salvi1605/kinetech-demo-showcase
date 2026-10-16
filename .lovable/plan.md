@@ -1,25 +1,23 @@
-# Auto-asignación de roles, backfill, invisibilidad de super_admin y voseo
-
-Solo preview. HOLD de publicación vigente. No se tocan pacientes, turnos ni datos de clínicas.
+# No-show con cargo (solo preview, QA en clínicas demo)
 
 ## Diagnóstico
-- Las clínicas se crean por dos caminos: el RPC `super_admin_create_clinic` y un insert directo en `clinics` desde `CreateClinicDialog` (flujo no super_admin). Modificar solo el RPC dejaría afuera el segundo camino.
-- Las listas de equipo de clínica (`useClinicUsers`, `UserManagement`, `UserManagementCard`, `useAvailableUsersForPractitioner`, `EditUserDialog`) leen `user_roles` sin excluir super_admin.
-- «respondé» aparece en `src/utils/whatsapp.ts` (info del turno y próximos turnos).
+- En el detalle del turno, la opción «No Asistió» guarda `cancelled` en vez de `no_show`. Por eso las inasistencias marcadas desde ahí se cuentan como cancelaciones y bajan la tasa de ausentismo. La agenda (checkbox tri-estado) sí guarda `no_show` correctamente.
+- Hoy no hay ningún campo de cobro: un no-show cobrable no se puede registrar sin falsear el estado.
+- Los turnos ya guardados como `cancelled` por este error no se distinguen de cancelaciones reales: **no se corregirán datos históricos** (sobre todo de CTAK). Solo se arregla hacia adelante.
 
 ## Pasos
-1. **Trigger server-side** `AFTER INSERT ON clinics` (SECURITY DEFINER): busca `users.id` con email `salvi1605@gmail.com`; si no existe, no hace nada; si existe, inserta en `user_roles` un registro por cada fila de `roles` para la nueva clínica (`active=true`, `ON CONFLICT DO NOTHING`). Cubre ambos caminos de creación sin tocar el RPC. Los roles globales (`super_admin`, si su trigger `enforce_super_admin_global` exige `clinic_id` nulo) se insertan con la regla que ese trigger imponga, para no romper la creación.
-2. **Backfill único** (solo inserts en `user_roles`): mismo cruce clínicas × roles para todas las clínicas existentes, incluida CTAK, con `ON CONFLICT DO NOTHING`.
-3. **Invisibilidad**: función `is_platform_super_admin(user_id)` y filtro en las listas de equipo de clínica que excluya usuarios con `super_admin` activo, salvo cuando quien mira es super_admin (vistas de super admin intactas). `audit_log` no se modifica.
-4. **Voseo**: «respondé» → «responde» en los dos mensajes.
-5. **Verificación**: build OK; crear una clínica de prueba en preview y confirmar los roles asignados (y luego eliminarla, o dejarla si prefieres); contar filas del backfill por clínica.
+1. **Base de datos (migración aditiva):** `appointments.is_charged boolean NOT NULL DEFAULT false`. Además un trigger de protección: solo `admin_clinic`, `tenant_owner` o `super_admin` de esa clínica pueden cambiar `is_charged` (recepción y profesionales reciben error aunque intenten saltear la UI). Al volver un turno a un estado distinto de `no_show`, `is_charged` se pone en false automáticamente para que no quede un cargo "huérfano".
+2. **Fix de etiqueta en el detalle del turno:** `no_show → No Asistió` (en lugar de `cancelled`). Opciones finales: Reservado / Asistió / No Asistió.
+3. **Agenda:** el checkbox queda igual. Solo en estado no_show aparece al lado un botón compacto «$» (mismo tamaño, área táctil accesible, `aria-pressed`, tooltip). Admin/dueño lo alternan; recepción lo ve deshabilitado (solo lectura); profesionales igual que recepción. Con cargo: insignia pequeña «con cargo» en la tarjeta. Los demás estados se ven idénticos a hoy. Actualización optimista con reversión y toast si falla.
+4. **Detalle del turno:** si el estado es No Asistió, se muestra «Con cargo / Sin cargo» (interruptor editable para admin/dueño, texto para el resto).
+5. **Reporte Operativo:** dos tarjetas y columnas nuevas «No-shows con cargo» y «No-shows sin cargo» (también en el CSV). El conteo «No-shows» existente no cambia; se cumple con cargo + sin cargo = No-shows. El cálculo vive en `reportMetrics.ts`, con test.
+6. **Fase 2 — sugerencia (simple, la incluyo):** al marcar no_show (agenda o detalle), se calcula cuántas inasistencias previas tiene el paciente en ese mismo tratamiento en la clínica. 1ª → sugiere «sin cargo»; 2ª en adelante → sugiere «con cargo», con motivo visible («2ª inasistencia en este tratamiento»). **Nunca se marca cargo solo:** en la agenda el «$» muestra la sugerencia resaltada y el motivo en el tooltip; en el detalle aparece el aviso con un botón «Aplicar cargo» que requiere clic. Solo se ofrece a admin/dueño.
 
-## Puntos a confirmar antes de implementar
-- **Acceso invisible a CTAK**: esta cuenta tendrá acceso completo a historias clínicas de todas las clínicas y no aparecerá en su lista de equipo. Esto es una decisión de privacidad/legal (datos de salud). Recomiendo que los Términos/Privacidad mencionen el acceso de soporte de la plataforma. ¿Confirmas?
-- **Rol super_admin en la tabla roles**: si se asigna "todos los roles", incluye super_admin global. ¿Lo quieres incluido, o solo los roles de clínica?
-- **Clínica de prueba**: ¿la creo en preview para verificar y la borro después? Tocaría la tabla de clínicas.
+## QA (en «Clínica Demo (Ventas)», sin CTAK, sin emails)
+Marcar un turno como no_show, alternar «$», ver la insignia, verificar que recepción no puede cambiarlo (también en la base), comprobar el fix del desplegable y el desglose del reporte. Build OK. Revertir los cambios de prueba al terminar. Nada a producción.
 
-## Detalle técnico
-- Migración: función `assign_platform_roles_to_clinic(_clinic_id uuid)` + trigger `trg_clinics_assign_platform_roles`; email en una constante dentro de la función (único lugar).
-- Backfill vía SQL de datos (`INSERT ... SELECT ... ON CONFLICT DO NOTHING`), no en la migración.
-- Filtro de UI en los hooks; RLS sin cambios.
+## Detalles técnicos
+- Migración: columna + función trigger `SECURITY DEFINER` `BEFORE UPDATE` en `appointments` usando `is_super_admin()`, `is_admin_clinic(clinic_id)` y `is_tenant_owner()`/user_roles.
+- Calendar.tsx: nuevo handler `toggleCharged` (update directo de `is_charged` filtrado por id y clinic_id); mapear `is_charged` en `useAppointmentsForClinic` / AppContext.
+- Sugerencia: helper `suggestNoShowCharge(patientId, treatmentTypeId, clinicId, excludeId)` con un count filtrado; sin N+1 (se consulta solo al marcar).
+- Regla nueva en AGENTS.md: el cobro es independiente del estado de asistencia.
