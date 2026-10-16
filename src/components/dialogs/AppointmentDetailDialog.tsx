@@ -254,6 +254,27 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
     }
   };
 
+  const chargeBlock = appointment.status === 'no_show' && appointment.patientId && state.currentClinicId && (
+                <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Cargo de la inasistencia</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(chargedLocal ?? appointment.isCharged) ? 'Con cargo' : 'Sin cargo'}
+                      {canEditCharge(state.userRole) ? ' · Pasa el cursor sobre «$» para ver la sugerencia' : ' · Solo administración o dueño pueden cambiarlo'}
+                    </p>
+                  </div>
+                  <NoShowChargeButton
+                    appointmentId={appointment.id}
+                    clinicId={state.currentClinicId}
+                    patientId={appointment.patientId}
+                    treatmentTypeId={appointment.treatmentTypeId}
+                    date={appointment.date}
+                    isCharged={!!(chargedLocal ?? appointment.isCharged)}
+                    canEdit={canEditCharge(state.userRole)}
+                    onChanged={(v) => { (appointment as { isCharged?: boolean }).isCharged = v; setChargedLocal(v); }}
+                  />
+                </div>
+              );
   const statusInfo = getStatusInfo(appointment.status);
   const StatusIcon = statusInfo.icon;
 
@@ -921,27 +942,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 )}
               />
 
-              {appointment.status === 'no_show' && appointment.patientId && state.currentClinicId && (
-                <div className="flex items-center justify-between gap-3 rounded-md border p-3">
-                  <div>
-                    <p className="text-sm font-medium">Cargo de la inasistencia</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(chargedLocal ?? appointment.isCharged) ? 'Con cargo' : 'Sin cargo'}
-                      {canEditCharge(state.userRole) ? ' · Pasa el cursor sobre «$» para ver la sugerencia' : ' · Solo administración o dueño pueden cambiarlo'}
-                    </p>
-                  </div>
-                  <NoShowChargeButton
-                    appointmentId={appointment.id}
-                    clinicId={state.currentClinicId}
-                    patientId={appointment.patientId}
-                    treatmentTypeId={appointment.treatmentTypeId}
-                    date={appointment.date}
-                    isCharged={!!(chargedLocal ?? appointment.isCharged)}
-                    canEdit={canEditCharge(state.userRole)}
-                    onChanged={(v) => { (appointment as { isCharged?: boolean }).isCharged = v; setChargedLocal(v); }}
-                  />
-                </div>
-              )}
+              {chargeBlock}
 
               {/* Fecha */}
               <FormField
