@@ -1,3 +1,4 @@
+import { fetchPlatformStaffIds } from '@/lib/platformStaff';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -68,7 +69,7 @@ export function useAvailableUsersForPractitioner(
         );
 
         // 3. Deduplicar por user_id y filtrar usuarios que NO están vinculados
-        const seen = new Set<string>();
+        const seen = new Set<string>(await fetchPlatformStaffIds());
         const availableUsers: AvailableUser[] = (clinicUsers || [])
           .filter(ur => {
             if (seen.has(ur.user_id) || linkedUserIds.has(ur.user_id)) return false;
