@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export const CHARGE_EDITOR_ROLES = ['super_admin', 'admin_clinic', 'tenant_owner'] as const;
+export const CHARGE_EDITOR_ROLES = ['super_admin', 'admin_clinic', 'tenant_owner', 'receptionist'] as const;
 
 export const canEditCharge = (role: string | null | undefined) =>
   !!role && (CHARGE_EDITOR_ROLES as readonly string[]).includes(role);
