@@ -82,6 +82,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [chargedLocal, setChargedLocal] = useState<boolean | null>(null);
   const [showFreeDialog, setShowFreeDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [selectedSubSlot, setSelectedSubSlot] = useState<number | undefined>(undefined);
