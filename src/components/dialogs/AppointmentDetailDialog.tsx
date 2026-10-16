@@ -154,6 +154,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
 
   if (!appointment) return null;
 
+  const [chargedLocal, setChargedLocal] = useState<boolean | null>(null);
   const patient = state.patients.find(p => p.id === appointment.patientId);
   const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
   const appointmentDate = appointment.date.length === 10 ? parseLocalDate(appointment.date) : parseISO(appointment.date);
@@ -924,7 +925,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   <div>
                     <p className="text-sm font-medium">Cargo de la inasistencia</p>
                     <p className="text-xs text-muted-foreground">
-                      {appointment.isCharged ? 'Con cargo' : 'Sin cargo'}
+                      {(chargedLocal ?? appointment.isCharged) ? 'Con cargo' : 'Sin cargo'}
                       {canEditCharge(state.userRole) ? ' · Pasa el cursor sobre «$» para ver la sugerencia' : ' · Solo administración o dueño pueden cambiarlo'}
                     </p>
                   </div>
@@ -934,9 +935,9 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                     patientId={appointment.patientId}
                     treatmentTypeId={appointment.treatmentTypeId}
                     date={appointment.date}
-                    isCharged={!!appointment.isCharged}
+                    isCharged={!!(chargedLocal ?? appointment.isCharged)}
                     canEdit={canEditCharge(state.userRole)}
-                    onChanged={(v) => { (appointment as { isCharged?: boolean }).isCharged = v; onAppointmentUpdated?.(); }}
+                    onChanged={(v) => { (appointment as { isCharged?: boolean }).isCharged = v; setChargedLocal(v); }}
                   />
                 </div>
               )}
