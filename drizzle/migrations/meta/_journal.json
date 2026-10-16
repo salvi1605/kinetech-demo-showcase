@@ -29,6 +29,13 @@
       "when": 1792050898803,
       "tag": "0003_last_clinic_backup_at_scoped",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792142801877,
+      "tag": "0004_platform_support_roles",
+      "breakpoints": true
     }
   ]
 }

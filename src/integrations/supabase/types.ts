@@ -1362,6 +1362,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_platform_roles_to_clinic: {
+        Args: { _clinic_id: string }
+        Returns: undefined
+      }
       auto_mark_no_show: { Args: never; Returns: undefined }
       can_view_user: { Args: { target_user_id: string }; Returns: boolean }
       create_clinic_onboarding: {
@@ -1422,6 +1426,7 @@ export type Database = {
         Args: { _clinic_id: string }
         Returns: string
       }
+      get_platform_staff_user_ids: { Args: never; Returns: string[] }
       is_admin_clinic: { Args: { target_clinic_id: string }; Returns: boolean }
       is_health_pro: { Args: { target_clinic_id: string }; Returns: boolean }
       is_receptionist: { Args: { target_clinic_id: string }; Returns: boolean }
