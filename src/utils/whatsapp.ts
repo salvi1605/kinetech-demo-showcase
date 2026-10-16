@@ -93,7 +93,7 @@ export const buildWhatsAppAppointmentInfoMessage = (i: WhatsAppInfoInput): strin
     i.treatmentName?.trim() ? `🩺 Tratamiento: ${i.treatmentName.trim()}` : null,
     clinic ? `📍 Clínica: ${clinic}` : null,
     '',
-    'Ante cualquier consulta, respondé este mensaje. ¡Gracias!',
+    'Ante cualquier consulta, responde este mensaje. ¡Gracias!',
   ];
   return lines.filter((l) => l !== null).join('\n');
 };
@@ -123,7 +123,7 @@ export const buildWhatsAppUpcomingMessage = ({
   });
   const extra = items.length - shown.length;
   if (extra > 0) lines.push(`y ${extra} ${extra === 1 ? 'turno más' : 'turnos más'}.`);
-  return [`${greetingFor(patientFirstName)}, estos son tus próximos turnos${place}:`, ...lines, '', 'Ante cualquier consulta, respondé este mensaje. ¡Gracias!'].join('\n');
+  return [`${greetingFor(patientFirstName)}, estos son tus próximos turnos${place}:`, ...lines, '', 'Ante cualquier consulta, responde este mensaje. ¡Gracias!'].join('\n');
 };
 
 export const buildWhatsAppUrl = (normalizedPhone: string, text: string): string =>
