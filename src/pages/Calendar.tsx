@@ -854,10 +854,12 @@ export const Calendar = () => {
                         )}
                       </span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
-                        {statusBadge.label}
-                      </span>
-                      {appointment.status === 'no_show' && appointment.isCharged && <ChargedBadge />}
+                      <div className="flex items-center gap-1 overflow-hidden">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit shrink-0 ${statusBadge.className}`}>
+                          {statusBadge.label}
+                        </span>
+                        {appointment.status === 'no_show' && appointment.isCharged && <ChargedBadge className="shrink-0" />}
+                      </div>
                     </div>
                   </div>
                 </div>
