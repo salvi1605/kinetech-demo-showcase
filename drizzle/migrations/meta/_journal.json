@@ -36,6 +36,13 @@
       "when": 1792142801877,
       "tag": "0004_platform_support_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792146469107,
+      "tag": "0005_appointments_is_charged",
+      "breakpoints": true
     }
   ]
 }
