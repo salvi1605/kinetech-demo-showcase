@@ -70,7 +70,7 @@ export const usePatientAppointments = (patientId: string) => {
             date: apt.date,
             startTime: apt.start_time.substring(0, 5),
             subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
-            status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
+            status: (['completed', 'no_show', 'cancelled'].includes(apt.status) ? apt.status : 'scheduled') as Appointment['status'],
             notes: apt.notes || '',
             type: 'consultation' as const,
             treatmentType: treatmentKey as any,
@@ -147,7 +147,8 @@ export const formatAppointmentDisplay = (appointment: Appointment, practitioners
     switch (status) {
       case 'scheduled': return 'Reservado';
       case 'completed': return 'Asistió';
-      case 'cancelled': return 'No Asistió';
+      case 'no_show': return 'No Asistió';
+      case 'cancelled': return 'Cancelado';
       default: return status;
     }
   };

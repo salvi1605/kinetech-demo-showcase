@@ -88,7 +88,7 @@ export const PatientDetailTabs = () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .select('id, date, start_time, sub_slot, status, notes, patient_id, practitioner_id, treatment_type_id')
+        .select('id, date, start_time, sub_slot, status, notes, patient_id, practitioner_id, treatment_type_id, is_charged')
         .eq('clinic_id', state.currentClinicId)
         .eq('patient_id', id)
         .order('date', { ascending: false });
@@ -102,7 +102,8 @@ export const PatientDetailTabs = () => {
         date: apt.date,
         startTime: apt.start_time.substring(0, 5), // Normalize to HH:MM
         subSlot: apt.sub_slot as 1 | 2 | 3 | 4 | 5,
-        status: apt.status === 'completed' ? 'completed' : apt.status === 'cancelled' || apt.status === 'no_show' ? 'cancelled' : 'scheduled',
+        status: (['completed', 'no_show', 'cancelled'].includes(apt.status) ? apt.status : 'scheduled') as Appointment['status'],
+        isCharged: !!apt.is_charged,
         notes: apt.notes || '',
         type: 'consultation' as const,
         treatmentType: 'fkt' as const,
@@ -194,7 +195,8 @@ export const PatientDetailTabs = () => {
     switch (status) {
       case 'scheduled': return 'default';
       case 'completed': return 'secondary';
-      case 'cancelled': return 'destructive';
+      case 'no_show': return 'destructive';
+      case 'cancelled': return 'outline';
       default: return 'outline';
     }
   };
@@ -203,7 +205,8 @@ export const PatientDetailTabs = () => {
     switch (status) {
       case 'scheduled': return 'Reservado';
       case 'completed': return 'Asistió';
-      case 'cancelled': return 'No Asistió';
+      case 'no_show': return 'No Asistió';
+      case 'cancelled': return 'Cancelado';
       default: return status;
     }
   };
@@ -475,7 +478,7 @@ export const PatientDetailTabs = () => {
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-destructive">
-                          {patientAppointments.filter(a => a.status === 'cancelled').length}
+                          {patientAppointments.filter(a => a.status === 'no_show').length}
                         </p>
                         <p className="text-sm text-muted-foreground">No asistió</p>
                       </div>
