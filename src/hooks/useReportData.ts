@@ -30,7 +30,7 @@ export function useOperationalReport(filters: ReportFilters) {
       // Fetch appointments in range
       let q = supabase
         .from('appointments')
-        .select('id, date, start_time, status, practitioner_id, duration_minutes')
+        .select('id, date, start_time, status, practitioner_id, duration_minutes, is_charged')
         .eq('clinic_id', clinicId!)
         .gte('date', filters.dateFrom)
         .lte('date', filters.dateTo);
@@ -157,6 +157,8 @@ export function useOperationalReport(filters: ReportFilters) {
           booked: breakdown.totalBooked,
           completed: breakdown.completed,
           noShows: breakdown.noShows,
+          noShowsCharged: breakdown.noShowsCharged,
+          noShowsUncharged: breakdown.noShowsUncharged,
           scheduledFuture: breakdown.scheduledFuture,
           scheduledPending: breakdown.scheduledPending,
           occupancyPct: capacity > 0 ? Math.round((breakdown.totalBooked / capacity) * 100) : 0,
@@ -171,10 +173,12 @@ export function useOperationalReport(filters: ReportFilters) {
           booked: acc.booked + d.booked,
           completed: acc.completed + d.completed,
           noShows: acc.noShows + d.noShows,
+          noShowsCharged: acc.noShowsCharged + d.noShowsCharged,
+          noShowsUncharged: acc.noShowsUncharged + d.noShowsUncharged,
           scheduledFuture: acc.scheduledFuture + d.scheduledFuture,
           scheduledPending: acc.scheduledPending + d.scheduledPending,
         }),
-        { capacity: 0, booked: 0, completed: 0, noShows: 0, scheduledFuture: 0, scheduledPending: 0 }
+        { capacity: 0, booked: 0, completed: 0, noShows: 0, noShowsCharged: 0, noShowsUncharged: 0, scheduledFuture: 0, scheduledPending: 0 }
       );
 
       return { periods: data, totals };
