@@ -23,8 +23,8 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
   const handleExportCSV = () => {
     if (!data) return;
     exportToCSV('reporte-operativo',
-      ['Período', 'Capacidad', 'Total agendados', 'Completados', 'No-shows', 'Programados (futuros)', 'Programados pendientes', '% Ocupación', '% Completados'],
-      data.periods.map(p => [p.label, p.capacity, p.booked, p.completed, p.noShows, p.scheduledFuture, p.scheduledPending, p.occupancyPct, p.completionPct])
+      ['Período', 'Capacidad', 'Total agendados', 'Completados', 'No-shows', 'No-shows con cargo', 'No-shows sin cargo', 'Programados (futuros)', 'Programados pendientes', '% Ocupación', '% Completados'],
+      data.periods.map(p => [p.label, p.capacity, p.booked, p.completed, p.noShows, p.noShowsCharged, p.noShowsUncharged, p.scheduledFuture, p.scheduledPending, p.occupancyPct, p.completionPct])
     );
   };
 
@@ -39,11 +39,13 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
   return (
     <div className="report-printable space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <KPICard label="Capacidad Total" value={data.totals.capacity} />
         <KPICard label="Total agendados" value={data.totals.booked} accent />
         <KPICard label="Completados" value={data.totals.completed} success />
         <KPICard label="No-shows" value={data.totals.noShows} warn />
+        <KPICard label="No-shows con cargo" value={data.totals.noShowsCharged} />
+        <KPICard label="No-shows sin cargo" value={data.totals.noShowsUncharged} />
         <KPICard label="Programados (futuros)" value={data.totals.scheduledFuture} />
         <KPICard label="Programados pendientes" value={data.totals.scheduledPending} />
       </div>
@@ -81,6 +83,8 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
                <TableHead className="text-right">Total agendados</TableHead>
                <TableHead className="text-right">Completados</TableHead>
                <TableHead className="text-right">No-shows</TableHead>
+               <TableHead className="text-right">Con cargo</TableHead>
+               <TableHead className="text-right">Sin cargo</TableHead>
                <TableHead className="text-right">Programados (futuros)</TableHead>
                <TableHead className="text-right">Programados pendientes</TableHead>
               <TableHead className="text-right">% Ocupación</TableHead>
@@ -94,6 +98,8 @@ export default function OperationalReport({ dateFrom, dateTo, practitionerId, gr
                 <TableCell className="text-right">{p.booked}</TableCell>
                 <TableCell className="text-right text-accent">{p.completed}</TableCell>
                 <TableCell className="text-right text-destructive">{p.noShows}</TableCell>
+                <TableCell className="text-right">{p.noShowsCharged}</TableCell>
+                <TableCell className="text-right">{p.noShowsUncharged}</TableCell>
                 <TableCell className="text-right">{p.scheduledFuture}</TableCell>
                 <TableCell className="text-right">{p.scheduledPending}</TableCell>
                 <TableCell className="text-right font-semibold">{p.occupancyPct}%</TableCell>

@@ -196,6 +196,7 @@ export interface Appointment {
   subSlot: 1 | 2 | 3 | 4 | 5;
   treatmentType: TreatmentType;
   treatmentTypeId?: string;           // UUID del treatment_type en BD
+  isCharged?: boolean;               // cobro de no-show, independiente del estado
   isContinuation?: boolean;          // true si es la segunda media hora
   primaryAppointmentId?: string;     // id de la primaria (si continuation)
 }

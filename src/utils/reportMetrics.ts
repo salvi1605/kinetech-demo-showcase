@@ -2,12 +2,15 @@ export interface ReportAppointment {
   date: string;
   start_time?: string | null;
   status: string;
+  is_charged?: boolean | null;
 }
 
 export interface AppointmentBreakdown {
   totalBooked: number;
   completed: number;
   noShows: number;
+  noShowsCharged: number;
+  noShowsUncharged: number;
   scheduledFuture: number;
   scheduledPending: number;
 }
@@ -49,6 +52,8 @@ export function calculateAppointmentBreakdown(
     }
     if (appointment.status === 'no_show') {
       result.noShows += 1;
+      if (appointment.is_charged) result.noShowsCharged += 1;
+      else result.noShowsUncharged += 1;
       return result;
     }
 
@@ -63,6 +68,8 @@ export function calculateAppointmentBreakdown(
     totalBooked: 0,
     completed: 0,
     noShows: 0,
+    noShowsCharged: 0,
+    noShowsUncharged: 0,
     scheduledFuture: 0,
     scheduledPending: 0,
   });

@@ -64,6 +64,7 @@ export type Database = {
           date: string
           duration_minutes: number
           id: string
+          is_charged: boolean
           mode: Database["public"]["Enums"]["appointment_mode"]
           notes: string | null
           patient_id: string | null
@@ -82,6 +83,7 @@ export type Database = {
           date: string
           duration_minutes: number
           id?: string
+          is_charged?: boolean
           mode?: Database["public"]["Enums"]["appointment_mode"]
           notes?: string | null
           patient_id?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           date?: string
           duration_minutes?: number
           id?: string
+          is_charged?: boolean
           mode?: Database["public"]["Enums"]["appointment_mode"]
           notes?: string | null
           patient_id?: string | null

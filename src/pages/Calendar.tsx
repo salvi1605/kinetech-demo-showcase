@@ -18,6 +18,8 @@ import {
   Lock
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { NoShowChargeButton, ChargedBadge } from '@/components/shared/NoShowChargeButton';
+import { canEditCharge } from '@/lib/noShowCharge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -823,6 +825,19 @@ export const Calendar = () => {
                         {stateAttr === 'indeterminate' && <X className="h-3 w-3 text-red-600" />}
                       </button>
                     )}
+                    {appointment.status === 'no_show' && appointment.patientId && state.currentClinicId && (
+                      <NoShowChargeButton
+                        appointmentId={appointment.id}
+                        clinicId={state.currentClinicId}
+                        patientId={appointment.patientId}
+                        treatmentTypeId={appointment.treatmentTypeId}
+                        date={appointment.date}
+                        isCharged={!!appointment.isCharged}
+                        canEdit={canEditCharge(state.userRole)}
+                        size="sm"
+                        onChanged={() => refetch()}
+                      />
+                    )}
                     {isExclusiveTreatment(appointment) && (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -839,9 +854,12 @@ export const Calendar = () => {
                         )}
                       </span>
                       <span className="text-[10px] opacity-75 truncate">{practitioner?.name || 'Profesional'}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit ${statusBadge.className}`}>
-                        {statusBadge.label}
-                      </span>
+                      <div className="flex items-center gap-1 overflow-hidden">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full w-fit shrink-0 ${statusBadge.className}`}>
+                          {statusBadge.label}
+                        </span>
+                        {appointment.status === 'no_show' && appointment.isCharged && <ChargedBadge className="shrink-0" />}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1453,6 +1471,7 @@ export const Calendar = () => {
                                                }`}>
                                                   {statusLabel(appointment.status as AppointmentStatus)}
                                                </span>
+                                               {appointment.status === 'no_show' && appointment.isCharged && <ChargedBadge />}
                                             </div>
                                             <div className="text-xs text-muted-foreground flex items-center gap-2">
                                               <User className="h-3 w-3" />
@@ -1472,6 +1491,19 @@ export const Calendar = () => {
                               {statusToChecked(appointment.status as Status) === 'indeterminate' && <X className="h-4 w-4 text-red-600" />}
                             </button>
                           )}
+                    {appointment.status === 'no_show' && appointment.patientId && state.currentClinicId && (
+                      <NoShowChargeButton
+                        appointmentId={appointment.id}
+                        clinicId={state.currentClinicId}
+                        patientId={appointment.patientId}
+                        treatmentTypeId={appointment.treatmentTypeId}
+                        date={appointment.date}
+                        isCharged={!!appointment.isCharged}
+                        canEdit={canEditCharge(state.userRole)}
+                        size="md"
+                        onChanged={() => refetch()}
+                      />
+                    )}
                                         </div>
                                       </Card>
                                     );
