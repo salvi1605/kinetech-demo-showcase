@@ -11,6 +11,7 @@ const hasDataChanged = (prev: Appointment[], next: Appointment[]): boolean => {
     if (
       prev[i].id !== next[i].id ||
       prev[i].status !== next[i].status ||
+      prev[i].isCharged !== next[i].isCharged ||
       prev[i].subSlot !== next[i].subSlot ||
       prev[i].patientId !== next[i].patientId ||
       prev[i].practitionerId !== next[i].practitionerId ||
@@ -62,6 +63,7 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
           patient_id,
           practitioner_id,
           treatment_type_id,
+          is_charged,
           patients (
             id,
             full_name,
@@ -100,6 +102,7 @@ export const useAppointmentsForClinic = (startDate: Date, endDate: Date) => {
         type: 'consultation' as const,
         treatmentType: mapTreatmentTypeToInternal(apt.treatment_type_id, apt.treatment_types?.name),
         treatmentTypeId: apt.treatment_type_id || undefined,
+        isCharged: apt.is_charged ?? false,
       }));
 
       // Solo actualizar estado si los datos realmente cambiaron
