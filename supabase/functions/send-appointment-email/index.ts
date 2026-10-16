@@ -47,10 +47,22 @@ Deno.serve(async (req) => {
   if (claimsError || !callerId) return json({ error: 'Unauthorized' }, 401)
   {
     const admin = createClient(supabaseUrl, supabaseServiceKey)
+    // user_roles.user_id references public.users.id, not the auth ID: translate first.
+    const { data: appUser, error: userError } = await admin
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', callerId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (userError) {
+      console.error('User lookup failed', { code: userError.code })
+      return json({ error: 'Server error' }, 500)
+    }
+    if (!appUser) return json({ error: 'Forbidden' }, 403)
     const { data: roleRows, error: roleError } = await admin
       .from('user_roles')
       .select('role_id')
-      .eq('user_id', callerId)
+      .eq('user_id', appUser.id)
       .eq('active', true)
       .in('role_id', ['receptionist', 'admin_clinic', 'tenant_owner', 'super_admin'])
       .limit(1)
