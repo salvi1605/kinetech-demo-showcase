@@ -9,4 +9,4 @@
 - [x] Textos del recordatorio WhatsApp/email: copy exacto aprobado con «avísanos», enlace al teléfono existente de la clínica; variantes verificadas sin enviar emails.
 - [ ] Publicación solicitada con aprobación de Salvi; producción devuelve HTTP 200 pero la comprobación inicial aún mostró la versión anterior. Pendiente verificar propagación del despliegue.
 - [x] Auditoría de Configuración (fase 1, solo informe, sin cambios).
-- [ ] Roles de plataforma (trigger+backfill), invisibilidad super_admin, mención legal soporte, voseo responde
+- [x] Roles de plataforma (trigger+backfill), invisibilidad super_admin, mención legal soporte, voseo responde
