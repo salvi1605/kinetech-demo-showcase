@@ -149,12 +149,12 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       form.setValue('notes', appointment.notes || '');
       setIsEditing(false);
       setSelectedSubSlot(undefined);
+      setChargedLocal(null);
     }
   }, [appointment, open, form]);
 
   if (!appointment) return null;
 
-  const [chargedLocal, setChargedLocal] = useState<boolean | null>(null);
   const patient = state.patients.find(p => p.id === appointment.patientId);
   const practitioner = state.practitioners.find(p => p.id === appointment.practitionerId);
   const appointmentDate = appointment.date.length === 10 ? parseLocalDate(appointment.date) : parseISO(appointment.date);
