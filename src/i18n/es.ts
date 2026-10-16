@@ -299,7 +299,9 @@ export const es = {
 
   // ── Terms ──
   terms: {
-    heading: "Términos del Servicio",
+    supportTitle: "Acceso de soporte de la plataforma",
+    supportBody: "Para brindar soporte técnico, mantenimiento y seguridad, el personal autorizado de AgendixPro cuenta con acceso de soporte de la plataforma a todas las clínicas. Este acceso no figura en la lista de equipo de la clínica, se usa solo cuando es necesario para operar el servicio y todas sus acciones quedan registradas en el registro de auditoría.",
+        heading: "Términos del Servicio",
     intro: "AgendixPro ofrece acceso a una plataforma web para gestión de agenda clínica y servicios de mantenimiento según el plan contratado. Al utilizar el servicio, el cliente acepta las condiciones descritas en este documento. Si no está de acuerdo con alguna de ellas, no debe utilizar la plataforma.",
     s1title: "1. Uso general del servicio",
     s1body: "AgendixPro proporciona herramientas para organizar turnos, registrar pacientes, gestionar disponibilidad de profesionales y realizar seguimiento operativo dentro de clínicas y consultorios de salud. El acceso se otorga mediante cuentas de usuario individuales asociadas a una clínica registrada en la plataforma.",
@@ -356,7 +358,9 @@ export const es = {
 
   // ── Privacy ──
   privacy: {
-    heading: "Política de Privacidad",
+    supportTitle: "Acceso de soporte de la plataforma",
+    supportBody: "Para brindar soporte técnico, mantenimiento y seguridad, el personal autorizado de AgendixPro cuenta con acceso de soporte de la plataforma a todas las clínicas. Este acceso no figura en la lista de equipo de la clínica, se usa solo cuando es necesario para operar el servicio y todas sus acciones quedan registradas en el registro de auditoría.",
+        heading: "Política de Privacidad",
     intro: "AgendixPro es una plataforma web diseñada para la gestión de agenda y operación de clínicas de salud. Para poder ofrecer el servicio, recopilamos cierta información básica de los usuarios y de los datos que estos registran dentro de la plataforma. Esta política describe de forma sencilla qué información manejamos, cómo la usamos y cómo la protegemos.",
     s1title: "1. Información que recopilamos",
     s1accountTitle: "Información de cuenta",

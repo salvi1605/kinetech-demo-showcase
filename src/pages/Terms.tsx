@@ -111,6 +111,11 @@ export function Terms() {
               <a href={getWhatsAppHref()} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{t.terms.s9whatsapp}</a>.
             </p>
           </section>
+
+          <section>
+            <h2 className="mb-3 text-xl font-semibold">{t.terms.supportTitle}</h2>
+            <p>{t.terms.supportBody}</p>
+          </section>
         </div>
       </div>
     </PublicLayout>

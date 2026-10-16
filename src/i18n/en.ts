@@ -301,7 +301,9 @@ export const en: Translations = {
 
   // ── Terms ──
   terms: {
-    heading: "Terms of Service",
+    supportTitle: "Platform support access",
+    supportBody: "To provide technical support, maintenance and security, authorized AgendixPro staff have platform support access to every clinic. This access is not listed in the clinic team, is used only when needed to operate the service, and all its actions are recorded in the audit log.",
+        heading: "Terms of Service",
     intro: "AgendixPro provides access to a web platform for clinical scheduling management and maintenance services as per the contracted plan. By using the service, the client accepts the conditions described in this document. If you disagree with any of them, you should not use the platform.",
     s1title: "1. General use of the service",
     s1body: "AgendixPro provides tools to organize appointments, register patients, manage practitioner availability, and perform operational tracking within health clinics and offices. Access is granted through individual user accounts associated with a clinic registered on the platform.",
@@ -358,7 +360,9 @@ export const en: Translations = {
 
   // ── Privacy ──
   privacy: {
-    heading: "Privacy Policy",
+    supportTitle: "Platform support access",
+    supportBody: "To provide technical support, maintenance and security, authorized AgendixPro staff have platform support access to every clinic. This access is not listed in the clinic team, is used only when needed to operate the service, and all its actions are recorded in the audit log.",
+        heading: "Privacy Policy",
     intro: "AgendixPro is a web platform designed for scheduling management and operations of health clinics. To provide the service, we collect certain basic information from users and the data they register on the platform. This policy describes in simple terms what information we handle, how we use it, and how we protect it.",
     s1title: "1. Information we collect",
     s1accountTitle: "Account information",
