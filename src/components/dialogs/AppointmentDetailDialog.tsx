@@ -506,6 +506,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                 </span>
               </div>
             </div>
+            {chargeBlock}
 
             {/* Información del paciente */}
             <div className="space-y-3">
