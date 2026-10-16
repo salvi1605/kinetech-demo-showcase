@@ -1,3 +1,4 @@
+import { fetchPlatformStaffIds } from '@/lib/platformStaff';
 import { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -135,7 +136,8 @@ export default function UserManagement() {
         .order('email');
 
       if (usersError) throw usersError;
-      setUsers(usersData || []);
+      const hiddenStaff = await fetchPlatformStaffIds();
+      setUsers((usersData || []).filter((u: { id: string }) => !hiddenStaff.has(u.id)));
 
       // Load roles
       const { data: rolesData, error: rolesError } = await supabase

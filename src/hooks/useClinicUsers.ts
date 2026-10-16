@@ -1,3 +1,4 @@
+import { fetchPlatformStaffIds } from '@/lib/platformStaff';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -59,7 +60,8 @@ export function useClinicUsers(clinicId: string | null) {
       }
 
       // Get unique user IDs
-      const userIds = [...new Set(userRolesData.map(ur => ur.user_id))];
+      const hidden = await fetchPlatformStaffIds();
+      const userIds = [...new Set(userRolesData.map(ur => ur.user_id))].filter(id => !hidden.has(id));
 
       // Fetch user details
       const { data: usersData, error: usersError } = await supabase
