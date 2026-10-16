@@ -54,7 +54,7 @@ export function NoShowChargeButton({ appointmentId, clinicId, patientId, treatme
   const label = value ? 'Con cargo' : 'Sin cargo';
   const tip = canEdit
     ? `${label}. Clic para ${value ? 'quitar' : 'aplicar'} el cargo.${suggestion ? ` ${suggestion.reason}.` : ''}`
-    : `${label} (solo administración o dueño pueden cambiarlo)`;
+    : `${label} (solo recepción, administración o dueño pueden cambiarlo)`;
 
   return (
     <Tooltip>

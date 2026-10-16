@@ -43,6 +43,13 @@
       "when": 1792146469107,
       "tag": "0005_appointments_is_charged",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792173899627,
+      "tag": "0006_charge_receptionist_and_audit",
+      "breakpoints": true
     }
   ]
 }

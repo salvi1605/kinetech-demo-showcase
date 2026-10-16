@@ -260,7 +260,7 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
                     <p className="text-sm font-medium">Cargo de la inasistencia</p>
                     <p className="text-xs text-muted-foreground">
                       {(chargedLocal ?? appointment.isCharged) ? 'Con cargo' : 'Sin cargo'}
-                      {canEditCharge(state.userRole) ? ' · Pasa el cursor sobre «$» para ver la sugerencia' : ' · Solo administración o dueño pueden cambiarlo'}
+                      {canEditCharge(state.userRole) ? ' · Pasa el cursor sobre «$» para ver la sugerencia' : ' · Solo recepción, administración o dueño pueden cambiarlo'}
                     </p>
                   </div>
                   <NoShowChargeButton
