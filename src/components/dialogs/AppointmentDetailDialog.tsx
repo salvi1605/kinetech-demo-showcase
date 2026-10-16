@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { NoShowChargeButton } from '@/components/shared/NoShowChargeButton';
+import { canEditCharge } from '@/lib/noShowCharge';
 import { format, parseISO, startOfWeek } from 'date-fns';
 import { parseLocalDate, formatForClipboard, copyToClipboard, isPastDay } from '@/utils/dateUtils';
 import { es } from 'date-fns/locale';
@@ -900,7 +902,7 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                               Asistió
                             </div>
                           </SelectItem>
-                          <SelectItem value="cancelled">
+                          <SelectItem value="no_show">
                             <div className="flex items-center gap-2">
                               <XCircle className="h-4 w-4 text-red-600" />
                               No Asistió
@@ -916,6 +918,28 @@ ${format(new Date(), 'dd/MM/yyyy HH:mm')}
                   </FormItem>
                 )}
               />
+
+              {appointment.status === 'no_show' && appointment.patientId && state.currentClinicId && (
+                <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Cargo de la inasistencia</p>
+                    <p className="text-xs text-muted-foreground">
+                      {appointment.isCharged ? 'Con cargo' : 'Sin cargo'}
+                      {canEditCharge(state.userRole) ? ' · Pasa el cursor sobre «$» para ver la sugerencia' : ' · Solo administración o dueño pueden cambiarlo'}
+                    </p>
+                  </div>
+                  <NoShowChargeButton
+                    appointmentId={appointment.id}
+                    clinicId={state.currentClinicId}
+                    patientId={appointment.patientId}
+                    treatmentTypeId={appointment.treatmentTypeId}
+                    date={appointment.date}
+                    isCharged={!!appointment.isCharged}
+                    canEdit={canEditCharge(state.userRole)}
+                    onChanged={(v) => { (appointment as { isCharged?: boolean }).isCharged = v; onAppointmentUpdated?.(); }}
+                  />
+                </div>
+              )}
 
               {/* Fecha */}
               <FormField
