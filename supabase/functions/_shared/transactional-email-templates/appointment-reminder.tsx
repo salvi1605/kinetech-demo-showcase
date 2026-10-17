@@ -106,6 +106,10 @@ const AppointmentReminderEmail = ({
             </>
           )}
 
+          <Hr style={hr} />
+          <Text style={footer}>
+            Este correo se envía desde un buzón no monitoreado, por favor no lo respondas. Si quieres dejar de recibir estos avisos, comunícate directamente con tu clínica o consultorio.
+          </Text>
         </Container>
       </Body>
     </Html>

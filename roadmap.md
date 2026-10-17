@@ -1,5 +1,7 @@
 # Pendientes — solo preview
 
+- [ ] Aplicar los pies aprobados de recordatorio e información y desplegar únicamente las funciones de email compartidas.
+- [ ] Informar todos los cambios actuales no publicados, sin publicarlos.
 - [x] Auto-hospedar fuente Inter (400/500/600/700), quitar Google Fonts y verificar cero requests.
 - [x] Recordatorios: selector de canal + acciones.
 - [x] Testimonios de CTAK (Telma) en la home, ES/EN. Solo preview, sin publicar.
