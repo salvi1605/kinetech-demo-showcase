@@ -101,8 +101,11 @@ const AppointmentInfoEmail = ({
 
           <Hr style={hr} />
           <Text style={footer}>
-            Si no reconocés este turno o necesitás reprogramarlo, comunicate con
+            Si no reconoces este turno o necesitas reprogramarlo, comunícate con
             la clínica{clinicPhone ? ` al ${clinicPhone}` : ''}.
+          </Text>
+          <Text style={footer}>
+            Este correo se envía desde un buzón no monitoreado, por favor no lo respondas. Si quieres dejar de recibir estos avisos, comunícate directamente con tu clínica o consultorio.
           </Text>
         </Container>
       </Body>
