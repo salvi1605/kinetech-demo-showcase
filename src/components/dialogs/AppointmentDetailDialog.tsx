@@ -191,6 +191,9 @@ export const AppointmentDetailDialog = ({ open, onOpenChange, appointmentId, onA
       date: apt.date.length === 10 ? apt.date : format(parseISO(apt.date), 'yyyy-MM-dd'),
       startTime: apt.startTime,
       practitionerName: state.practitioners.find((p) => p.id === apt.practitionerId)?.name,
+      treatmentName: apt.treatmentType
+        ? (treatmentLabel[apt.treatmentType as keyof typeof treatmentLabel] || apt.treatmentType)
+        : undefined,
     }));
   const canEdit = state.userRole === 'admin_clinic' || state.userRole === 'tenant_owner' || !isPast;
 

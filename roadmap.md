@@ -12,3 +12,5 @@
 - [x] Publicación previa verificada: producción devuelve HTTP 200 y sirve index-Be_E1rzD.js; recepción y fechas nuevas del sitemap siguen sin publicar.
 - [x] Auditoría de Configuración (fase 1, solo informe, sin cambios).
 - [x] Roles de plataforma (trigger+backfill), invisibilidad super_admin, mención legal soporte, voseo responde
+
+- [x] Mensaje WhatsApp «próximos turnos»: cada línea en formato «Mié 21/10/2026 • 15:00 • Lic. Tomás Ibarra • ATM» (día abreviado, fecha con año, tratamiento incluido); pie del diálogo «Enviar próximos turnos» en tuteo. Solo preview, sin publicar.

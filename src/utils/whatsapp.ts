@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { parseLocalDate } from '@/utils/dateUtils';
+import { capitalize } from '@/utils/formatters';
 
 /** Nombre corto para el saludo: preferido > primer nombre > primera palabra del nombre completo. */
 export const getPatientFirstName = (p: {
@@ -63,6 +64,11 @@ export const dayDDMM = (ymd: string) => {
   const d = parseLocalDate(ymd);
   return `${format(d, 'EEEE', { locale: es })} ${format(d, 'dd/MM')}`;
 };
+/** "Mié 21/10/2026": día abreviado (3 letras, mayúscula inicial) + fecha completa con año. */
+export const dayAbbrDDMMYYYY = (ymd: string) => {
+  const d = parseLocalDate(ymd);
+  return `${capitalize(format(d, 'EEE', { locale: es }))} ${format(d, 'dd/MM/yyyy')}`;
+};
 const hhmm = (t?: string | null) => (t || '').slice(0, 5);
 
 export const buildWhatsAppReminderMessage = ({
@@ -102,6 +108,7 @@ export interface WhatsAppUpcomingItem {
   date: string; // YYYY-MM-DD
   startTime: string;
   practitionerName?: string | null;
+  treatmentName?: string | null;
 }
 
 export const WHATSAPP_UPCOMING_MAX = 10;
@@ -118,8 +125,9 @@ export const buildWhatsAppUpcomingMessage = ({
   const place = clinicName?.trim() ? ` en ${clinicName.trim()}` : '';
   const shown = items.slice(0, WHATSAPP_UPCOMING_MAX);
   const lines = shown.map((a) => {
-    const pro = a.practitionerName?.trim() ? ` – ${a.practitionerName.trim()}` : '';
-    return `• ${dayDDMM(a.date)} ${hhmm(a.startTime)}${pro}`;
+    const pro = a.practitionerName?.trim() ? ` • ${a.practitionerName.trim()}` : '';
+    const tr = a.treatmentName?.trim() ? ` • ${a.treatmentName.trim()}` : '';
+    return `${dayAbbrDDMMYYYY(a.date)} • ${hhmm(a.startTime)}${pro}${tr}`;
   });
   const extra = items.length - shown.length;
   if (extra > 0) lines.push(`y ${extra} ${extra === 1 ? 'turno más' : 'turnos más'}.`);
