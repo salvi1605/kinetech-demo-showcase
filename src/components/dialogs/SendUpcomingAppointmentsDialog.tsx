@@ -154,7 +154,7 @@ export const SendUpcomingAppointmentsDialog = ({ open, onOpenChange, patient, ap
             Enviar próximos turnos
           </DialogTitle>
           <DialogDescription>
-            Revisá los datos antes de enviar. Este es un envío manual único.
+            Revisa los datos antes de enviar. Este es un envío manual único.
           </DialogDescription>
         </DialogHeader>
 

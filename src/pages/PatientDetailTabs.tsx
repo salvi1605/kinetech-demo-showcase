@@ -381,6 +381,9 @@ export const PatientDetailTabs = () => {
               date: a.date,
               startTime: a.startTime,
               practitionerName: practitionerNameOf(a.practitionerId),
+              treatmentName: a.treatmentTypeId
+                ? treatments.find((t) => t.id === a.treatmentTypeId)?.name
+                : undefined,
             }))}
             onEmail={(a) =>
               a === 'reminder'
