@@ -173,7 +173,7 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
       toast({
         title: isPermissionError ? 'Sin permiso' : 'Error de conexión',
         description: isPermissionError 
-          ? 'No tenés permiso para editar esta evolución. Solo podés editar tus propias notas del día actual.'
+          ? 'No tienes permiso para editar esta evolución. Solo puedes editar tus propias notas del día actual.'
           : 'Cambios guardados localmente. Se sincronizarán al recuperar conexión.',
         variant: 'destructive',
       });
