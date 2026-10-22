@@ -19,6 +19,7 @@ import { ClinicalSnapshotBlock } from './ClinicalSnapshotBlock';
 import { PatientClinicoModal } from './PatientClinicoModal';
 import { NoteVersionHistory } from './NoteVersionHistory';
 import { useToast } from '@/hooks/use-toast';
+import { DictationButton } from '@/components/shared/DictationButton';
 
 interface ClinicalHistoryBlockProps {
   patient: Patient;
@@ -503,17 +504,25 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
                           )}
                         </div>
                       </div>
-                      <Textarea
-                        value={drafts[entry.appointmentId] || ''}
-                        onChange={(e) => handleTextChange(entry.appointmentId, e.target.value)}
-                        onBlur={() => handleBlur(entry)}
-                        maxLength={3000}
-                        readOnly={!canEdit(entry)}
-                        placeholder={
-                          entry.date === today && !entry.text ? 'Escribe la evolución de esta cita…' : undefined
-                        }
-                        className="min-h-[48px]"
-                      />
+                      <div className="flex items-start gap-1">
+                        <Textarea
+                          value={drafts[entry.appointmentId] || ''}
+                          onChange={(e) => handleTextChange(entry.appointmentId, e.target.value)}
+                          onBlur={() => handleBlur(entry)}
+                          maxLength={3000}
+                          readOnly={!canEdit(entry)}
+                          placeholder={
+                            entry.date === today && !entry.text ? 'Escribe la evolución de esta cita…' : undefined
+                          }
+                          className="min-h-[48px] flex-1"
+                        />
+                        {canEdit(entry) && (
+                          <DictationButton
+                            value={drafts[entry.appointmentId] || ''}
+                            onChange={(v) => handleTextChange(entry.appointmentId, v)}
+                          />
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground text-right">
                         {(drafts[entry.appointmentId] || '').length}/3000
                       </div>
