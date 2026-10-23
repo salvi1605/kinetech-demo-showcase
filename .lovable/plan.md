@@ -6,6 +6,7 @@
 - `src/components/shared/SeoHead.tsx` tampoco declara una imagen para las páginas públicas.
 - Existe el logotipo oficial en `public/logo.png`; usarlo directamente no ofrece el formato panorámico adecuado para una vista previa social.
 - Los servicios de enlaces compartidos leen el HTML inicial, por lo que agregar la imagen únicamente desde React no resuelve el problema.
+- La respuesta publicada incluye una imagen inyectada por el alojamiento, pero el código no define una imagen de marca controlada por AgendixPro; no basta para dar este hallazgo por corregido.
 
 ## Plan de corrección
 1. Crear una imagen de marca de **1200 × 630 px**, ligera, con el logotipo oficial, el nombre **AgendixPro** y la descripción «Software de agenda y gestión para clínicas». Usar los azules médicos y acentos verdes actuales, sin imágenes de Lovable ni datos de pacientes.
