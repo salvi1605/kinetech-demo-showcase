@@ -1,5 +1,7 @@
 # Pendientes — solo preview
 
+- [ ] Imagen social de marca: crear 1200×630, subir, agregar HTTPS en metadatos estáticos/compartidos y verificar; sin publicar.
+
 - [x] Aplicar los pies aprobados de recordatorio e información y desplegar únicamente las funciones de email compartidas; render verificado sin enviar emails.
 - [x] Informar todos los cambios actuales no publicados, sin publicarlos: permisos/textos de recepción, fechas del sitemap y documentación interna.
 - [x] Auto-hospedar fuente Inter (400/500/600/700), quitar Google Fonts y verificar cero requests.
