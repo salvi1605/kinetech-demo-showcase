@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,6 +62,10 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
 }, ref) => {
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // Last text known to be persisted in the DB per appointment. flushDrafts and the
+  // unload safety net compare against this (not entries[].text, which tracks edits),
+  // so text that never triggered a blur (e.g. voice dictation) is still saved.
+  const savedTextRef = useRef<Record<string, string>>({});
   const [entries, setEntries] = useState<EvolutionEntry[]>([]);
   const [clinicoOpen, setClinicoOpen] = useState(false);
   const [editingSnapshotDate, setEditingSnapshotDate] = useState<string | null>(null);
@@ -94,7 +98,9 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
     
     // Initialize drafts, preferring offline drafts
     const initialDrafts: Record<string, string> = {};
+    const savedTexts: Record<string, string> = {};
     visibleEntries.forEach((e) => {
+      savedTexts[e.appointmentId] = e.text ?? '';
       try {
         const draftJson = localStorage.getItem(`clinical-draft-${e.appointmentId}`);
         if (draftJson) {
@@ -108,6 +114,7 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
 
     setEntries(visibleEntries);
     setDrafts(initialDrafts);
+    savedTextRef.current = savedTexts;
   }, [historyByAppointment, testCurrentDate]);
 
   const canEdit = (entry: EvolutionEntry): boolean => {
@@ -151,6 +158,7 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
       }
       
       await upsertEvolutionNote(patient.id, clinicId, entry);
+      savedTextRef.current[entry.appointmentId] = entry.text ?? '';
       
       // Clear offline draft on success
       try { localStorage.removeItem(`clinical-draft-${entry.appointmentId}`); } catch {}
@@ -190,7 +198,7 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
       const toSave = entries.filter((e) => {
         const draftText = drafts[e.appointmentId];
         if (draftText === undefined) return false;
-        return draftText !== (e.text ?? '');
+        return draftText !== (savedTextRef.current[e.appointmentId] ?? '');
       });
 
       if (toSave.length === 0) {
@@ -236,7 +244,7 @@ export const ClinicalHistoryBlock = forwardRef<ClinicalHistoryBlockHandle, Clini
       try {
         for (const e of entries) {
           const draftText = drafts[e.appointmentId];
-          if (draftText !== undefined && draftText !== (e.text ?? '')) {
+          if (draftText !== undefined && draftText !== (savedTextRef.current[e.appointmentId] ?? '')) {
             localStorage.setItem(
               `clinical-draft-${e.appointmentId}`,
               JSON.stringify({ text: draftText, updatedAt: new Date().toISOString() })
