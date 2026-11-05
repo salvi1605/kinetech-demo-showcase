@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useLayoutEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PractitionerNoteSummary {
@@ -41,9 +41,15 @@ export function usePendingClinicalNotes(
     pendingItems: [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
-    if (!clinicId || !date) return;
+    const requestId = ++requestIdRef.current;
+    const isCurrentRequest = () => requestId === requestIdRef.current;
+    if (!clinicId || !date) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -61,10 +67,10 @@ export function usePendingClinicalNotes(
       }
 
       const { data: notes, error } = await query;
+      if (!isCurrentRequest()) return;
 
       if (error) {
         console.error('[usePendingClinicalNotes] Error:', error);
-        setIsLoading(false);
         return;
       }
 
@@ -81,7 +87,8 @@ export function usePendingClinicalNotes(
         if (!practMap.has(pId)) {
           practMap.set(pId, { name: pName, total: 0, completed: 0 });
         }
-        const entry = practMap.get(pId)!;
+        const entry = practMap.get(pId);
+        if (!entry) continue;
         entry.total++;
         if (note.is_completed) entry.completed++;
       }
@@ -111,14 +118,21 @@ export function usePendingClinicalNotes(
 
       setData({ total, completed, pending, byPractitioner, pendingItems });
     } catch (err) {
-      console.error('[usePendingClinicalNotes] Unexpected error:', err);
+      if (isCurrentRequest()) {
+        console.error('[usePendingClinicalNotes] Unexpected error:', err);
+      }
     } finally {
-      setIsLoading(false);
+      if (isCurrentRequest()) setIsLoading(false);
     }
   }, [clinicId, date, practitionerId]);
 
-  useEffect(() => {
-    fetchData();
+  useLayoutEffect(() => {
+    // Clear the previous context before paint; late requests cannot restore it.
+    setData({ total: 0, completed: 0, pending: 0, byPractitioner: [], pendingItems: [] });
+    void fetchData();
+    return () => {
+      requestIdRef.current++;
+    };
   }, [fetchData]);
 
   return { ...data, isLoading, refetch: fetchData };
