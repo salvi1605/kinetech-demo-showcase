@@ -25,7 +25,7 @@ Solo preview. No se toca la app interna (agenda, pacientes, reportes) ni la base
 Usa el mismo diseño y la misma cabecera y pie de página que la home. Secciones, en orden:
 
 1. **Gancho (H1)**: «¿Cuántos turnos se te pierden por semana?» y debajo el texto del guion («No porque no tengas pacientes, sino porque la agenda vive en tres lugares a la vez: un cuaderno, una planilla y diez chats de WhatsApp.»). Botón «Agenda tu demo de 15 minutos» → /contact.
-2. **Espacio para el video**: marco 16:9 limpio con el texto «Espacio para el video de presentación». No lleva botón de reproducir ni video.
+2. **Espacio para el video**: marco 16:9 limpio con el texto «Espacio para el video de presentación». No lleva botón de reproducir ni video. Queda listo para agregar el archivo cuando lo grabes. La página está completa y se puede publicar sin el video: vende sola con el texto.
 3. **El problema**: 4 tarjetas con los cuatro dolores del guion.
 4. **La solución**: el párrafo de Salvador, textual.
 5. **Cómo funciona**: 4 tarjetas (turnos y reprogramación, ausencias, recordatorios por correo, reportes).
