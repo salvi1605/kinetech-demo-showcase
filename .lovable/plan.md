@@ -25,12 +25,13 @@ Solo preview. No se toca la app interna (agenda, pacientes, reportes) ni la base
 Usa el mismo diseño y la misma cabecera y pie de página que la home. Secciones, en orden:
 
 1. **Gancho (H1)**: «¿Cuántos turnos se te pierden por semana?» y debajo el texto del guion («No porque no tengas pacientes, sino porque la agenda vive en tres lugares a la vez: un cuaderno, una planilla y diez chats de WhatsApp.»). Botón «Agenda tu demo de 15 minutos» → /contact.
-2. **Espacio para el video**: marco 16:9 limpio con el texto «Espacio para el video de presentación». No lleva botón de reproducir ni video. Queda listo para agregar el archivo cuando lo grabes. La página está completa y se puede publicar sin el video: vende sola con el texto.
-3. **El problema**: 4 tarjetas con los cuatro dolores del guion.
-4. **La solución**: el párrafo de Salvador, textual.
-5. **Cómo funciona**: 4 tarjetas (turnos y reprogramación, ausencias, recordatorios por correo, reportes).
-6. **La prueba**: «CTAK, clínica de kinesiología en Buenos Aires, clienta desde abril de 2026». Muestra las tres citas exactas que enviaste, en español y sin cambios en los dos idiomas, con la autoría y la aclaración de autorización.
-7. **Oferta y llamado**: demo en vivo de 15 minutos, sin compromiso, más el bloque de precio y el botón principal → /contact. También el botón de WhatsApp, como en la home.
+2. **El problema**: 4 tarjetas con los cuatro dolores del guion.
+3. **La solución**: el párrafo de Salvador, textual.
+4. **Cómo funciona**: 4 tarjetas (turnos y reprogramación, ausencias, recordatorios por correo, reportes).
+5. **La prueba**: «CTAK, clínica de kinesiología en Buenos Aires, clienta desde abril de 2026». Muestra las tres citas exactas que enviaste, en español y sin cambios en los dos idiomas, con la autoría y la aclaración de autorización.
+6. **Oferta y llamado**: demo en vivo de 15 minutos, sin compromiso, más el bloque de precio y el botón principal → /contact. También el botón de WhatsApp, como en la home.
+
+La página no incluye video: no tiene marco, espacio reservado ni aviso de «próximamente». Todo el mensaje de venta va por escrito.
 
 SEO propio en ES y EN:
 - ES: «Software de agenda para clínicas de kinesiología | AgendixPro»
