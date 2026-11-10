@@ -17,6 +17,7 @@ export const en: Translations = {
     contactLabel: "Contact:",
     emailButton: "Email",
     whatsappButton: "WhatsApp",
+    kinesiology: "Physiotherapy",
   },
   common: {
     backHome: "Back to home",
@@ -27,8 +28,8 @@ export const en: Translations = {
   // ── Home ──
   home: {
     hero: {
-      title: "Scheduling and management software for physiotherapy clinics",
-      subtitle: "Online appointment system, patient records and digital medical history in one place. Fewer missed appointments, less paperwork and more time to treat patients.",
+      title: "Scheduling system for health clinics and practices",
+      subtitle: "Online appointments, patient records and digital medical history in one place. Fewer missed appointments, less paperwork and more time to treat patients.",
       cta: "Request a demo",
       ctaAlt: "Chat on WhatsApp",
     },
@@ -140,15 +141,17 @@ export const en: Translations = {
       ],
     },
     trust: {
-      text: "AgendixPro is currently being used in kinesiology clinics to manage schedules, patients, and daily operations.",
+      text: "AgendixPro is currently being used in health clinics and practices to manage schedules, patients, and daily operations.",
     },
     audience: {
       heading: "Designed for",
       items: [
-        "Kinesiology clinics",
-        "Rehabilitation centers",
-        "Professionals with appointment-based schedules",
-        "Health teams that manage patients daily",
+        { label: "Physiotherapy (kinesiology) clinics", to: "/kinesiologia" },
+        { label: "Physiotherapy and rehabilitation centers" },
+        { label: "Psychology practices" },
+        { label: "Nutrition practices" },
+        { label: "Dental practices" },
+        { label: "Other health professionals who work by appointment" },
       ],
     },
     maintenance: {
@@ -159,6 +162,57 @@ export const en: Translations = {
     contact: {
       heading: "Contact",
       desc: "Get in touch to learn about availability, scope, and service conditions.",
+    },
+  },
+
+  // ── Physiotherapy (sales page) ──
+  kinesiology: {
+    hero: {
+      title: "How many appointments do you lose each week?",
+      subtitle: "Not because you lack patients, but because your schedule lives in three places at once: a notebook, a spreadsheet and ten WhatsApp chats.",
+      cta: "Book your 15-minute demo",
+      ctaAlt: "Chat on WhatsApp",
+    },
+    problem: {
+      heading: "Sound familiar?",
+      items: [
+        "Reception writes one appointment in the notebook and another in WhatsApp, and nobody knows which one is right.",
+        "A patient doesn't show up without notice and the practitioner waits in an empty treatment room.",
+        "At the end of the month nobody knows how many patients missed and how many came.",
+        "The owner puts out fires instead of treating patients.",
+      ],
+    },
+    solution: {
+      heading: "A schedule built for clinics like yours",
+      paragraphs: [
+        "I'm Salvador, and I built AgendixPro for exactly that. It's not a generic system forced to fit: it's a schedule built for clinics like yours.",
+        "Each practitioner has their own schedule and hours. Each patient has their own record with their treatment. And the whole team sees the same thing, in the same place, from any device.",
+      ],
+      signature: "Salvador, creator of AgendixPro",
+    },
+    how: {
+      heading: "How it works",
+      items: [
+        { title: "Appointments in seconds", desc: "Reception books an appointment in seconds, reschedules it without deleting anything and copies the time for the patient." },
+        { title: "No-shows on record", desc: "If someone misses an appointment, it's recorded and you know how many absences each patient has." },
+        { title: "Email reminders", desc: "You can send the patient an email reminder before their appointment." },
+        { title: "Reports without manual counting", desc: "Who came, who missed and which gaps were left, without counting by hand." },
+      ],
+    },
+    proof: {
+      heading: "A real clinic already using it",
+      intro: "CTAK is a physiotherapy (kinesiology) clinic in Buenos Aires and an AgendixPro customer since April 2026. Their quotes are shown in the original Spanish.",
+      telma: "Telma, owner of CTAK",
+      gerardo: "Gerardo Villar, administrator of CTAK",
+      note: "Testimonials published with each person's authorization.",
+    },
+    offer: {
+      heading: "See AgendixPro working in your clinic",
+      desc: "A live 15-minute demo, no commitment.",
+      planLabel: "Plan for our first clinics",
+      cta: "Book your 15-minute demo",
+      ctaAlt: "Chat on WhatsApp",
+      pricingLink: "See plans and pricing",
     },
   },
 
@@ -257,7 +311,7 @@ export const en: Translations = {
     heading: "Frequently asked questions",
     items: [
       { q: "Do I need to install anything?", a: "No. AgendixPro runs in the browser on computer, tablet or phone. You only need an internet connection." },
-      { q: "Is it suitable for my physiotherapy clinic or practice?", a: "Yes. It's built for physiotherapy clinics, rehabilitation centers and practitioners who work by appointment, with one or several practitioners." },
+      { q: "Is it suitable for my clinic or practice?", a: "Yes. It's built for physiotherapy clinics, rehabilitation centers and practitioners who work by appointment, with one or several practitioners." },
       { q: "Is my data and my patients' data secure?", a: "Each user signs in with their own account and role, and only sees their clinic's information. Data is backed up automatically." },
       { q: "How much does it cost?", a: "The monthly plan is USD 250 and includes support and updates. Initial implementation is from USD 250 (one-time): USD 250 base + USD 150 per additional location + USD 25 per additional professional." },
       { q: "How long does it take to get started?", a: "It depends on the clinic's size. We set up practitioners and hours with your team and support you during the first days." },
@@ -428,8 +482,9 @@ export const en: Translations = {
   },
 
   seo: {
-    home: { title: "Software for physiotherapists and clinics — Appointment system | AgendixPro", description: "Online scheduling and appointment software for physiotherapy clinics and practices. Digital clinical records, patients and practitioners in one place. Request your demo." },
-    pricing: { title: "Pricing for clinic and physiotherapy software — AgendixPro", description: "AgendixPro plans: appointment system, practice scheduling and digital clinical records from USD 250/month with support included. Request information." },
+    home: { title: "Scheduling system for health clinics and practices | AgendixPro", description: "Online appointments, patient records and digital clinical history for health clinics and practices. Practitioners, patients and schedule in one place. Request your demo." },
+    kinesiology: { title: "Scheduling software for physiotherapy clinics | AgendixPro", description: "Online scheduling for physiotherapy clinics: appointments, rescheduling, no-shows and reports in one place, for the whole team. Book your 15-minute demo." },
+    pricing: { title: "Pricing for the clinic and practice scheduling system — AgendixPro", description: "AgendixPro plans: appointment system, practice scheduling and digital clinical records from USD 250/month with support included. Request information." },
     contact: { title: "Contact and demo of clinic software — AgendixPro", description: "Talk to the AgendixPro team via WhatsApp, email or the form. We answer questions about our scheduling and clinic management software." },
     digitalRecords: { title: "Digital clinical records — AgendixPro", description: "Digital clinical records for clinics and practices: session-by-session progress notes, secure data and treatment tracking in one system. Request an AgendixPro demo." },
     terms: { title: "Terms and Conditions — AgendixPro", description: "Terms and conditions of use for the AgendixPro software for clinics and healthcare professionals." },

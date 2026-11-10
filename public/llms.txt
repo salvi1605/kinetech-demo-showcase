@@ -4,7 +4,8 @@
 
 ## Pages
 
-- [Inicio](/home): Resumen del producto, beneficios y casos de uso para clínicas.
+- [Inicio](/home): Resumen del producto, beneficios y casos de uso para clínicas y consultorios de salud.
+- [Kinesiología](/kinesiologia): Agenda de turnos, ausencias y reportes para clínicas de kinesiología, con testimonio de una clínica cliente.
 - [Precios](/pricing): Planes y precios disponibles.
 - [Contacto](/contact): Formulario y canales para hablar con el equipo.
 - [Términos](/terms): Términos y condiciones de uso.

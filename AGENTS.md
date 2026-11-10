@@ -10,3 +10,4 @@
 - Keep attendance status and billing separate: `appointments.is_charged` only applies to `no_show`, is reset by a DB trigger otherwise, and only the roles in `CHARGE_EDITOR_ROLES` may change it (mirrored and enforced by a DB trigger), so absence stats stay truthful.
 - Audit `is_charged` changes with a DB trigger (`update_charge` in audit_log), never from the client, because audit_log is not client-writable and logs must not be skippable.
 - Invalidate pending-note requests on context changes and unmount, allowing only the latest request to update state; mount the professional banner only for an identified health_pro to prevent false loading and stale summaries.
+- Show prices on sales pages (e.g. /kinesiologia) only via `getKinesiologyOffer` in `src/lib/kinesiologyPage.ts`, which reads `t.pricing.early`, so they can never diverge from /pricing.

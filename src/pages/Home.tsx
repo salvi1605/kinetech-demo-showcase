@@ -274,7 +274,16 @@ export default function Home() {
             {t.home.audience.items.map((item, i) => (
               <li key={i} className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                <span className="text-muted-foreground">{item}</span>
+                {item.to ? (
+                  <Link
+                    to={item.to}
+                    className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">{item.label}</span>
+                )}
               </li>
             ))}
           </ul>

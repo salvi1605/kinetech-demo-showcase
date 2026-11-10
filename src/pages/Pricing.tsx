@@ -7,6 +7,7 @@ import { SeoHead } from "@/components/shared/SeoHead";
 import { FaqSection } from "@/components/public/FaqSection";
 import { CtaBand } from "@/components/public/CtaBand";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getWhatsAppHref } from "@/utils/obfuscateContact";
 
 export default function Pricing() {
   const { t } = useLanguage();
@@ -89,7 +90,7 @@ export default function Pricing() {
 
               <Button className="mt-8 w-full" size="lg" asChild>
                 <a
-                  href="https://wa.me/5491161000000?text=Hola,%20quiero%20información%20sobre%20AgendixPro"
+                  href={getWhatsAppHref()}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

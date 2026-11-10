@@ -1,6 +1,6 @@
 # Pendientes — solo preview
 
-- [ ] Páginas públicas: home general (ES/EN), nueva /kinesiologia completa solo con texto (sin video, sin marco ni placeholder), título SEO de /pricing general. Esperando aprobación del plan; solo preview.
+- [x] Páginas públicas: home general (ES/EN, pregunta frecuente generalizada), nueva /kinesiologia solo con texto (sin video), título SEO de /pricing general y WhatsApp real en su botón, sitemap, llms.txt y pie de página. Pruebas y revisión escritorio/móvil ES/EN OK; solo preview, sin publicar.
 
 - [x] Corregir banner profesional atascado: ocultar sin profesional, montar solo para health_pro e invalidar consultas obsoletas. Nueve pruebas pasan; preview con sesión propia verificado al cambiar semana y recargar, desktop/móvil sin errores. No se probó una sesión health_pro real ni se modificaron datos; sin publicar.
 

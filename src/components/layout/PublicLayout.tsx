@@ -31,6 +31,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
   const footerLinks = [
     ...navLinks,
+    { to: "/kinesiologia", label: t.footer.kinesiology },
     { to: "/cancellation-policy", label: t.footer.cancellation },
   ];
 

@@ -15,6 +15,7 @@ export const es = {
     contactLabel: "Contacto:",
     emailButton: "Correo",
     whatsappButton: "WhatsApp",
+    kinesiology: "Kinesiología",
   },
   common: {
     backHome: "Volver al inicio",
@@ -25,8 +26,8 @@ export const es = {
   // ── Home ──
   home: {
     hero: {
-      title: "Software de agenda y gestión para clínicas de kinesiología",
-      subtitle: "Sistema de turnos online, ficha de pacientes e historia clínica digital en un solo lugar. Menos turnos perdidos, menos papel y más tiempo para atender.",
+      title: "Sistema de agendas para clínicas y consultorios de salud",
+      subtitle: "Turnos online, ficha de pacientes e historia clínica digital en un solo lugar. Menos turnos perdidos, menos papel y más tiempo para atender.",
       cta: "Solicitar demo",
       ctaAlt: "Hablar por WhatsApp",
     },
@@ -138,16 +139,18 @@ export const es = {
       ],
     },
     trust: {
-      text: "AgendixPro está siendo utilizado actualmente en clínicas de kinesiología para gestionar agenda, pacientes y operación diaria.",
+      text: "AgendixPro está siendo utilizado actualmente en clínicas y consultorios de salud para gestionar agenda, pacientes y operación diaria.",
     },
     audience: {
       heading: "Diseñado para",
       items: [
-        "Clínicas de kinesiología",
-        "Centros de rehabilitación",
-        "Profesionales con agenda por turnos",
-        "Equipos de salud que gestionan pacientes diariamente",
-      ],
+        { label: "Clínicas de kinesiología", to: "/kinesiologia" },
+        { label: "Centros de fisioterapia y rehabilitación" },
+        { label: "Consultorios de psicología" },
+        { label: "Consultorios de nutrición" },
+        { label: "Consultorios de odontología" },
+        { label: "Otros profesionales de la salud con agenda por turnos" },
+      ] as { label: string; to?: string }[],
     },
     maintenance: {
       heading: "AgendixPro no es solo un software.",
@@ -157,6 +160,57 @@ export const es = {
     contact: {
       heading: "Contacto",
       desc: "Contáctanos para conocer disponibilidad, alcance y condiciones del servicio.",
+    },
+  },
+
+  // ── Kinesiología (página de ventas) ──
+  kinesiology: {
+    hero: {
+      title: "¿Cuántos turnos se te pierden por semana?",
+      subtitle: "No porque no tengas pacientes, sino porque la agenda vive en tres lugares a la vez: un cuaderno, una planilla y diez chats de WhatsApp.",
+      cta: "Agenda tu demo de 15 minutos",
+      ctaAlt: "Hablar por WhatsApp",
+    },
+    problem: {
+      heading: "¿Te suena familiar?",
+      items: [
+        "La recepción anota un turno en el cuaderno y otro en WhatsApp, y nadie sabe cuál es el bueno.",
+        "Un paciente falta sin avisar y el profesional espera con el consultorio vacío.",
+        "A fin de mes nadie sabe cuántos pacientes faltaron y cuántos vinieron.",
+        "El dueño apaga incendios en vez de atender.",
+      ],
+    },
+    solution: {
+      heading: "Una agenda hecha para clínicas como la tuya",
+      paragraphs: [
+        "Yo soy Salvador, y construí AgendixPro para eso. No es un sistema genérico adaptado a la fuerza: es una agenda hecha para clínicas como la tuya.",
+        "Cada profesional tiene su agenda con sus horarios. Cada paciente tiene su ficha con su tratamiento. Y todo el equipo ve lo mismo, en el mismo lugar, desde cualquier dispositivo.",
+      ],
+      signature: "Salvador, creador de AgendixPro",
+    },
+    how: {
+      heading: "Cómo funciona",
+      items: [
+        { title: "Turnos en segundos", desc: "La recepción da un turno en segundos, lo reprograma sin borrar nada y le copia el horario al paciente." },
+        { title: "Ausencias registradas", desc: "Si alguien falta, queda registrado y sabes cuántas ausencias lleva cada paciente." },
+        { title: "Recordatorios por correo", desc: "Puedes enviarle al paciente un recordatorio por correo antes de su cita." },
+        { title: "Reportes sin cuentas a mano", desc: "Quién vino, quién faltó y qué huecos quedaron, sin hacer cuentas a mano." },
+      ],
+    },
+    proof: {
+      heading: "Una clínica real que ya lo usa",
+      intro: "CTAK es una clínica de kinesiología en Buenos Aires y clienta de AgendixPro desde abril de 2026.",
+      telma: "Telma, dueña de CTAK",
+      gerardo: "Gerardo Villar, administrador de CTAK",
+      note: "Testimonios publicados con la autorización de cada persona.",
+    },
+    offer: {
+      heading: "Mira AgendixPro funcionando en tu clínica",
+      desc: "Demo en vivo de 15 minutos, sin compromiso.",
+      planLabel: "Plan para las primeras clínicas",
+      cta: "Agenda tu demo de 15 minutos",
+      ctaAlt: "Hablar por WhatsApp",
+      pricingLink: "Ver planes y precios",
     },
   },
 
@@ -255,7 +309,7 @@ export const es = {
     heading: "Preguntas frecuentes",
     items: [
       { q: "¿Tengo que instalar algo?", a: "No. AgendixPro funciona desde el navegador en computadora, tablet o celular. Solo necesitas conexión a internet." },
-      { q: "¿Sirve para mi clínica de kinesiología o consultorio?", a: "Sí. Está pensado para clínicas de kinesiología, centros de rehabilitación y profesionales que trabajan con agenda por turnos, con uno o varios profesionales." },
+      { q: "¿Sirve para mi clínica o consultorio?", a: "Sí. Está pensado para clínicas de kinesiología, centros de rehabilitación y profesionales que trabajan con agenda por turnos, con uno o varios profesionales." },
       { q: "¿Mis datos y los de mis pacientes están seguros?", a: "Cada usuario entra con su cuenta y su rol, y solo ve la información de su clínica. Los datos se respaldan automáticamente." },
       { q: "¿Cuánto cuesta?", a: "El plan mensual es de USD 250 e incluye soporte y actualizaciones. La implementación inicial es desde USD 250 (pago único): USD 250 base + USD 150 por sede adicional + USD 25 por profesional adicional." },
       { q: "¿Cuánto tarda empezar a usarlo?", a: "Depende del tamaño de la clínica. Configuramos profesionales y horarios con tu equipo y los acompañamos en los primeros días de uso." },
@@ -426,8 +480,9 @@ export const es = {
   },
   // ── SEO (títulos y descripciones por página) ──
   seo: {
-    home: { title: "Software para kinesiólogos y clínicas — Sistema de turnos | AgendixPro", description: "Software de agenda y sistema de turnos online para clínicas de kinesiología y consultorios. Historia clínica digital, pacientes y profesionales en un solo lugar. Solicita tu demo." },
-    pricing: { title: "Precios del software para clínicas y kinesiólogos — AgendixPro", description: "Planes de AgendixPro: sistema de turnos, agenda para consultorio e historia clínica digital desde USD 250/mes con soporte incluido. Solicita información." },
+    home: { title: "Sistema de agendas para clínicas y consultorios de salud | AgendixPro", description: "Sistema de turnos online, ficha de pacientes e historia clínica digital para clínicas y consultorios de salud. Profesionales, pacientes y agenda en un solo lugar. Solicita tu demo." },
+    kinesiology: { title: "Software de agenda para clínicas de kinesiología | AgendixPro", description: "Agenda online para clínicas de kinesiología: turnos, reprogramaciones, ausencias y reportes en un solo lugar, para todo el equipo. Agenda tu demo de 15 minutos." },
+    pricing: { title: "Precios del sistema de agendas para clínicas y consultorios — AgendixPro", description: "Planes de AgendixPro: sistema de turnos, agenda para consultorio e historia clínica digital desde USD 250/mes con soporte incluido. Solicita información." },
     contact: { title: "Contacto y demo del software para clínicas — AgendixPro", description: "Habla con el equipo de AgendixPro por WhatsApp, email o el formulario. Respondemos consultas sobre el software de agenda y gestión para clínicas." },
     digitalRecords: { title: "Historia clínica digital — AgendixPro", description: "Historia clínica digital para clínicas y consultorios: evolución clínica por sesión, datos seguros y seguimiento de tratamientos en un solo sistema. Solicita una demo de AgendixPro." },
     terms: { title: "Términos y Condiciones — AgendixPro", description: "Términos y condiciones de uso del software AgendixPro para clínicas y profesionales de la salud." },

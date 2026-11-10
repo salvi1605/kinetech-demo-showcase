@@ -50,6 +50,7 @@ const Contact = lazy(() => import("@/pages/Contact"));
 const SessionExpired = lazy(() => import("@/pages/SessionExpired"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const DigitalRecords = lazy(() => import("@/pages/DigitalRecords"));
+const Kinesiology = lazy(() => import("@/pages/Kinesiology"));
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
                   <Route path="/cancellation-policy" element={<PublicRouteGuard><CancellationPolicy /></PublicRouteGuard>} />
                   <Route path="/contact" element={<PublicRouteGuard><Contact /></PublicRouteGuard>} />
                   <Route path="/historia-clinica-digital" element={<PublicRouteGuard><DigitalRecords /></PublicRouteGuard>} />
+                  <Route path="/kinesiologia" element={<PublicRouteGuard><Kinesiology /></PublicRouteGuard>} />
                   <Route path="/terms" element={<PublicRouteGuard><Terms /></PublicRouteGuard>} />
                   <Route path="/privacy" element={<PublicRouteGuard><Privacy /></PublicRouteGuard>} />
                   <Route path="/login" element={<PublicRouteGuard><Login /></PublicRouteGuard>} />
