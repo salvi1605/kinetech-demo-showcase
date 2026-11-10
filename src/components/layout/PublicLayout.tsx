@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Globe, Mail, MessageCircle, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { AnimatedMenuItems } from "@/components/shared/AnimatedMenuItems";
+import { SocialLinks } from "@/components/shared/SocialLinks";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getMailtoHref, getWhatsAppHref } from "@/utils/obfuscateContact";
 import {
@@ -136,7 +137,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               AgendixPro
             </span>
             <span className="text-sm text-muted-foreground">{t.footer.tagline}</span>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex flex-wrap items-center gap-3 mt-1">
               <span className="text-sm text-muted-foreground">{t.footer.contactLabel}</span>
               <a href={getMailtoHref()}>
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
@@ -150,6 +151,10 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                   {t.footer.whatsappButton}
                 </Button>
               </a>
+              <SocialLinks
+                label={t.footer.socialLabel}
+                ariaPrefix={t.footer.socialAriaPrefix}
+              />
             </div>
           </div>
 

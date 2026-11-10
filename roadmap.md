@@ -1,5 +1,7 @@
 # Pendientes — solo preview
 
+- [x] Redes sociales en el pie público (Instagram, Facebook, TikTok, YouTube): URLs exactas, icono o nombre, pestaña nueva y etiqueta accesible; verificado en home, /kinesiologia y /pricing, escritorio y móvil 360, ES y EN. Solo preview, sin publicar.
+
 - [x] Páginas públicas: home general (ES/EN, pregunta frecuente generalizada), nueva /kinesiologia solo con texto (sin video), título SEO de /pricing general y WhatsApp real en su botón, sitemap, llms.txt y pie de página. Pruebas y revisión escritorio/móvil ES/EN OK; solo preview, sin publicar.
 
 - [x] Corregir banner profesional atascado: ocultar sin profesional, montar solo para health_pro e invalidar consultas obsoletas. Nueve pruebas pasan; preview con sesión propia verificado al cambiar semana y recargar, desktop/móvil sin errores. No se probó una sesión health_pro real ni se modificaron datos; sin publicar.

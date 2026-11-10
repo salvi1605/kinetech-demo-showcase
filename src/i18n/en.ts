@@ -18,6 +18,8 @@ export const en: Translations = {
     emailButton: "Email",
     whatsappButton: "WhatsApp",
     kinesiology: "Physiotherapy",
+    socialLabel: "Follow us",
+    socialAriaPrefix: "AgendixPro on",
   },
   common: {
     backHome: "Back to home",

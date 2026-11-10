@@ -16,6 +16,8 @@ export const es = {
     emailButton: "Correo",
     whatsappButton: "WhatsApp",
     kinesiology: "Kinesiología",
+    socialLabel: "Síguenos",
+    socialAriaPrefix: "AgendixPro en",
   },
   common: {
     backHome: "Volver al inicio",
