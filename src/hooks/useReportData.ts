@@ -28,20 +28,21 @@ export function useOperationalReport(filters: ReportFilters) {
     queryKey: ['report-operational', clinicId, filters],
     enabled: !!clinicId,
     queryFn: async () => {
-      // Fetch appointments in range
-      let q = supabase
-        .from('appointments')
-        .select('id, date, start_time, status, practitioner_id, duration_minutes, is_charged')
-        .eq('clinic_id', clinicId!)
-        .gte('date', filters.dateFrom)
-        .lte('date', filters.dateTo);
+      // Fetch appointments in range (paginated: the server caps each request at 1000 rows)
+      const appointments = await fetchAllRows((from, to) => {
+        let q = supabase
+          .from('appointments')
+          .select('id, date, start_time, status, practitioner_id, duration_minutes, is_charged')
+          .eq('clinic_id', clinicId!)
+          .gte('date', filters.dateFrom)
+          .lte('date', filters.dateTo);
 
-      if (filters.practitionerId) {
-        q = q.eq('practitioner_id', filters.practitionerId);
-      }
+        if (filters.practitionerId) {
+          q = q.eq('practitioner_id', filters.practitionerId);
+        }
 
-      const { data: appointments, error } = await q;
-      if (error) throw error;
+        return q.order('id').range(from, to);
+      });
 
       // Fetch availability to estimate capacity
       let aq = supabase
@@ -196,13 +197,16 @@ export function useProductivityReport(filters: ReportFilters) {
     queryKey: ['report-productivity', clinicId, filters],
     enabled: !!clinicId,
     queryFn: async () => {
-      const { data: appointments, error } = await supabase
-        .from('appointments')
-        .select('id, date, start_time, status, practitioner_id, duration_minutes')
-        .eq('clinic_id', clinicId!)
-        .gte('date', filters.dateFrom)
-        .lte('date', filters.dateTo);
-      if (error) throw error;
+      const appointments = await fetchAllRows((from, to) =>
+        supabase
+          .from('appointments')
+          .select('id, date, start_time, status, practitioner_id, duration_minutes')
+          .eq('clinic_id', clinicId!)
+          .gte('date', filters.dateFrom)
+          .lte('date', filters.dateTo)
+          .order('id')
+          .range(from, to),
+      );
 
       const { data: practitioners, error: pErr } = await supabase
         .from('practitioners')
@@ -295,20 +299,21 @@ export function useTreatmentReport(filters: ReportFilters) {
     queryKey: ['report-treatment', clinicId, filters],
     enabled: !!clinicId,
     queryFn: async () => {
-      let q = supabase
-        .from('appointments')
-        .select('id, date, status, treatment_type_id, practitioner_id')
-        .eq('clinic_id', clinicId!)
-        .gte('date', filters.dateFrom)
-        .lte('date', filters.dateTo)
-        .neq('status', 'cancelled');
+      const appointments = await fetchAllRows((from, to) => {
+        let q = supabase
+          .from('appointments')
+          .select('id, date, status, treatment_type_id, practitioner_id')
+          .eq('clinic_id', clinicId!)
+          .gte('date', filters.dateFrom)
+          .lte('date', filters.dateTo)
+          .neq('status', 'cancelled');
 
-      if (filters.practitionerId) {
-        q = q.eq('practitioner_id', filters.practitionerId);
-      }
+        if (filters.practitionerId) {
+          q = q.eq('practitioner_id', filters.practitionerId);
+        }
 
-      const { data: appointments, error } = await q;
-      if (error) throw error;
+        return q.order('id').range(from, to);
+      });
 
       const { data: treatments, error: tErr } = await supabase
         .from('treatment_types')
@@ -363,24 +368,30 @@ export function useComplianceReport(filters: ReportFilters) {
     enabled: !!clinicId,
     queryFn: async () => {
       // Completed appointments
-      const { data: appointments, error } = await supabase
-        .from('appointments')
-        .select('id, practitioner_id')
-        .eq('clinic_id', clinicId!)
-        .eq('status', 'completed')
-        .gte('date', filters.dateFrom)
-        .lte('date', filters.dateTo);
-      if (error) throw error;
+      const appointments = await fetchAllRows((from, to) =>
+        supabase
+          .from('appointments')
+          .select('id, practitioner_id')
+          .eq('clinic_id', clinicId!)
+          .eq('status', 'completed')
+          .gte('date', filters.dateFrom)
+          .lte('date', filters.dateTo)
+          .order('id')
+          .range(from, to),
+      );
 
-      // Completed clinical notes
-      const { data: notes, error: nErr } = await supabase
-        .from('patient_clinical_notes')
-        .select('id, practitioner_id, body, is_completed')
-        .eq('clinic_id', clinicId!)
-        .eq('note_type', 'evolution')
-        .gte('note_date', filters.dateFrom)
-        .lte('note_date', filters.dateTo);
-      if (nErr) throw nErr;
+      // Completed clinical notes (also paginated: one evolution per appointment)
+      const notes = await fetchAllRows((from, to) =>
+        supabase
+          .from('patient_clinical_notes')
+          .select('id, practitioner_id, body, is_completed')
+          .eq('clinic_id', clinicId!)
+          .eq('note_type', 'evolution')
+          .gte('note_date', filters.dateFrom)
+          .lte('note_date', filters.dateTo)
+          .order('id')
+          .range(from, to),
+      );
 
       const { data: practitioners, error: pErr } = await supabase
         .from('practitioners')

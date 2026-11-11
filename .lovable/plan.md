@@ -49,14 +49,14 @@ Observación que dejo fuera de esta tarea: en Operativo, las consultas de excepc
    - Cumplimiento: también se paginan 1500 evoluciones, y el porcentaje usa todas.
    - Si falla la segunda tanda, el reporte queda en error y no muestra datos parciales.
 2. **Rango corto sin cambios (Clínica Demo, 19/10/2026 a 10/11/2026, menos de 1000 filas):** paso las filas reales por el cálculo viejo (consulta única) y por el nuevo (en tandas), y compruebo que los cuatro resultados sean idénticos campo por campo. También los comparo con conteos SQL directos: turnos por estado, por profesional, por tratamiento y evoluciones completadas.
-3. **Rango largo completo (CTAK, últimos 90 días), solo lectura:** saco totales de control con SQL: 3817 turnos, 3559 completados, conteos por tratamiento y evoluciones completadas por profesional. Paso las filas por el cálculo nuevo y compruebo que coincida con esos totales y que el cálculo viejo se queda en 1000. Solo uso columnas sin datos personales (id, fecha, estado, profesional, tratamiento, duración, cobro). Del texto de la evolución solo uso si está vacía o no: nunca leo su contenido. No modifico nada de CTAK.
-4. **Dentro de la app:** abro las cuatro pestañas en la Clínica Demo con un rango largo y reviso en pantalla que los totales coincidan con el paso 2. Para entrar con una cuenta que tenga acceso a la Demo, te voy a pedir aprobación para abrir la sesión de prueba.
+3. **Rango largo completo:** solo con los datos simulados del paso 1 (2500 filas y 1500 evoluciones). No se hace ninguna lectura de CTAK: regla del proyecto, el QA es solo con la Clínica Demo.
+4. **Dentro de la app:** la verificación en el navegador la hace Muse. No pido ninguna sesión de prueba.
 5. Corro todas las pruebas del proyecto y reviso que la app compile sin errores.
 
-## Decisiones que necesito
+## Decisiones (aprobadas)
 
-1. **Paso 3 con CTAK:** lectura de columnas sin datos personales, sin modificar nada. Si prefieres no usar CTAK ni para leer, hago el rango largo solo con datos simulados (paso 1).
-2. **Sesión de prueba:** ¿me autorizas a pedir la sesión de salvi1605@gmail.com para el paso 4?
+1. Sin lecturas de CTAK: el rango largo se verifica solo con los datos simulados.
+2. Sin pedir sesión de prueba: Muse verifica dentro de la app.
 
 ## Archivos
 
