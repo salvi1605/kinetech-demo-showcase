@@ -13,3 +13,4 @@
 - Invalidate pending-note requests on context changes and unmount, allowing only the latest request to update state; mount the professional banner only for an identified health_pro to prevent false loading and stale summaries.
 - Show prices on sales pages (e.g. /kinesiologia) only via `getKinesiologyOffer` in `src/lib/kinesiologyPage.ts`, which reads `t.pricing.early`, so they can never diverge from /pricing.
 - Build public social profile links only from `SOCIAL_LINKS` in `src/lib/socialLinks.ts`, rendered by `src/components/shared/SocialLinks.tsx`, so the four official URLs, their new-tab behavior and accessible labels stay identical on every public page.
+- Add public indexable routes to the `entries` list in `scripts/generate-sitemap.ts` (the single source of truth, run on predev/prebuild), never by hand-editing `public/sitemap.xml`, because the generator rewrites that file on every build and silently drops routes it does not know.
