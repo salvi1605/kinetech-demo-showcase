@@ -1,79 +1,81 @@
-# Páginas públicas: home general + nueva /kinesiologia
+# Plan: Reporte "Pacientes por profesional" (solo preview)
 
-Solo preview. No se toca la app interna (agenda, pacientes, reportes) ni la base de datos.
+## Qué va a ver el usuario
+Una 5ª pestaña **"Pacientes por profesional"** en Reportes. Usa los filtros Desde / Hasta / Profesional que ya existen arriba (el filtro "Agrupar por" no aplica a esta pestaña y no lo toca). Muestra:
 
-## Diagnóstico (estado actual)
+1. Tarjeta superior: **"Total pacientes distintos en el período: N"** (más el total de turnos completados como dato secundario).
+2. Una tarjeta por profesional con su nombre y su subtotal de pacientes distintos, y una tabla **Tratamiento | Pacientes distintos | Turnos**.
+3. Nota breve debajo de la tarjeta superior:
+   > «Solo cuenta turnos completados. Un paciente que se atendió con varios profesionales o tratamientos aparece en cada fila que le corresponde, pero cuenta una sola vez en el total del período, así que el total puede ser menor que la suma de las filas.»
+4. Mientras carga, esqueletos (igual que Tratamientos). Si no hay datos: «No hay datos para el rango seleccionado.» Si falla la consulta: «No se pudo cargar el reporte. Intenta de nuevo.» (las pestañas actuales no muestran error; esta sí, para que no se confunda un error con "sin datos").
 
-- **Home (/)**: el H1 dice «Software de agenda y gestión para clínicas de kinesiología». El título SEO es «Software para kinesiólogos y clínicas…». La frase de confianza y «Diseñado para» también están centradas en kinesiología. Lo mismo pasa en inglés («physiotherapy clinics»).
-- **HTML estático (lo que leen los buscadores antes de cargar la página)**: el título dice «kinesiólogos» y la descripción tiene voseo («Organizá…»). Uno de los datos estructurados también menciona kinesiología.
-- **/pricing**: el H1 «Planes y servicio» ya es general. Solo el título SEO menciona «kinesiólogos» (en inglés, «physiotherapy»).
-- **Error encontrado en /pricing**: el botón «Solicitar información» abre WhatsApp con un número de prueba (`5491161000000`), no con el número real que usa el resto del sitio. Esto no toca los precios.
-- **Sitemap y archivo para asistentes de IA**: no incluyen /kinesiologia (todavía no existe).
+Sin nombres de pacientes en ningún lugar, sin exportación nueva (el botón global Imprimir / PDF ya cubre esta pestaña), sin presets de fecha, sin voseo.
 
-## 1. Home general (ES y EN)
+## Archivos
+| Archivo | Cambio |
+|---|---|
+| `src/utils/reportMetrics.ts` | Nueva función pura `calculatePractitionerPatients(appointments, practitioners, treatments)` con toda la lógica de conteo. Va aquí por la regla de AGENTS.md: las agregaciones de reportes viven en este archivo. |
+| `src/utils/reportMetrics.test.ts` (nuevo) | Pruebas de la regla de conteo (ver abajo). |
+| `src/hooks/useReportData.ts` | Nuevo hook `usePractitionerPatientsReport(filters)`: patrón de `useTreatmentReport` (useQuery + cliente, `clinic_id` + rango + profesional opcional) y llama a la función pura. |
+| `src/components/reports/PractitionerPatientsReport.tsx` (nuevo) | Vista con el estilo de `TreatmentReport` (tarjetas `bg-card rounded-lg border`, shadcn `Table`, `Skeleton`, punto de color del tratamiento). Sin gráficos. Clase `report-printable` para Imprimir / PDF. |
+| `src/pages/Reports.tsx` | Nuevo `TabsTrigger value="patients"` y `TabsContent`, pasa `dateFrom`, `dateTo` y `practitionerId` (misma conversión `'all'` → undefined que Tratamientos). Agrega `patients: 'Pacientes por Profesional'` a `tabTitles` para el título del PDF. |
+| `roadmap.md`, memoria de Reportes | Registrar la 5ª pestaña (la memoria hoy lista solo cuatro reportes). |
 
-- Título SEO: «Sistema de agendas para clínicas y consultorios de salud | AgendixPro». La descripción también queda general.
-- H1: «Sistema de agendas para clínicas y consultorios de salud».
-- Subtítulo: misma idea, en general: «Turnos online, ficha de pacientes e historia clínica digital en un solo lugar. Menos turnos perdidos, menos papel y más tiempo para atender.»
-- «Diseñado para»: clínicas de kinesiología (enlace a /kinesiologia), centros de fisioterapia y rehabilitación, consultorios de psicología, consultorios de nutrición, consultorios de odontología y otros profesionales de la salud con agenda por turnos.
-- Confianza: «AgendixPro está siendo utilizado actualmente en clínicas y consultorios de salud para gestionar agenda, pacientes y operación diaria.»
-- Los testimonios de CTAK, las funcionalidades, la historia clínica, los pasos, el acompañamiento, las preguntas frecuentes y los botones quedan iguales.
-- HTML estático: título y descripción generales, sin voseo. También quito «kinesiología» del dato estructurado.
+No hay cambios en la base de datos, permisos, agenda ni historias clínicas.
 
-## 2. Nueva página /kinesiologia (ES y EN)
+## Lógica de conteo exacta
+**Consulta** (solo columnas necesarias, nunca `patients`):
+```
+appointments.select('id, patient_id, practitioner_id, treatment_type_id')
+  .eq('clinic_id', clinicId)
+  .eq('status', 'completed')
+  .gte('date', dateFrom).lte('date', dateTo)
+  [.eq('practitioner_id', practitionerId) si hay filtro]
+  .order('id')
+```
+Más los catálogos de la propia clínica, para poner nombres:
+- `treatment_types.select('id, name, color').eq('clinic_id', clinicId)` **sin** filtrar `is_active`, para que un tratamiento desactivado después siga con su nombre en turnos históricos.
+- `practitioners.select('id, display_name, color, is_active').eq('clinic_id', clinicId)` **sin** filtrar `is_active`, por la misma razón; los inactivos se muestran con "(inactivo)".
 
-Usa el mismo diseño y la misma cabecera y pie de página que la home. Secciones, en orden:
+**Agregación** (en la función pura, equivalente al SQL que verificaste):
+- Grupo = (profesional, tratamiento). Por grupo: `Set` de `patient_id` → **Pacientes distintos** = tamaño del Set; **Turnos** = cantidad de turnos del grupo.
+- Subtotal por profesional = tamaño de un `Set` propio de `patient_id` del profesional (tampoco es suma de filas).
+- **Total distinto del período** = tamaño de un único `Set` global con todos los `patient_id` del conjunto filtrado. Se calcula aparte, **nunca** sumando filas. Si hay filtro de profesional, el conjunto ya viene limitado, así que el total también.
+- Orden: profesionales por nombre; tratamientos por pacientes distintos desc, luego nombre; "Sin clasificar" al final.
 
-1. **Gancho (H1)**: «¿Cuántos turnos se te pierden por semana?» y debajo el texto del guion («No porque no tengas pacientes, sino porque la agenda vive en tres lugares a la vez: un cuaderno, una planilla y diez chats de WhatsApp.»). Botón «Agenda tu demo de 15 minutos» → /contact.
-2. **El problema**: 4 tarjetas con los cuatro dolores del guion.
-3. **La solución**: el párrafo de Salvador, textual.
-4. **Cómo funciona**: 4 tarjetas (turnos y reprogramación, ausencias, recordatorios por correo, reportes).
-5. **La prueba**: «CTAK, clínica de kinesiología en Buenos Aires, clienta desde abril de 2026». Muestra las tres citas exactas que enviaste, en español y sin cambios en los dos idiomas, con la autoría y la aclaración de autorización.
-6. **Oferta y llamado**: demo en vivo de 15 minutos, sin compromiso, más el bloque de precio y el botón principal → /contact. También el botón de WhatsApp, como en la home.
+**treatment_type_id NULL** → fila **"Sin clasificar"** (color neutro del tema). Si el id apunta a un tratamiento que no está en el catálogo de la clínica (no debería pasar; hoy hay 0 casos cruzados) también cae en "Sin clasificar", nunca rompe. CTAK tiene hoy 144 turnos completados sin tratamiento, así que este caso es real.
 
-La página no incluye video: no tiene marco, espacio reservado ni aviso de «próximamente». Todo el mensaje de venta va por escrito.
+**patient_id NULL** → el turno cuenta en **Turnos** de su fila, pero no suma a ningún conteo de pacientes (no se puede identificar a la persona). Hoy hay 0 casos, pero queda cubierto y probado.
 
-SEO propio en ES y EN:
-- ES: «Software de agenda para clínicas de kinesiología | AgendixPro»
-- EN: «Scheduling software for physiotherapy clinics | AgendixPro»
+**Profesional borrado o ajeno** (id sin coincidencia): se muestra "Profesional sin identificar", nunca un UUID.
 
-Enlaces nuevos: desde «Diseñado para» de la home y desde el pie de página (ES «Kinesiología», EN «Physiotherapy»). También agrego la página al sitemap y al archivo para asistentes de IA.
+## Volumen: límite de 1000 filas
+El servidor devuelve como máximo 1000 filas por consulta. CTAK tiene unos 3550 turnos completados en los últimos 90 días, así que una sola consulta cortaría los datos y el total sería falso. El hook pedirá los turnos en tandas de 1000 con `.range()` (ordenado por `id`) hasta traer todo. Son pocas consultas (unas 4 para 3 meses de CTAK).
 
-## 3. /pricing
+> Hallazgo aparte (fuera de este pedido, no lo toco): los reportes actuales (Operativo, Productividad, Tratamientos, Cumplimiento) hacen una sola consulta y en clínicas grandes como CTAK pueden estar mostrando números incompletos en rangos largos. Lo dejo anotado para que decidas si se corrige después.
 
-- Generalizo solo el título SEO en ES y EN. Los precios y el resto de los textos no cambian.
-- Propongo corregir el número de WhatsApp del botón para que use el número real del sitio.
+Alternativa si prefieres: una función en la base de datos que devuelva los conteos ya agregados con `COUNT(DISTINCT)`. Es más eficiente para rangos de un año, pero agrega una pieza nueva con control de permisos propio. Recomiendo las tandas por ser el patrón actual y no tocar la base.
 
-## Decisiones que necesito que confirmes (si no dices nada, aplico la opción indicada por defecto)
-
-1. **Precio idéntico.** /pricing dice «USD 250/mes hasta 6 profesionales, más USD 30/mes por profesional adicional» y la puesta en marcha «Desde USD 250 (pago único)» con su desglose. Tu texto dice «puesta en marcha de USD 250».
-   **Por defecto:** /kinesiologia muestra exactamente los mismos textos de /pricing, tomados de la misma fuente para que nunca puedan diferir: «Desde USD 250» y la nota de profesionales adicionales.
-2. **Recordatorios.** Está prohibido que el sistema envíe recordatorios automáticos, y el texto de la home aprobado antes no los describe como automáticos ni como manuales. «Los recordatorios llegan por correo antes de la cita» suena a envío automático.
-   **Por defecto:** «Puedes enviarle al paciente un recordatorio por correo antes de su cita.»
-3. **Citas de CTAK.** Las tres frases que enviaste son fragmentos de las citas completas de la home. La regla guardada dice que las citas no se acortan sin nueva autorización. Tú indicas que estos fragmentos ya están autorizados.
-   **Por defecto:** uso las tres frases exactas que enviaste, sin agregar ni quitar nada.
-4. **Pregunta frecuente «¿Sirve para mi clínica de kinesiología o consultorio?»** Pediste dejar las preguntas frecuentes iguales.
-   **Por defecto:** no la cambio. Si prefieres, la generalizo a «¿Sirve para mi clínica o consultorio?».
-5. **WhatsApp de /pricing.** **Por defecto:** lo corrijo al número real.
+## Seguridad y acceso
+- La pestaña vive dentro de `ReportsContent`, que solo se renderiza dentro del `RoleGuard` de `Reports` con `allowedRoles={['admin_clinic','tenant_owner']}` (más super_admin sin suplantación, como el resto de Reportes). health_pro y receptionist reciben «No tienes acceso a esta sección.» y la pestaña no existe para ellos. No se agrega ningún guard nuevo ni ruta nueva.
+- Aislamiento: todas las consultas filtran por `state.currentClinicId` y la base sigue aplicando sus reglas de acceso; el `queryKey` incluye `clinicId`, así que al cambiar de clínica no se mezclan datos en caché.
+- Nunca se consulta `patients`; los `patient_id` solo se usan en memoria para contar y no se muestran.
 
 ## Verificación
+1. **Pruebas** (`reportMetrics.test.ts`), con datos de prueba armados para que el total ≠ suma de filas:
+   - Un paciente con 2 tratamientos del mismo profesional → cuenta 1 en cada fila, 1 en el subtotal del profesional, 1 en el total.
+   - Un paciente con 2 profesionales → 1 en cada profesional, 1 en el total (total < suma de filas).
+   - Mismo paciente 3 turnos en un grupo → Pacientes distintos 1, Turnos 3.
+   - `treatment_type_id` null → fila "Sin clasificar".
+   - `patient_id` null → suma a Turnos, no a pacientes.
+   - Lista vacía → total 0, sin profesionales.
+   - Prueba del hook con cliente simulado: 1000 + 500 filas → se piden 2 tandas y se cuentan las 1500.
+2. **Contraste con tu SQL** en Clínica Demo (Ventas), 19/10/2026 a 10/11/2026: debe dar 50 pacientes distintos, 234 turnos, 4 profesionales, 7 tratamientos. Ojo: en la Demo cada paciente tiene un único profesional y tratamiento (la suma de filas también da 50), por eso la diferencia total vs. suma se prueba con los datos de prueba del punto 1.
+3. **Preview con sesión real** (Playwright): abrir Reportes → "Pacientes por profesional" en ese rango, comparar números; elegir un profesional y confirmar que el total baja a sus pacientes; rango sin turnos → estado vacío; revisar escritorio y móvil 360 px sin scroll horizontal.
+4. **RoleGuard**: prueba de render de `Reports` con rol `health_pro` y `receptionist` → aparece «No tienes acceso a esta sección.» y no aparece la pestaña; con `admin_clinic` y `tenant_owner` sí aparece.
+5. Nada se publica.
 
-- Pruebas pequeñas que se quedan en el proyecto:
-  - El precio de /kinesiologia es el mismo que el de /pricing (USD 250/mes y puesta en marcha desde USD 250).
-  - El H1 y el título SEO de la home no mencionan kinesiología.
-- Revisión visual en el preview (escritorio y móvil, ES y EN) de /, /kinesiologia y /pricing.
-- Revisión de voseo en cada texto nuevo.
-
-## Detalle técnico
-
-- `src/i18n/es.ts` y `en.ts`:
-  - Cambian `home.hero`, `home.trust`, `home.audience.items` (pasan a `{ label, to? }`), `seo.home` y `seo.pricing`.
-  - Se agregan el bloque `kinesiology` y `seo.kinesiology`, más `footer.kinesiology`.
-  - Las citas de CTAK de /kinesiologia viven en un único lugar sin traducir y se renderizan con `lang="es"`.
-- Nueva `src/pages/Kinesiology.tsx`, con `PublicLayout`, `SeoHead path="/kinesiologia"` y tokens del sistema de diseño. El precio se lee de `t.pricing.early.*`.
-- `src/App.tsx`: ruta pública `/kinesiologia` con `PublicRouteGuard`, igual que las demás.
-- `PublicLayout.tsx`: el enlace se agrega solo en el pie de página (no en el menú superior).
-- `Home.tsx`: «Diseñado para» renderiza un `Link` cuando el ítem tiene `to`.
-- `Pricing.tsx`: el botón de WhatsApp usa `getWhatsAppHref()`.
-- `index.html`, `public/sitemap.xml` y `public/llms.txt`: se actualizan.
-- Prueba nueva con vitest junto a la existente.
+## Decisiones que confirmo con tu aprobación
+- Tratamientos y profesionales inactivos se incluyen si tienen turnos completados en el rango (con "(inactivo)" en profesionales).
+- Tandas de 1000 en lugar de una función nueva en la base.
+- Se muestra un subtotal de pacientes distintos por profesional (además del total del período).
