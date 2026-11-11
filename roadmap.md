@@ -1,5 +1,8 @@
 # Pendientes — solo preview
 
+- [x] Reportes: 5ª pestaña «Pacientes por profesional» (pacientes distintos por profesional y tratamiento, subtotal por profesional, total del período; tandas de 1000). Conteo contrastado con SQL en Clínica Demo (50/234/4/7); pruebas pasan. No se pudo abrir con sesión de la Clínica Demo en la prueba automática. Solo preview, sin publicar.
+- [ ] Pendiente a decidir: los otros cuatro reportes hacen una sola consulta y pueden quedar incompletos en clínicas con más de 1000 turnos en el rango.
+
 - [x] Redes sociales en el pie público (Instagram, Facebook, TikTok, YouTube): URLs exactas, icono o nombre, pestaña nueva y etiqueta accesible; verificado en home, /kinesiologia y /pricing, escritorio y móvil 360, ES y EN. Solo preview, sin publicar.
 
 - [x] Páginas públicas: home general (ES/EN, pregunta frecuente generalizada), nueva /kinesiologia solo con texto (sin video), título SEO de /pricing general y WhatsApp real en su botón, sitemap, llms.txt y pie de página. Pruebas y revisión escritorio/móvil ES/EN OK; solo preview, sin publicar.

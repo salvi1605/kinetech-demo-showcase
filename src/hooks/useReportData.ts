@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { format, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { calculateAppointmentBreakdown } from '@/utils/reportMetrics';
+import { calculateAppointmentBreakdown, calculatePractitionerPatients } from '@/utils/reportMetrics';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 
 /** Parse 'YYYY-MM-DD' as local date (avoids UTC shift from new Date(string)) */
 function parseLocalDate(dateStr: string): Date {
@@ -415,6 +416,51 @@ export function useComplianceReport(filters: ReportFilters) {
           compliancePct: e.completedAppts > 0 ? Math.round((e.completedNotes / e.completedAppts) * 100) : 0,
         }))
         .sort((a, b) => b.compliancePct - a.compliancePct);
+    },
+  });
+}
+
+// ─── 5. Practitioner Patients Report ───
+export function usePractitionerPatientsReport(filters: ReportFilters) {
+  const { state } = useApp();
+  const clinicId = state.currentClinicId;
+
+  return useQuery({
+    queryKey: ['report-practitioner-patients', clinicId, filters.dateFrom, filters.dateTo, filters.practitionerId ?? null],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const appointments = await fetchAllRows((from, to) => {
+        let q = supabase
+          .from('appointments')
+          .select('id, patient_id, practitioner_id, treatment_type_id')
+          .eq('clinic_id', clinicId!)
+          .eq('status', 'completed')
+          .gte('date', filters.dateFrom)
+          .lte('date', filters.dateTo);
+        if (filters.practitionerId) {
+          q = q.eq('practitioner_id', filters.practitionerId);
+        }
+        return q.order('id').range(from, to);
+      });
+
+      // Catálogos completos (incluye inactivos) para nombrar turnos históricos
+      const { data: practitioners, error: pErr } = await supabase
+        .from('practitioners')
+        .select('id, display_name, color, is_active')
+        .eq('clinic_id', clinicId!);
+      if (pErr) throw pErr;
+
+      const { data: treatments, error: tErr } = await supabase
+        .from('treatment_types')
+        .select('id, name, color')
+        .eq('clinic_id', clinicId!);
+      if (tErr) throw tErr;
+
+      return calculatePractitionerPatients(
+        appointments,
+        (practitioners || []).map(p => ({ id: p.id, name: p.display_name, color: p.color, is_active: p.is_active })),
+        treatments || [],
+      );
     },
   });
 }

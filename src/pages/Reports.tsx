@@ -13,6 +13,7 @@ import OperationalReport from '@/components/reports/OperationalReport';
 import ProductivityReport from '@/components/reports/ProductivityReport';
 import TreatmentReport from '@/components/reports/TreatmentReport';
 import ComplianceReport from '@/components/reports/ComplianceReport';
+import PractitionerPatientsReport from '@/components/reports/PractitionerPatientsReport';
 
 export default function Reports() {
   return (
@@ -40,6 +41,7 @@ function ReportsContent() {
     productivity: 'Productividad Profesional',
     treatments: 'Sesiones por Tratamiento',
     compliance: 'Cumplimiento Historias Clínicas',
+    patients: 'Pacientes por Profesional',
   };
 
   return (
@@ -103,6 +105,7 @@ function ReportsContent() {
             <TabsTrigger value="productivity" className="flex-1 min-w-[120px]">Productividad</TabsTrigger>
             <TabsTrigger value="treatments" className="flex-1 min-w-[120px]">Tratamientos</TabsTrigger>
             <TabsTrigger value="compliance" className="flex-1 min-w-[120px]">Cumplimiento</TabsTrigger>
+            <TabsTrigger value="patients" className="flex-1 min-w-[120px]">Pacientes por profesional</TabsTrigger>
           </TabsList>
 
           <TabsContent value="operational">
@@ -128,6 +131,14 @@ function ReportsContent() {
 
           <TabsContent value="compliance">
             <ComplianceReport dateFrom={dateFrom} dateTo={dateTo} />
+          </TabsContent>
+
+          <TabsContent value="patients">
+            <PractitionerPatientsReport
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              practitionerId={practitionerId && practitionerId !== 'all' ? practitionerId : undefined}
+            />
           </TabsContent>
         </Tabs>
       </div>
