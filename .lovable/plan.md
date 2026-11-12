@@ -1,68 +1,94 @@
-# Plan: reportes completos en rangos largos (Operativo, Productividad, Tratamientos, Cumplimiento)
+# Plan: el inicio de sesión no debe expulsar al usuario por el paso de perfil
 
-## Diagnóstico
+## 1. Diagnóstico (causa raíz)
 
-Los cuatro reportes piden sus filas grandes en una sola consulta. El servidor devuelve como máximo 1000 filas por consulta, así que lo que pasa de 1000 se pierde sin ningún aviso.
+**Qué hace hoy el paso `ensure-public-user`** (se ejecuta en cada inicio de sesión y en cada recarga):
+- Guarda el perfil con un "upsert" **por email**, con el email tal como viene del login, sin pasarlo a minúsculas.
+- La tabla de perfiles tiene dos reglas de unicidad: por email y por cuenta de acceso (`auth_user_id`).
+- Si el perfil guardado tiene el email distinto al del login (por ejemplo `Juan@Gmail.com` contra `juan@gmail.com`, o un email cambiado a medias), el upsert no encuentra coincidencia por email, intenta **crear un perfil nuevo** y choca con la regla de "una cuenta, un perfil": error de duplicado.
+- En la app, si ese paso falla, se reintenta una vez y después se **cierra la sesión** y se manda a "sesión cerrada". Como el perfil sigue igual, cada intento posterior falla igual: el usuario queda afuera para siempre.
 
-Datos reales de los últimos 90 días (solo conteos, de lectura):
+**Cómo se llega a un email distinto** (confirmado en el código):
+- Alta de usuario (`create-user`, diálogo "Nuevo usuario"): guarda el email del perfil tal como se escribe. El sistema de acceso lo guarda siempre en minúsculas. Basta con que un administrador escriba una mayúscula.
+- Edición de usuario (`update-user`): cambia primero el email del perfil y después el de acceso, sin revisar si este segundo paso falló. Si falla, quedan distintos.
+- El proceso que vincula perfiles preexistentes (`sync_auth_user`) también compara el email de forma exacta.
 
-| Clínica | Turnos | Completados | No cancelados | Evoluciones |
-|---|---|---|---|---|
-| CTAK | 3817 | 3559 | 3817 | 3817 |
-| Clínica Demo (Ventas) | 276 | 234 | 276 | 276 |
+**Segunda vía, menor:** en el primer inicio de sesión la app lanza este paso dos veces casi a la vez. Si el perfil todavía no existe, uno de los dos puede chocar con el otro y dar el mismo error de duplicado. En ese caso el reintento sí funciona, así que no deja al usuario afuera.
 
-En CTAK, un mes ronda los 1270 turnos, así que **hoy hasta un rango de un mes sale incompleto**. En Cumplimiento hay dos consultas que se cortan: los turnos completados y las evoluciones. Por eso el porcentaje puede salir mal incluso cuando el corte afecta a las dos.
+**Hallazgo lateral:** hoy el paso pisa el nombre del perfil en cada inicio de sesión. Si no hay nombre en los datos de acceso, pone el email. 7 de los 15 perfiles tienen el email como nombre.
 
-## Qué cambia
+## 2. Qué cuentas sufrieron el error (requisito 4)
 
-Solo cambia `src/hooks/useReportData.ts`. Las consultas grandes pasan a `fetchAllRows` (`src/utils/fetchAllRows.ts`), con `.order('id').range(from, to)` en tandas de 1000:
+- **No pude ver el error en los registros.** Los registros de esta función que conserva el sistema solo muestran arranques y apagados, sin errores de duplicado. No puedo atribuir el aviso de Lovable a una cuenta concreta.
+- **Hoy ninguna cuenta está en estado de bloqueo:** los 15 perfiles tienen el email igual al de acceso, todos en minúsculas, sin duplicados ni perfiles sin vincular.
+- **Personal que inició sesión en las últimas 30 h y cuyo perfil se actualizó bien después del login** (o sea, el paso funcionó):
+  - CTAK: telmaayastuy@gmail.com, marianela.arroyo@gmail.com, gerardovillar2014@gmail.com, mirianluciaarias@hotmail.com, acostamariavictoria5@gmail.com
+  - Demo, CTAK y acceso global: salvi1605@gmail.com
+  - Cuentas de prueba sin clínica ni roles (mailosaur.net): mn9mp, 7vcfo, 08maw y p71ul, creadas el 11/11 y el 12/11. Son primeros inicios de sesión, justo donde puede darse la segunda vía, la que se resuelve sola.
+- En las últimas 48 h hubo 11 visitas a "sesión cerrada". Las de 13:25, 18:00 y 21:04 de hoy van seguidas, a los 8–9 segundos, de un inicio de sesión exitoso de una cuenta de CTAK. Encaja más con cierres por inactividad seguidos de un nuevo ingreso que con un bloqueo permanente.
+- **Conclusión:** no hay evidencia de que alguien de CTAK haya quedado bloqueado. Si el error ocurrió, lo más probable es que fuera en los primeros ingresos de las cuentas de prueba. Aun así, el defecto es real y cualquier alta con una mayúscula lo dispara, así que conviene corregirlo.
+- Para estas consultas solo leí emails de personal, sus clínicas y sus fechas. Ningún dato de pacientes.
 
-| Hook | Consulta que se pagina | Filtros que se mantienen idénticos |
-|---|---|---|
-| `useOperationalReport` | `appointments` | clinic_id, Desde/Hasta, profesional opcional |
-| `useProductivityReport` | `appointments` | clinic_id, Desde/Hasta |
-| `useTreatmentReport` | `appointments` | clinic_id, Desde/Hasta, `status <> cancelled`, profesional opcional |
-| `useComplianceReport` | `appointments` **y** `patient_clinical_notes` | clinic_id, Desde/Hasta (`date` / `note_date`), `status = completed`, `note_type = evolution` |
+## 3. Cambios propuestos
 
-**No cambia:**
-- Las columnas pedidas, los filtros y las claves de caché.
-- Todo el cálculo posterior: capacidad, desglose de estados, ocupación, horas, conteos por tratamiento y por mes, y la regla de evolución completada.
-- Los componentes y lo que muestra cada reporte.
-- Los otros cuatro reportes no tienen ninguna función de cálculo nueva, y la pestaña «Pacientes por profesional» queda igual.
-- Las tablas chicas siguen con una sola consulta, porque están muy por debajo de 1000 filas por clínica: horarios (14–20), excepciones (126 en CTAK, filtradas además por rango), feriados, profesionales y tratamientos.
-- No hay cambios en la base, en los permisos ni en el RoleGuard.
+### A. Base de datos (migración reversible)
+1. Nueva función interna `ensure_public_user(auth_user_id, email, full_name)`, que solo puede ejecutar el servidor (sin permiso para usuarios logueados ni anónimos). Hace todo en un solo paso y con bloqueo por cuenta, para que dos llamadas simultáneas no choquen:
+   - Busca el perfil **por `auth_user_id`**. Si existe, actualiza el email (en minúsculas) si cambió. No crea otro perfil.
+   - Si el nuevo email ya lo usa **otro** perfil: no toca nada, no falla y devuelve un aviso `email_conflict`. Nunca borra ni fusiona.
+   - Si no hay perfil por cuenta, pero sí uno sin vincular con ese email (sin distinguir mayúsculas), lo vincula. Es el caso de usuarios dados de alta antes de su primer ingreso.
+   - Si no hay nada, crea el perfil.
+   - Nombre: solo se escribe al crear el perfil, o si el actual está vacío o es igual al email. Ya no se pisa un nombre real.
+2. Regla automática en la tabla de perfiles: todo email que se guarde se pasa a minúsculas y sin espacios, venga de donde venga (alta, edición o login). Hoy los 15 perfiles ya cumplen, así que no cambia ningún dato existente.
+3. `sync_auth_user` compara el email sin distinguir mayúsculas.
+4. No se tocan `user_roles`, las reglas de seguridad de filas (RLS), las clínicas ni ningún perfil existente.
 
-**Por qué el orden no altera los números:** `order('id')` usa la clave primaria, así que las tandas no se pisan ni dejan huecos. Todos los cálculos actuales son sumas y conteos, que no dependen del orden: filtran por fecha y estado y cuentan por profesional, tratamiento o mes.
+### B. Funciones del servidor
+1. `ensure-public-user`: pasa el email a minúsculas y llama a la función nueva. La respuesta mantiene la misma forma, así que la versión de la app ya publicada sigue funcionando.
+2. `create-user`: pasa el email a minúsculas antes de buscar, crear o comparar.
+3. `update-user` (cambio de email): primero cambia el email de acceso. Si eso falla, devuelve el error y no toca el perfil. Si sale bien, actualiza el perfil (en minúsculas). Así no vuelven a quedar distintos.
 
-**Errores:** si falla cualquier tanda, `fetchAllRows` lanza el error y la consulta queda en error, igual que hoy cuando falla la consulta única. Así nunca se muestra un número parcial.
+### C. App
+1. Saco el paso de perfil del arranque a un módulo pequeño (`src/lib/auth/ensurePublicUser.ts`):
+   - Un reintento.
+   - Renovación del acceso solo si el error es de autorización.
+   - **Nunca cierra la sesión.** Si falla, se registra un aviso y el arranque sigue.
+2. Si después de eso no se encuentra el perfil, en lugar de cerrar la sesión se muestra una pantalla "No pudimos preparar tu cuenta" con dos botones: **Reintentar** y **Cerrar sesión** (este último solo si el usuario lo elige). Va en tuteo neutro y con el estilo actual.
+3. Siguen igual: los cierres por inactividad, por acceso vencido de verdad, el selector de clínica, el acceso global por email y la lógica de roles (incluido el super_admin invisible de salvi1605@gmail.com).
 
-**Costo:** CTAK con 90 días pasa a 4 pedidos en secuencia por reporte. Solo carga la pestaña abierta.
+## 4. Verificación
 
-Observación que dejo fuera de esta tarea: en Operativo, las consultas de excepciones y feriados no revisan si hubo error. No lo toco, para no cambiar el comportamiento; si quieres, va aparte.
+1. **Reproducción con base descartable (requisito 5):** dentro de una transacción que se deshace al final (no queda ningún dato), creo un perfil de prueba `QA.Mayusculas@demo.test` vinculado a una cuenta ficticia:
+   - El upsert actual con `qa.mayusculas@demo.test` da el error de duplicado. Eso confirma el bug.
+   - La función nueva con el mismo caso no da error, conserva el mismo perfil y deja el email en minúsculas.
+   - También pruebo: email cambiado, email ya tomado por otro perfil (sin cambios y sin error), perfil preexistente sin vincular, alta nueva y dos llamadas seguidas (sin duplicados).
+2. **Reproducción real en la Clínica Demo:** tú (Muse) das de alta en la Demo un usuario de prueba con el email en mayúsculas, sin roles de CTAK. Con el código viejo quedaría bloqueado. Con el nuevo entra, y su perfil queda en minúsculas.
+3. **Pruebas automáticas (vitest), que quedan en el proyecto:**
+   - Si el paso de perfil falla, la sesión no se cierra.
+   - El email se normaliza a minúsculas.
+   - Con perfil inexistente, aparece la pantalla de "Reintentar" en lugar de "sesión cerrada".
+4. **Control de salvi1605@gmail.com, antes y después:** mismo id de perfil y los mismos 21 roles activos (5 por rol de clínica más el super_admin global).
+5. La compilación sin errores y todas las pruebas del proyecto pasan.
+6. QA solo en la Clínica Demo. No pruebo nada con datos de CTAK.
 
-## Cómo verifico
+## 5. Importante sobre "solo preview"
 
-1. **Pruebas automáticas nuevas** en `src/hooks/useReportData.test.tsx`, con el mismo estilo que `usePendingClinicalNotes.test.tsx` (cliente simulado y react-test-renderer), para cada uno de los cuatro hooks:
-   - 2500 turnos simulados: el reporte cuenta los 2500, no 1000, y los pedidos son 0–999, 1000–1999 y 2000–2999 con `order('id')`.
-   - 300 turnos: un solo pedido y el mismo resultado que antes.
-   - Los filtros llegan intactos a cada tanda: clínica, fechas, profesional, `neq cancelled` y `completed`.
-   - Cumplimiento: también se paginan 1500 evoluciones, y el porcentaje usa todas.
-   - Si falla la segunda tanda, el reporte queda en error y no muestra datos parciales.
-2. **Rango corto sin cambios (Clínica Demo, 19/10/2026 a 10/11/2026, menos de 1000 filas):** paso las filas reales por el cálculo viejo (consulta única) y por el nuevo (en tandas), y compruebo que los cuatro resultados sean idénticos campo por campo. También los comparo con conteos SQL directos: turnos por estado, por profesional, por tratamiento y evoluciones completadas.
-3. **Rango largo completo:** solo con los datos simulados del paso 1 (2500 filas y 1500 evoluciones). No se hace ninguna lectura de CTAK: regla del proyecto, el QA es solo con la Clínica Demo.
-4. **Dentro de la app:** la verificación en el navegador la hace Muse. No pido ninguna sesión de prueba.
-5. Corro todas las pruebas del proyecto y reviso que la app compile sin errores.
+Esta app usa **una sola base de datos y las mismas funciones del servidor para la vista previa y la producción**. Por eso:
+- **Lo que solo afecta a la vista previa:** el cambio de la app (C). Llega a producción recién cuando publiques.
+- **Lo que queda activo en producción en cuanto se aplique:** la migración (A) y las funciones del servidor (B). Ya lo están usando las cuentas de CTAK. Están diseñadas para funcionar con la app ya publicada, y por sí solas ya eliminan el error de duplicado.
 
-## Decisiones (aprobadas)
+**Te propongo:**
+- Paso 1: implemento C, las pruebas y la reproducción descartable. Nada de esto toca producción.
+- Paso 2: solo con tu OK explícito, aplico A y B.
+- Paso 3: publicar la app, cuando lo digas.
 
-1. Sin lecturas de CTAK: el rango largo se verifica solo con los datos simulados.
-2. Sin pedir sesión de prueba: Muse verifica dentro de la app.
+Dime si apruebas los pasos 1 y 2 juntos o por separado.
 
-## Archivos
+## Decisiones a confirmar
+1. Dejar de pisar el nombre del perfil en cada inicio de sesión (recomendado). Los 7 perfiles que ya tienen el email como nombre no se corrigen solos.
+2. Pantalla "No pudimos preparar tu cuenta" en lugar de "sesión cerrada" cuando falta el perfil.
+3. ¿De dónde salen las cuentas de prueba mailosaur.net? ¿Son tuyas? No las toco.
 
-- Modifico `src/hooks/useReportData.ts`, solo en los cuatro hooks.
-- Creo `src/hooks/useReportData.test.tsx`.
-- Actualizo `AGENTS.md` con esta regla: las consultas de reportes que pueden pasar de 1000 filas se traen solo con `fetchAllRows`.
-- Actualizo `roadmap.md`.
-
-Todo queda solo en vista previa. No publico nada sin tu orden.
+## Detalle técnico
+- Archivos: nueva migración; `supabase/functions/ensure-public-user/index.ts`, `create-user/index.ts`, `update-user/index.ts`; `src/contexts/AppContext.tsx`; nuevo `src/lib/auth/ensurePublicUser.ts` con su prueba; `src/components/shared/AuthRouteGuard.tsx` para la pantalla de reintento; regla nueva en `AGENTS.md`: perfiles por `auth_user_id`, email en minúsculas, el paso de perfil nunca cierra sesión.
+- La función SQL usa `pg_advisory_xact_lock(hashtext(auth_user_id))`, `SECURITY DEFINER`, `search_path` fijo y `REVOKE EXECUTE` a `anon` y `authenticated`. Bajada: `DROP FUNCTION`, quitar el trigger y restaurar el cuerpo anterior de `sync_auth_user`.
+- La regla de unicidad del email se mantiene. Con todos los emails normalizados, ya no distingue mayúsculas en la práctica.
