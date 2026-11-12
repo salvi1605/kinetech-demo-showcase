@@ -3,6 +3,7 @@ import { addWeeks, subWeeks, format } from 'date-fns';
 import type { TreatmentType } from '@/types/appointments';
 import type { EvolutionEntry } from '@/types/patient';
 import { supabase } from '@/integrations/supabase/client';
+import { ensurePublicUserSafely } from '@/lib/auth/ensurePublicUser';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 import { getSelectedRole, clearSelectedRole } from '@/lib/selectedRoleStorage';
 
@@ -68,6 +69,7 @@ export interface AppState {
   hasRolesPending: boolean; // true si tiene roles pero ninguna clínica accesible
   isSuperAdmin: boolean; // true si el usuario tiene rol super_admin global
   isImpersonatingRole: boolean; // true cuando super_admin eligió operar con otro rol
+  accountSetupError: boolean; // true si la sesión es válida pero no se pudo preparar el perfil (nunca se cierra la sesión por esto)
 }
 
 export type PatientDocument = {
@@ -235,6 +237,7 @@ export type AppAction =
   | { type: 'LOGIN'; payload: User }
   | { type: 'LOGOUT' }
   | { type: 'SET_AUTH_LOADING'; payload: boolean }
+  | { type: 'SET_ACCOUNT_SETUP_ERROR'; payload: boolean }
   | { type: 'ADD_PATIENT'; payload: Patient }
   | { type: 'UPDATE_PATIENT'; payload: { id: string; updates: Partial<Patient> } }
   | { type: 'DELETE_PATIENT'; payload: string }
@@ -328,6 +331,7 @@ const initialState: AppState = {
   hasRolesPending: false,
   isSuperAdmin: false,
   isImpersonatingRole: false,
+  accountSetupError: false,
 };
 
 // Reducer
@@ -417,6 +421,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         isAuthenticated: true,
         isLoadingAuth: false,
+        accountSetupError: false,
         currentUser: action.payload,
         userRole: action.payload.role,
         currentUserId: action.payload.id,
@@ -429,6 +434,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         isAuthenticated: false,
         isLoadingAuth: false,
+        accountSetupError: false,
         currentUser: undefined,
         currentUserId: '',
         currentUserName: '',
@@ -442,6 +448,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         isLoadingAuth: action.payload,
+      };
+
+    case 'SET_ACCOUNT_SETUP_ERROR':
+      return {
+        ...state,
+        accountSetupError: action.payload,
       };
     
     case 'ADD_PATIENT':
@@ -828,44 +840,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const bootstrapUser = async (userId: string, userMetadata: any) => {
       try {
-        const { error: ensureError } = await supabase.functions.invoke('ensure-public-user', {
-          body: {
-            fullName: userMetadata?.full_name ?? null,
-          },
-        });
-        if (ensureError) {
-          console.warn('[Bootstrap] ensure-public-user failed, refreshing session...', ensureError.message);
-          // Refresh the session before retrying — token may have expired
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
-            console.error('[Bootstrap] Session refresh failed:', refreshError.message);
-            await supabase.auth.signOut();
-            dispatch({ type: 'LOGOUT' });
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            window.location.replace('/session-expired?reason=expired');
-            return;
-          }
-          await new Promise(r => setTimeout(r, 500));
-          const { error: retryError } = await supabase.functions.invoke('ensure-public-user', {
+        // Profile step: retries once and NEVER signs the user out on failure.
+        await ensurePublicUserSafely({
+          invoke: () => supabase.functions.invoke('ensure-public-user', {
             body: { fullName: userMetadata?.full_name ?? null },
-          });
-          if (retryError) {
-            console.error('[Bootstrap] ensure-public-user retry failed:', retryError.message);
-            await supabase.auth.signOut();
-            dispatch({ type: 'LOGOUT' });
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            window.location.replace('/session-expired?reason=expired');
-            return;
-          }
-        }
+          }),
+          refreshSession: () => supabase.auth.refreshSession(),
+        });
 
         const clinicsResult = await getUserClinicsFromDB(userId);
 
         if (!clinicsResult) {
-          await supabase.auth.signOut();
-          dispatch({ type: 'LOGOUT' });
+          // Valid session but no usable profile: keep the session and let the user retry.
+          dispatch({ type: 'SET_ACCOUNT_SETUP_ERROR', payload: true });
           dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-          window.location.replace('/session-expired?reason=expired');
           return;
         }
 
@@ -1114,10 +1102,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         dispatch({ type: 'SET_AUTH_LOADING', payload: false });
       } catch (error) {
         console.error('Error during auth bootstrap:', error);
-        await supabase.auth.signOut();
-        dispatch({ type: 'LOGOUT' });
+        // Keep the session: show the retry screen instead of signing the user out.
+        dispatch({ type: 'SET_ACCOUNT_SETUP_ERROR', payload: true });
         dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-        window.location.replace('/session-expired?reason=expired');
       }
     };
 

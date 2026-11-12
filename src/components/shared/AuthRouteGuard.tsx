@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AccountSetupError } from '@/components/shared/AccountSetupError';
+import { shouldShowAccountSetupError } from '@/lib/auth/accountSetup';
 
 interface AuthRouteGuardProps {
   children: ReactNode;
@@ -23,6 +25,11 @@ export const AuthRouteGuard = ({ children, requireClinic = true }: AuthRouteGuar
         </div>
       </div>
     );
+  }
+
+  // Valid session but the profile could not be prepared: keep the session, offer retry
+  if (shouldShowAccountSetupError(state.accountSetupError, 'auth', location.pathname)) {
+    return <AccountSetupError />;
   }
 
   // Redirect to login if not authenticated

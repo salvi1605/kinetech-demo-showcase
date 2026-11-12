@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useApp } from '@/contexts/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeEmail } from '@/lib/auth/ensurePublicUser';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -74,7 +75,7 @@ export const Login = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizeEmail(email),
         password,
       });
 
@@ -142,7 +143,7 @@ export const Login = () => {
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizeEmail(email),
         password,
         options: {
           emailRedirectTo: redirectUrl,

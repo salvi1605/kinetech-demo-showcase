@@ -1,5 +1,10 @@
 # Pendientes — solo preview
 
+- [x] Login: Paso 1 (app en preview). El paso de perfil reintenta una vez y nunca cierra la sesión; pantalla «No pudimos preparar tu cuenta» con Reintentar/Cerrar sesión; email normalizado en el login. Pruebas automáticas y reproducción descartable en base local OK. Sin publicar.
+- [ ] Login: Paso 2 — aplicar la migración (perfil por cuenta, email en minúsculas) y desplegar ensure-public-user, create-user y update-user. Borrador en `.lovable/drafts/ensure_public_user_migration.sql`. Bloqueado: espera OK explícito (va directo a producción).
+- [ ] Login: reproducción real en Clínica Demo con usuario de email en mayúsculas. Bloqueado: después del Paso 2.
+- [ ] Login: Paso 3 — publicar la app. Bloqueado: OK del dueño.
+
 - [x] Sitemap en producción: /kinesiologia sumado a la fuente de verdad `scripts/generate-sitemap.ts` (el generador la borraba del XML en cada build). Publicado y verificado en vivo: 8 URLs con /kinesiologia y home 200.
 
 - [x] Reportes: 5ª pestaña «Pacientes por profesional» (pacientes distintos por profesional y tratamiento, subtotal por profesional, total del período; tandas de 1000). Conteo contrastado con SQL en Clínica Demo (50/234/4/7); pruebas pasan. No se pudo abrir con sesión de la Clínica Demo en la prueba automática. Solo preview, sin publicar.
