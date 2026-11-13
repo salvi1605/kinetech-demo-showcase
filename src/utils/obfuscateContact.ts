@@ -5,10 +5,10 @@
  * The values are split and reassembled at runtime, making simple regex scrapers ineffective.
  */
 
-const _e = ["agendix", "pro2026", "@", "gm", "ail", ".com"];
+const _e = ["agendix", "pro", ".app", "@", "gm", "ail", ".com"];
 const _w = ["https://", "wa", ".me/", "1226", "2244", "099"];
 
-/** Returns `mailto:agendixpro2026@gmail.com` assembled at runtime */
+/** Returns `mailto:agendixpro.app@gmail.com` assembled at runtime */
 export function getMailtoHref(): string {
   return `mailto:${_e.join("")}`;
 }
