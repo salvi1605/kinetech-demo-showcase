@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             from: "AgendixPro <onboarding@resend.dev>",
-            to: ["agendixpro2026@gmail.com"],
+            to: ["agendixpro.app@gmail.com"],
             subject: `[AgendixPro] Nuevo mensaje de contacto de ${escapeHtml(sanitized.name)}`,
             html: `
               <h2>Nuevo mensaje de contacto</h2>
